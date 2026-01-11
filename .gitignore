@@ -1,0 +1,10 @@
+node_modules
+dist
+_index.ts
+.DS_Store
+/coverage
+.jest-cache
+tsconfig.tsbuildinfo
+
+.turbo
+.github/workflows/*.yml

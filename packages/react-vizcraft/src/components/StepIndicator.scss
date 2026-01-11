@@ -1,0 +1,151 @@
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 2rem;
+  background: #1f2937; // Gray-800
+  border-right: 1px solid #374151; // Gray-700
+  width: 300px;
+  min-width: 300px;
+  overflow-y: auto;
+
+  h2 {
+    color: #f3f4f6;
+    margin-top: 0;
+    margin-bottom: 2rem;
+    font-size: 1.5rem;
+  }
+
+  .step-list {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .step-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 2rem;
+
+    &:last-child {
+      padding-bottom: 0;
+      
+      .step-line {
+        display: none;
+      }
+    }
+
+    &.completed {
+      .step-circle {
+        background: #10b981; // Emerald-500
+        border-color: #10b981;
+        color: white;
+      }
+      
+      .step-line {
+        background: #10b981;
+      }
+
+      .step-label {
+        color: #d1d5db; // Gray-300
+      }
+    }
+
+    &.active {
+      .step-circle {
+        background: #4f46e5; // Indigo-600
+        border-color: #4f46e5;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3);
+      }
+
+      .step-label {
+        color: #fff;
+        font-weight: 600;
+      }
+    }
+
+    &.pending {
+      .step-circle {
+        background: transparent;
+        border-color: #4b5563; // Gray-600
+        color: #9ca3af; // Gray-400
+      }
+
+      .step-label {
+        color: #6b7280; // Gray-500
+      }
+    }
+  }
+
+  .step-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 24px;
+    flex-shrink: 0;
+  }
+
+  .step-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    background: #1f2937;
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+
+  .step-line {
+    width: 2px;
+    flex: 1;
+    background: #374151; // Gray-700
+    margin-top: 4px;
+    margin-bottom: 4px;
+    transition: background 0.3s ease;
+  }
+
+  .step-content {
+    padding-top: 2px;
+  }
+
+  .step-label {
+    font-size: 1rem;
+    transition: color 0.3s ease;
+  }
+
+  .controls {
+    margin-top: auto;
+    padding-top: 2rem;
+    display: flex;
+    justify-content: center;
+
+    button {
+      background: #10b981; // Emerald-500
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+
+      &:hover {
+        background: #059669; // Emerald-600
+      }
+
+      &:disabled {
+        background: #374151;
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+    }
+  }
+}

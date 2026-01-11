@@ -1,0 +1,27 @@
+{
+  "name": "@vizcraft/react",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@vizcraft/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vizcraft/core": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sass": "^1.95.0",
+    "typescript": "^5.9.3"
+  }
+}

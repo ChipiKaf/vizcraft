@@ -1,0 +1,15 @@
+{
+  "name": "@vizcraft/core",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

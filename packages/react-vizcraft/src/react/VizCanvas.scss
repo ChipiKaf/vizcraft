@@ -1,0 +1,66 @@
+.viz-canvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+// Keyframes
+@keyframes vizFlow {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+// Animation Classes
+
+// Flow Animation (Dashed line moving)
+.viz-anim-flow {
+  .viz-edge {
+    stroke-dasharray: 5, 5;
+    animation: vizFlow var(--viz-anim-duration, 2s) linear infinite;
+  }
+}
+
+// Node Transition (if using CSS transforms in future, or for other props)
+.viz-node-group {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+// Overlay Classes
+.viz-grid-label {
+  fill: #6B7280; // Gray-500
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.viz-signal {
+    fill: #3B82F6; // Blue-500
+    cursor: pointer;
+    // Ensure the group captures events
+    pointer-events: all; 
+    
+    // Animate the transform (scale) on the group
+    transition: transform 0.2s ease-out, fill 0.2s ease-out;
+
+    // Visual shape inherits properties
+    .viz-signal-shape {
+        fill: inherit;
+    }
+
+    &:hover {
+        fill: #60A5FA; // Blue-400 (Lighter)
+        transform: scale(1.5);
+    }
+}

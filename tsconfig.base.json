@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "target": "ES2024",
+        "module": "esnext",
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "esModuleInterop": true,
+        "moduleResolution": "bundler",
+        "skipLibCheck": true,
+        "customConditions": [
+            "development"
+        ]
+    }
+}

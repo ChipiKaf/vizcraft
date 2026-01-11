@@ -1,0 +1,50 @@
+{
+  "name": "vizcraft-root",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "clean": "rimraf dist node_modules packages/**/dist packages/**/node_modules package-lock.json yarn.lock",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest run --watch",
+    "test:turbo": "turbo run test",
+    "prepare": "husky",
+    "lint": "eslint 'packages/**/*.{ts,tsx}' --ignore-pattern '**/*.d.ts'",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write 'packages/**/*.{ts,tsx,js,jsx,json,css,md}'",
+    "format:check": "prettier --check 'packages/**/*.{ts,tsx,js,jsx,json,css,md}'",
+    "changeset": "changeset",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+  },
+  "author": {
+    "name": "Chipili Kafwilo",
+    "email": "ckafwilo@gmail.com",
+    "url": "https://chipilidev.com"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.6",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "conventional-changelog-cli": "^5.0.0",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2",
+    "rimraf": "^5.0.5",
+    "turbo": "^2.5.5",
+    "vitest": "^3.2.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
