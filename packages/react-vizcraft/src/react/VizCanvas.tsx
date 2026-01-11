@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { VizScene, VizNode } from '@vizcraft/core';
+import type { VizScene, VizNode, VizEdge } from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -145,7 +145,7 @@ export function VizCanvas(props: VizCanvasProps) {
 
         {/* 1. Edges (Visual + Hit + Labels) */}
         <g className="viz-layer-edges">
-          {edges.map((edge) => {
+          {edges.map((edge: VizEdge) => {
             const start = nodesById.get(edge.from);
             const end = nodesById.get(edge.to);
             if (!start || !end) return null;
@@ -207,7 +207,7 @@ export function VizCanvas(props: VizCanvasProps) {
                     className="viz-edge-hit"
                     stroke="transparent"
                     strokeWidth={edge.hitArea || 10}
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       if (edge.onClick) {
                         e.stopPropagation();
                         edge.onClick(edge.id, edge);

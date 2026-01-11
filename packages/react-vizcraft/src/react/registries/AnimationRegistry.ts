@@ -1,4 +1,4 @@
-import type { VizNode, VizEdge, VizAnimSpec } from '@vizcraft/core';
+import type { VizNode, VizEdge, VizAnimSpec } from 'vizcraft';
 import type React from 'react';
 
 export interface AnimRendererContext<T = any> {

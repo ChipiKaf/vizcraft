@@ -1,10 +1,5 @@
 import type React from 'react';
-import type {
-  VizNode,
-  VizEdge,
-  VizOverlaySpec,
-  VizScene,
-} from '@vizcraft/core';
+import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from 'vizcraft';
 
 export interface OverlayRenderContext<T = any> {
   spec: VizOverlaySpec<T>;
