@@ -12,6 +12,25 @@ import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
 
+type SvgAttrValue = string | number | undefined;
+
+function setSvgAttributes(el: SVGElement, attrs: Record<string, SvgAttrValue>) {
+  Object.entries(attrs).forEach(([key, value]) => {
+    if (value === undefined) {
+      el.removeAttribute(key);
+    } else {
+      el.setAttribute(key, String(value));
+    }
+  });
+}
+
+function svgAttributeString(attrs: Record<string, SvgAttrValue>) {
+  return Object.entries(attrs)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => ` ${key}="${String(value)}"`)
+    .join('');
+}
+
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
   grid(
@@ -42,6 +61,9 @@ interface NodeBuilder {
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
+  fill(color: string): NodeBuilder;
+  stroke(color: string, width?: number): NodeBuilder;
+  opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
   data(payload: unknown): NodeBuilder;
@@ -509,13 +531,18 @@ class VizBuilderImpl implements VizBuilder {
         shape!.setAttribute('points', pts);
       }
 
+      setSvgAttributes(shape!, {
+        fill: node.style?.fill ?? 'none',
+        stroke: node.style?.stroke ?? '#111',
+        'stroke-width': node.style?.strokeWidth ?? 2,
+        opacity: node.style?.opacity,
+      });
+
       // Label (Recreate for simplicity as usually just text/pos changes)
       let label = group.querySelector('.viz-node-label') as SVGTextElement;
       if (!label && node.label) {
         label = document.createElementNS(svgNS, 'text');
         label.setAttribute('class', 'viz-node-label');
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('dominant-baseline', 'middle');
         group.appendChild(label);
       }
 
@@ -524,12 +551,22 @@ class VizBuilderImpl implements VizBuilder {
         const ly = y + (node.label.dy || 0);
         label!.setAttribute('x', String(lx));
         label!.setAttribute('y', String(ly));
+        label!.setAttribute('text-anchor', node.label.textAnchor || 'middle');
+        label!.setAttribute(
+          'dominant-baseline',
+          node.label.dominantBaseline || 'middle'
+        );
 
         // Update class carefully to preserve 'viz-node-label'
         label!.setAttribute(
           'class',
           `viz-node-label ${node.label.className || ''}`
         );
+        setSvgAttributes(label!, {
+          fill: node.label.fill,
+          'font-size': node.label.fontSize,
+          'font-weight': node.label.fontWeight,
+        });
         label!.textContent = node.label.text;
       } else if (label) {
         label.remove();
@@ -703,16 +740,23 @@ class VizBuilderImpl implements VizBuilder {
 
       svgContent += `<g class="${className}" style="${animStyleStr}">`;
 
+      const shapeStyleAttrs = svgAttributeString({
+        fill: node.style?.fill ?? 'none',
+        stroke: node.style?.stroke ?? '#111',
+        'stroke-width': node.style?.strokeWidth ?? 2,
+        opacity: node.style?.opacity,
+      });
+
       // Shape
       if (shape.kind === 'circle') {
-        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape" />`;
+        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape"${shapeStyleAttrs} />`;
       } else if (shape.kind === 'rect') {
-        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" />`;
+        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape"${shapeStyleAttrs} />`;
       } else if (shape.kind === 'diamond') {
         const hw = shape.w / 2;
         const hh = shape.h / 2;
         const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
-        svgContent += `<polygon points="${pts}" class="viz-node-shape" />`;
+        svgContent += `<polygon points="${pts}" class="viz-node-shape"${shapeStyleAttrs} />`;
       }
 
       // Label
@@ -720,7 +764,14 @@ class VizBuilderImpl implements VizBuilder {
         const lx = x + (node.label.dx || 0);
         const ly = y + (node.label.dy || 0);
         const labelClass = `viz-node-label ${node.label.className || ''}`;
-        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${node.label.text}</text>`;
+        const labelAttrs = svgAttributeString({
+          fill: node.label.fill,
+          'font-size': node.label.fontSize,
+          'font-weight': node.label.fontWeight,
+          'text-anchor': node.label.textAnchor || 'middle',
+          'dominant-baseline': node.label.dominantBaseline || 'middle',
+        });
+        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}"${labelAttrs}>${node.label.text}</text>`;
       }
 
       svgContent += '</g>';
@@ -811,6 +862,31 @@ class NodeBuilderImpl implements NodeBuilder {
 
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder {
     this.nodeDef.label = { text, ...opts };
+    return this;
+  }
+
+  fill(color: string): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      fill: color,
+    };
+    return this;
+  }
+
+  stroke(color: string, width?: number): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      stroke: color,
+      strokeWidth: width ?? this.nodeDef.style?.strokeWidth,
+    };
+    return this;
+  }
+
+  opacity(value: number): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      opacity: value,
+    };
     return this;
   }
 
