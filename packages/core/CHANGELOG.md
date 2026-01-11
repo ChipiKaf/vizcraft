@@ -1,5 +1,11 @@
 # vizcraft
 
+## 0.1.2
+
+### Patch Changes
+
+- [`f3e7c2d`](https://github.com/ChipiKaf/vizcraft/commit/f3e7c2dc01627abfe69c5e47381a1384904e360e) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - update package lock with correct details to fix publishing issue
+
 ## 0.1.1
 
 ### Patch Changes
