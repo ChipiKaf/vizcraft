@@ -1,4 +1,3 @@
-
 export const DEFAULT_VIZ_CSS = `
 .viz-canvas {
   width: 100%;

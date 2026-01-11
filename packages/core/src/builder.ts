@@ -7,14 +7,18 @@ import type {
   AnimationConfig,
   VizOverlaySpec,
   VizGridConfig,
-} from "./types";
-import { DEFAULT_VIZ_CSS } from "./styles";
-import { defaultCoreAnimationRegistry } from "./animations";
-import { defaultCoreOverlayRegistry } from "./overlays";
+} from './types';
+import { DEFAULT_VIZ_CSS } from './styles';
+import { defaultCoreAnimationRegistry } from './animations';
+import { defaultCoreOverlayRegistry } from './overlays';
 
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
-  grid(cols: number, rows: number, padding?: { x: number; y: number }): VizBuilder;
+  grid(
+    cols: number,
+    rows: number,
+    padding?: { x: number; y: number }
+  ): VizBuilder;
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
@@ -29,7 +33,11 @@ interface VizBuilder {
 
 interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
-  cell(col: number, row: number, align?: 'center' | 'start' | 'end'): NodeBuilder;
+  cell(
+    col: number,
+    row: number,
+    align?: 'center' | 'start' | 'end'
+  ): NodeBuilder;
   circle(r: number): NodeBuilder;
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
@@ -94,9 +102,13 @@ class VizBuilderImpl implements VizBuilder {
    * @param padding The padding of the grid
    * @returns The builder
    */
-  grid(cols: number, rows: number, padding: { x: number; y: number } = { x: 20, y: 20 }): VizBuilder {
-      this._gridConfig = { cols, rows, padding };
-      return this;
+  grid(
+    cols: number,
+    rows: number,
+    padding: { x: number; y: number } = { x: 20, y: 20 }
+  ): VizBuilder {
+    this._gridConfig = { cols, rows, padding };
+    return this;
   }
 
   /**
@@ -107,8 +119,8 @@ class VizBuilderImpl implements VizBuilder {
    * @returns The builder
    */
   overlay<T>(id: string, params: T, key?: string): VizBuilder {
-      this._overlays.push({ id, params, key });
-      return this;
+    this._overlays.push({ id, params, key });
+    return this;
   }
 
   /**
@@ -119,7 +131,11 @@ class VizBuilderImpl implements VizBuilder {
   node(id: string): NodeBuilder {
     if (!this._nodes.has(id)) {
       // Set default position and shape
-      this._nodes.set(id, { id, pos: { x: 0, y: 0 }, shape: { kind: "circle", r: 10 } });
+      this._nodes.set(id, {
+        id,
+        pos: { x: 0, y: 0 },
+        shape: { kind: 'circle', r: 10 },
+      });
       this._nodeOrder.push(id);
     }
     return new NodeBuilderImpl(this, this._nodes.get(id)!); // The ! asserts that the node exists, because we just added it
@@ -148,10 +164,14 @@ class VizBuilderImpl implements VizBuilder {
   build(): VizScene {
     this._edges.forEach((edge) => {
       if (!this._nodes.has(edge.from!)) {
-        console.warn(`VizBuilder: Edge ${edge.id} references missing source node ${edge.from}`);
+        console.warn(
+          `VizBuilder: Edge ${edge.id} references missing source node ${edge.from}`
+        );
       }
       if (!this._nodes.has(edge.to!)) {
-        console.warn(`VizBuilder: Edge ${edge.id} references missing target node ${edge.to}`);
+        console.warn(
+          `VizBuilder: Edge ${edge.id} references missing target node ${edge.to}`
+        );
       }
     });
 
@@ -168,20 +188,20 @@ class VizBuilderImpl implements VizBuilder {
   }
 
   _getGridConfig(): VizGridConfig | null {
-      return this._gridConfig;
+    return this._gridConfig;
   }
 
   _getViewBox() {
-      return this._viewBox;
+    return this._viewBox;
   }
-  
+
   /**
    * Returns the SVG string representation of the scene.
    * @deprecated Use `mount` instead
    */
   svg(): string {
-      const scene = this.build();
-      return this._renderSceneToSvg(scene);
+    const scene = this.build();
+    return this._renderSceneToSvg(scene);
   }
 
   /**
@@ -189,8 +209,8 @@ class VizBuilderImpl implements VizBuilder {
    * @param container The container to mount the scene into
    */
   mount(container: HTMLElement) {
-      const scene = this.build();
-      this._renderSceneToDOM(scene, container);
+    const scene = this.build();
+    this._renderSceneToDOM(scene, container);
   }
 
   /**
@@ -199,354 +219,384 @@ class VizBuilderImpl implements VizBuilder {
    * @param container The container to render the scene into
    */
   private _renderSceneToDOM(scene: VizScene, container: HTMLElement) {
-      const { viewBox, nodes, edges, overlays } = scene;
-      const nodesById = new Map(nodes.map(n => [n.id, n]));
+    const { viewBox, nodes, edges, overlays } = scene;
+    const nodesById = new Map(nodes.map((n) => [n.id, n]));
 
-      const svgNS = "http://www.w3.org/2000/svg";
-      let svg = container.querySelector("svg") as SVGSVGElement;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    let svg = container.querySelector('svg') as SVGSVGElement;
 
-      // Initial Render if SVG doesn't exist
-      if (!svg) {
-          container.innerHTML = ''; // Safety clear
-          svg = document.createElementNS(svgNS, "svg");
-          svg.style.width = "100%";
-          svg.style.height = "100%";
-          svg.style.overflow = "visible";
-          
-          // Inject Styles
-          const style = document.createElement("style");
-          style.textContent = DEFAULT_VIZ_CSS;
-          svg.appendChild(style);
+    // Initial Render if SVG doesn't exist
+    if (!svg) {
+      container.innerHTML = ''; // Safety clear
+      svg = document.createElementNS(svgNS, 'svg');
+      svg.style.width = '100%';
+      svg.style.height = '100%';
+      svg.style.overflow = 'visible';
 
-          // Defs
-          const defs = document.createElementNS(svgNS, "defs");
-          const marker = document.createElementNS(svgNS, "marker");
-          marker.setAttribute("id", "viz-arrow");
-          marker.setAttribute("markerWidth", "10");
-          marker.setAttribute("markerHeight", "7");
-          marker.setAttribute("refX", "9");
-          marker.setAttribute("refY", "3.5");
-          marker.setAttribute("orient", "auto");
-          const poly = document.createElementNS(svgNS, "polygon");
-          poly.setAttribute("points", "0 0, 10 3.5, 0 7");
-          poly.setAttribute("fill", "currentColor");
-          marker.appendChild(poly);
-          defs.appendChild(marker);
-          svg.appendChild(defs);
+      // Inject Styles
+      const style = document.createElement('style');
+      style.textContent = DEFAULT_VIZ_CSS;
+      svg.appendChild(style);
 
-          // Layers
-          const edgeLayer = document.createElementNS(svgNS, "g");
-          edgeLayer.setAttribute("class", "viz-layer-edges");
-          svg.appendChild(edgeLayer);
+      // Defs
+      const defs = document.createElementNS(svgNS, 'defs');
+      const marker = document.createElementNS(svgNS, 'marker');
+      marker.setAttribute('id', 'viz-arrow');
+      marker.setAttribute('markerWidth', '10');
+      marker.setAttribute('markerHeight', '7');
+      marker.setAttribute('refX', '9');
+      marker.setAttribute('refY', '3.5');
+      marker.setAttribute('orient', 'auto');
+      const poly = document.createElementNS(svgNS, 'polygon');
+      poly.setAttribute('points', '0 0, 10 3.5, 0 7');
+      poly.setAttribute('fill', 'currentColor');
+      marker.appendChild(poly);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
 
-          const nodeLayer = document.createElementNS(svgNS, "g");
-          nodeLayer.setAttribute("class", "viz-layer-nodes");
-          svg.appendChild(nodeLayer);
+      // Layers
+      const edgeLayer = document.createElementNS(svgNS, 'g');
+      edgeLayer.setAttribute('class', 'viz-layer-edges');
+      svg.appendChild(edgeLayer);
 
-          const overlayLayer = document.createElementNS(svgNS, "g");
-          overlayLayer.setAttribute("class", "viz-layer-overlays");
-          svg.appendChild(overlayLayer);
+      const nodeLayer = document.createElementNS(svgNS, 'g');
+      nodeLayer.setAttribute('class', 'viz-layer-nodes');
+      svg.appendChild(nodeLayer);
 
-          container.appendChild(svg);
+      const overlayLayer = document.createElementNS(svgNS, 'g');
+      overlayLayer.setAttribute('class', 'viz-layer-overlays');
+      svg.appendChild(overlayLayer);
+
+      container.appendChild(svg);
+    }
+
+    // Update ViewBox
+    svg.setAttribute('viewBox', `0 0 ${viewBox.w} ${viewBox.h}`);
+
+    const edgeLayer = svg.querySelector('.viz-layer-edges')!;
+    const nodeLayer = svg.querySelector('.viz-layer-nodes')!;
+    const overlayLayer = svg.querySelector('.viz-layer-overlays')!;
+
+    // --- 1. Reconcile Edges ---
+    const existingEdgeGroups = Array.from(edgeLayer.children).filter(
+      (el) => el.tagName === 'g'
+    ) as SVGGElement[];
+    const existingEdgesMap = new Map<string, SVGGElement>();
+    existingEdgeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id) existingEdgesMap.set(id, el);
+    });
+
+    const processedEdgeIds = new Set<string>();
+
+    edges.forEach((edge) => {
+      const start = nodesById.get(edge.from);
+      const end = nodesById.get(edge.to);
+      if (!start || !end) return;
+
+      processedEdgeIds.add(edge.id);
+
+      let group = existingEdgesMap.get(edge.id);
+      if (!group) {
+        group = document.createElementNS(svgNS, 'g');
+        group.setAttribute('data-id', edge.id);
+        edgeLayer.appendChild(group);
+
+        // Initial creation of children
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('class', 'viz-edge');
+        group.appendChild(line);
+
+        // Optional parts created on demand later, but structure expected
       }
 
-      // Update ViewBox
-      svg.setAttribute("viewBox", `0 0 ${viewBox.w} ${viewBox.h}`);
+      // Compute Classes & Styles
+      let classes = `viz-edge-group ${edge.className || ''}`;
+      // Reset styles
+      group.removeAttribute('style');
 
-      const edgeLayer = svg.querySelector(".viz-layer-edges")!;
-      const nodeLayer = svg.querySelector(".viz-layer-nodes")!;
-      const overlayLayer = svg.querySelector(".viz-layer-overlays")!;
-
-      // --- 1. Reconcile Edges ---
-      const existingEdgeGroups = Array.from(edgeLayer.children).filter(el => el.tagName === 'g') as SVGGElement[];
-      const existingEdgesMap = new Map<string, SVGGElement>();
-      existingEdgeGroups.forEach(el => {
-          const id = el.getAttribute('data-id');
-          if (id) existingEdgesMap.set(id, el);
-      });
-
-      const processedEdgeIds = new Set<string>();
-
-      edges.forEach(edge => {
-          const start = nodesById.get(edge.from);
-          const end = nodesById.get(edge.to);
-          if (!start || !end) return;
-          
-          processedEdgeIds.add(edge.id);
-
-          let group = existingEdgesMap.get(edge.id);
-          if (!group) {
-              group = document.createElementNS(svgNS, "g");
-              group.setAttribute("data-id", edge.id);
-              edgeLayer.appendChild(group);
-              
-              // Initial creation of children
-              const line = document.createElementNS(svgNS, "line");
-              line.setAttribute("class", "viz-edge");
-              group.appendChild(line);
-
-               // Optional parts created on demand later, but structure expected
-          }
-
-          // Compute Classes & Styles
-          let classes = `viz-edge-group ${edge.className || ''}`;
-          // Reset styles
-          group.removeAttribute('style');
-          
-          if (edge.animations) {
-              edge.animations.forEach(spec => {
-                  const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(spec.id);
-                  if (renderer) {
-                      if (renderer.getClass) classes += ` ${renderer.getClass({ spec, element: edge })}`;
-                      if (renderer.getStyle) {
-                           const s = renderer.getStyle({ spec, element: edge });
-                           Object.entries(s).forEach(([k, v]) => {
-                               group!.style.setProperty(k, String(v));
-                           });
-                      }
-                  }
+      if (edge.animations) {
+        edge.animations.forEach((spec) => {
+          const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(
+            spec.id
+          );
+          if (renderer) {
+            if (renderer.getClass)
+              classes += ` ${renderer.getClass({ spec, element: edge })}`;
+            if (renderer.getStyle) {
+              const s = renderer.getStyle({ spec, element: edge });
+              Object.entries(s).forEach(([k, v]) => {
+                group!.style.setProperty(k, String(v));
               });
+            }
           }
-          group.setAttribute("class", classes);
+        });
+      }
+      group.setAttribute('class', classes);
 
-          // Update Line
-          const line = group.querySelector(".viz-edge") as SVGLineElement;
-          line.setAttribute("x1", String(start.pos.x));
-          line.setAttribute("y1", String(start.pos.y));
-          line.setAttribute("x2", String(end.pos.x));
-          line.setAttribute("y2", String(end.pos.y));
-          line.setAttribute("stroke", "currentColor");
-          if (edge.markerEnd === "arrow") {
-              line.setAttribute("marker-end", "url(#viz-arrow)");
-          } else {
-              line.removeAttribute("marker-end");
-          }
-
-          const oldHit = group.querySelector(".viz-edge-hit");
-          if (oldHit) oldHit.remove();
-          
-          if (edge.hitArea || edge.onClick) {
-               const hit = document.createElementNS(svgNS, "line");
-               hit.setAttribute("class", "viz-edge-hit"); // Add class for selection
-               hit.setAttribute("x1", String(start.pos.x));
-               hit.setAttribute("y1", String(start.pos.y));
-               hit.setAttribute("x2", String(end.pos.x));
-               hit.setAttribute("y2", String(end.pos.y));
-               hit.setAttribute("stroke", "transparent");
-               hit.setAttribute("stroke-width", String(edge.hitArea || 10));
-               hit.style.cursor = edge.onClick ? "pointer" : "";
-               if (edge.onClick) {
-                   hit.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        edge.onClick!(edge.id, edge);
-                   });
-               }
-               group.appendChild(hit);
-          }
-
-          // Label (Recreate vs Update)
-          const oldLabel = group.querySelector(".viz-edge-label");
-          if (oldLabel) oldLabel.remove();
-
-          if (edge.label) {
-              const text = document.createElementNS(svgNS, "text");
-              const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
-              const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
-              text.setAttribute("x", String(mx));
-              text.setAttribute("y", String(my));
-              text.setAttribute("class", `viz-edge-label ${edge.label.className || ''}`);
-              text.setAttribute("text-anchor", "middle");
-              text.setAttribute("dominant-baseline", "middle");
-              text.textContent = edge.label.text;
-              group.appendChild(text);
-          }
-      });
-
-      // Remove stale edges
-      existingEdgeGroups.forEach(el => {
-          const id = el.getAttribute('data-id');
-          if (id && !processedEdgeIds.has(id)) {
-              el.remove();
-          }
-      });
-
-
-      // --- 2. Reconcile Nodes ---
-      const existingNodeGroups = Array.from(nodeLayer.children).filter(el => el.tagName === 'g') as SVGGElement[];
-      const existingNodesMap = new Map<string, SVGGElement>();
-      existingNodeGroups.forEach(el => {
-           const id = el.getAttribute('data-id');
-           if (id) existingNodesMap.set(id, el);
-      });
-
-      const processedNodeIds = new Set<string>();
-
-      nodes.forEach(node => {
-           processedNodeIds.add(node.id);
-           
-           let group = existingNodesMap.get(node.id);
-           
-           if (!group) {
-               group = document.createElementNS(svgNS, "g");
-               group.setAttribute("data-id", node.id);
-               nodeLayer.appendChild(group);
-           }
-           
-           // Calculate Anim Classes
-           let classes = `viz-node-group ${node.className || ''}`;
-           group.removeAttribute('style');
-           
-           if (node.animations) {
-               node.animations.forEach(spec => {
-                  const renderer = defaultCoreAnimationRegistry.getNodeRenderer(spec.id);
-                  if (renderer) {
-                      if (renderer.getClass) classes += ` ${renderer.getClass({ spec, element: node })}`;
-                      if (renderer.getStyle) {
-                           const s = renderer.getStyle({ spec, element: node });
-                           Object.entries(s).forEach(([k, v]) => {
-                               group!.style.setProperty(k, String(v));
-                           });
-                      }
-                  }
-               });
-           }
-           group.setAttribute("class", classes);
-
-           // @ts-ignore
-           group._clickHandler = node.onClick ? (e) => { e.stopPropagation(); node.onClick!(node.id, node); } : null;
-           
-           if (!group.hasAttribute('data-click-initialized')) {
-                group.addEventListener('click', (e) => {
-                    // @ts-ignore
-                    if (group._clickHandler) group._clickHandler(e);
-                });
-                group.setAttribute('data-click-initialized', 'true');
-           }
-           
-           group.style.cursor = node.onClick ? "pointer" : "";
-
-           // Shape (Update geometry)
-           const { x, y } = node.pos;
-           
-           // Ideally we reuse the shape element if the kind hasn't changed.
-           // Assuming kind rarely changes for same ID.
-           let shape = group.querySelector(".viz-node-shape") as SVGElement;
-           
-           // If shape doesn't exist or kind changed (simplified check: just recreate if kind mismatch logic needed, 
-           // but here we just check tag name for simplicity or assume kind is stable).
-           const kindMap: Record<string, string> = { circle: 'circle', rect: 'rect', diamond: 'polygon' };
-           const expectedTag = kindMap[node.shape.kind];
-           
-           if (!shape || shape.tagName !== expectedTag) {
-               if (shape) shape.remove();
-               if (node.shape.kind === "circle") {
-                    shape = document.createElementNS(svgNS, "circle");
-               } else if (node.shape.kind === "rect") {
-                    shape = document.createElementNS(svgNS, "rect");
-               } else if (node.shape.kind === "diamond") {
-                    shape = document.createElementNS(svgNS, "polygon");
-               }
-               shape!.setAttribute("class", "viz-node-shape");
-               group.prepend(shape!); // Shape always at bottom
-           }
-           
-           // Update Shape Attributes
-           if (node.shape.kind === "circle") {
-               shape!.setAttribute("cx", String(x));
-               shape!.setAttribute("cy", String(y));
-               shape!.setAttribute("r", String(node.shape.r));
-           } else if (node.shape.kind === "rect") {
-               shape!.setAttribute("x", String(x - node.shape.w/2));
-               shape!.setAttribute("y", String(y - node.shape.h/2));
-               shape!.setAttribute("width", String(node.shape.w));
-               shape!.setAttribute("height", String(node.shape.h));
-               if (node.shape.rx) shape!.setAttribute("rx", String(node.shape.rx));
-           } else if (node.shape.kind === "diamond") {
-               const hw = node.shape.w / 2;
-               const hh = node.shape.h / 2;
-               const pts = `${x},${y-hh} ${x+hw},${y} ${x},${y+hh} ${x-hw},${y}`;
-               shape!.setAttribute("points", pts);
-           }
-
-           // Label (Recreate for simplicity as usually just text/pos changes)
-           let label = group.querySelector(".viz-node-label") as SVGTextElement;
-           if (!label && node.label) {
-               label = document.createElementNS(svgNS, "text");
-               label.setAttribute("class", "viz-node-label");
-               label.setAttribute("text-anchor", "middle");
-               label.setAttribute("dominant-baseline", "middle");
-               group.appendChild(label);
-           }
-           
-           if (node.label) {
-               const lx = x + (node.label.dx || 0);
-               const ly = y + (node.label.dy || 0);
-               label!.setAttribute("x", String(lx));
-               label!.setAttribute("y", String(ly));
-               
-               // Update class carefully to preserve 'viz-node-label'
-               label!.setAttribute("class", `viz-node-label ${node.label.className || ''}`);
-               label!.textContent = node.label.text;
-           } else if (label) {
-               label.remove();
-           }
-      });
-
-      // Remove stale nodes
-      existingNodeGroups.forEach(el => {
-           const id = el.getAttribute('data-id');
-           if (id && !processedNodeIds.has(id)) {
-               el.remove();
-           }
-      });
-
-
-      // --- 3. Reconcile Overlays (Smart) ---
-      
-      // 1. Map existing overlay groups
-      const existingOverlayGroups = Array.from(overlayLayer.children).filter(el => el.tagName === 'g') as SVGGElement[];
-      const existingOverlaysMap = new Map<string, SVGGElement>();
-      existingOverlayGroups.forEach(el => {
-          const id = el.getAttribute('data-overlay-id');
-          if (id) existingOverlaysMap.set(id, el);
-      });
-
-      const processedOverlayIds = new Set<string>();
-
-      if (overlays && overlays.length > 0) {
-          overlays.forEach(spec => {
-              const renderer = defaultCoreOverlayRegistry.get(spec.id);
-              if (renderer) {
-                  const uniqueKey = spec.key || spec.id; 
-                  processedOverlayIds.add(uniqueKey);
-
-                  let group = existingOverlaysMap.get(uniqueKey);
-                  if (!group) {
-                      group = document.createElementNS(svgNS, "g");
-                      group.setAttribute("data-overlay-id", uniqueKey);
-                      group.setAttribute("class", `viz-overlay-${spec.id}`);
-                      overlayLayer.appendChild(group);
-                  }
-
-                  const ctx = { spec, nodesById, edgesById: new Map(edges.map(e => [e.id, e])), scene };
-
-                  if (renderer.update) {
-                      renderer.update(ctx, group);
-                  } else {
-                      // Fallback: full re-render of this overlay's content
-                      group.innerHTML = renderer.render(ctx);
-                  }
-              }
-          });
+      // Update Line
+      const line = group.querySelector('.viz-edge') as SVGLineElement;
+      line.setAttribute('x1', String(start.pos.x));
+      line.setAttribute('y1', String(start.pos.y));
+      line.setAttribute('x2', String(end.pos.x));
+      line.setAttribute('y2', String(end.pos.y));
+      line.setAttribute('stroke', 'currentColor');
+      if (edge.markerEnd === 'arrow') {
+        line.setAttribute('marker-end', 'url(#viz-arrow)');
+      } else {
+        line.removeAttribute('marker-end');
       }
 
-      // Remove stale overlays
-      existingOverlayGroups.forEach(el => {
-          const id = el.getAttribute('data-overlay-id');
-          if (id && !processedOverlayIds.has(id)) {
-              el.remove();
+      const oldHit = group.querySelector('.viz-edge-hit');
+      if (oldHit) oldHit.remove();
+
+      if (edge.hitArea || edge.onClick) {
+        const hit = document.createElementNS(svgNS, 'line');
+        hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
+        hit.setAttribute('x1', String(start.pos.x));
+        hit.setAttribute('y1', String(start.pos.y));
+        hit.setAttribute('x2', String(end.pos.x));
+        hit.setAttribute('y2', String(end.pos.y));
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', String(edge.hitArea || 10));
+        hit.style.cursor = edge.onClick ? 'pointer' : '';
+        if (edge.onClick) {
+          hit.addEventListener('click', (e) => {
+            e.stopPropagation();
+            edge.onClick!(edge.id, edge);
+          });
+        }
+        group.appendChild(hit);
+      }
+
+      // Label (Recreate vs Update)
+      const oldLabel = group.querySelector('.viz-edge-label');
+      if (oldLabel) oldLabel.remove();
+
+      if (edge.label) {
+        const text = document.createElementNS(svgNS, 'text');
+        const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
+        const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+        text.setAttribute('x', String(mx));
+        text.setAttribute('y', String(my));
+        text.setAttribute(
+          'class',
+          `viz-edge-label ${edge.label.className || ''}`
+        );
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.textContent = edge.label.text;
+        group.appendChild(text);
+      }
+    });
+
+    // Remove stale edges
+    existingEdgeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id && !processedEdgeIds.has(id)) {
+        el.remove();
+      }
+    });
+
+    // --- 2. Reconcile Nodes ---
+    const existingNodeGroups = Array.from(nodeLayer.children).filter(
+      (el) => el.tagName === 'g'
+    ) as SVGGElement[];
+    const existingNodesMap = new Map<string, SVGGElement>();
+    existingNodeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id) existingNodesMap.set(id, el);
+    });
+
+    const processedNodeIds = new Set<string>();
+
+    nodes.forEach((node) => {
+      processedNodeIds.add(node.id);
+
+      let group = existingNodesMap.get(node.id);
+
+      if (!group) {
+        group = document.createElementNS(svgNS, 'g');
+        group.setAttribute('data-id', node.id);
+        nodeLayer.appendChild(group);
+      }
+
+      // Calculate Anim Classes
+      let classes = `viz-node-group ${node.className || ''}`;
+      group.removeAttribute('style');
+
+      if (node.animations) {
+        node.animations.forEach((spec) => {
+          const renderer = defaultCoreAnimationRegistry.getNodeRenderer(
+            spec.id
+          );
+          if (renderer) {
+            if (renderer.getClass)
+              classes += ` ${renderer.getClass({ spec, element: node })}`;
+            if (renderer.getStyle) {
+              const s = renderer.getStyle({ spec, element: node });
+              Object.entries(s).forEach(([k, v]) => {
+                group!.style.setProperty(k, String(v));
+              });
+            }
           }
+        });
+      }
+      group.setAttribute('class', classes);
+
+      // @ts-expect-error: Property _clickHandler does not exist on SVGGElement
+      group._clickHandler = node.onClick
+        ? (e: MouseEvent) => {
+            e.stopPropagation();
+            node.onClick!(node.id, node);
+          }
+        : null;
+
+      if (!group.hasAttribute('data-click-initialized')) {
+        group.addEventListener('click', (e) => {
+          // @ts-expect-error: Property _clickHandler does not exist on SVGGElement
+          if (group._clickHandler) group._clickHandler(e);
+        });
+        group.setAttribute('data-click-initialized', 'true');
+      }
+
+      group.style.cursor = node.onClick ? 'pointer' : '';
+
+      // Shape (Update geometry)
+      const { x, y } = node.pos;
+
+      // Ideally we reuse the shape element if the kind hasn't changed.
+      // Assuming kind rarely changes for same ID.
+      let shape = group.querySelector('.viz-node-shape') as SVGElement;
+
+      // If shape doesn't exist or kind changed (simplified check: just recreate if kind mismatch logic needed,
+      // but here we just check tag name for simplicity or assume kind is stable).
+      const kindMap: Record<string, string> = {
+        circle: 'circle',
+        rect: 'rect',
+        diamond: 'polygon',
+      };
+      const expectedTag = kindMap[node.shape.kind];
+
+      if (!shape || shape.tagName !== expectedTag) {
+        if (shape) shape.remove();
+        if (node.shape.kind === 'circle') {
+          shape = document.createElementNS(svgNS, 'circle');
+        } else if (node.shape.kind === 'rect') {
+          shape = document.createElementNS(svgNS, 'rect');
+        } else if (node.shape.kind === 'diamond') {
+          shape = document.createElementNS(svgNS, 'polygon');
+        }
+        shape!.setAttribute('class', 'viz-node-shape');
+        group.prepend(shape!); // Shape always at bottom
+      }
+
+      // Update Shape Attributes
+      if (node.shape.kind === 'circle') {
+        shape!.setAttribute('cx', String(x));
+        shape!.setAttribute('cy', String(y));
+        shape!.setAttribute('r', String(node.shape.r));
+      } else if (node.shape.kind === 'rect') {
+        shape!.setAttribute('x', String(x - node.shape.w / 2));
+        shape!.setAttribute('y', String(y - node.shape.h / 2));
+        shape!.setAttribute('width', String(node.shape.w));
+        shape!.setAttribute('height', String(node.shape.h));
+        if (node.shape.rx) shape!.setAttribute('rx', String(node.shape.rx));
+      } else if (node.shape.kind === 'diamond') {
+        const hw = node.shape.w / 2;
+        const hh = node.shape.h / 2;
+        const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
+        shape!.setAttribute('points', pts);
+      }
+
+      // Label (Recreate for simplicity as usually just text/pos changes)
+      let label = group.querySelector('.viz-node-label') as SVGTextElement;
+      if (!label && node.label) {
+        label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('class', 'viz-node-label');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'middle');
+        group.appendChild(label);
+      }
+
+      if (node.label) {
+        const lx = x + (node.label.dx || 0);
+        const ly = y + (node.label.dy || 0);
+        label!.setAttribute('x', String(lx));
+        label!.setAttribute('y', String(ly));
+
+        // Update class carefully to preserve 'viz-node-label'
+        label!.setAttribute(
+          'class',
+          `viz-node-label ${node.label.className || ''}`
+        );
+        label!.textContent = node.label.text;
+      } else if (label) {
+        label.remove();
+      }
+    });
+
+    // Remove stale nodes
+    existingNodeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id && !processedNodeIds.has(id)) {
+        el.remove();
+      }
+    });
+
+    // --- 3. Reconcile Overlays (Smart) ---
+
+    // 1. Map existing overlay groups
+    const existingOverlayGroups = Array.from(overlayLayer.children).filter(
+      (el) => el.tagName === 'g'
+    ) as SVGGElement[];
+    const existingOverlaysMap = new Map<string, SVGGElement>();
+    existingOverlayGroups.forEach((el) => {
+      const id = el.getAttribute('data-overlay-id');
+      if (id) existingOverlaysMap.set(id, el);
+    });
+
+    const processedOverlayIds = new Set<string>();
+
+    if (overlays && overlays.length > 0) {
+      overlays.forEach((spec) => {
+        const renderer = defaultCoreOverlayRegistry.get(spec.id);
+        if (renderer) {
+          const uniqueKey = spec.key || spec.id;
+          processedOverlayIds.add(uniqueKey);
+
+          let group = existingOverlaysMap.get(uniqueKey);
+          if (!group) {
+            group = document.createElementNS(svgNS, 'g');
+            group.setAttribute('data-overlay-id', uniqueKey);
+            group.setAttribute('class', `viz-overlay-${spec.id}`);
+            overlayLayer.appendChild(group);
+          }
+
+          const ctx = {
+            spec,
+            nodesById,
+            edgesById: new Map(edges.map((e) => [e.id, e])),
+            scene,
+          };
+
+          if (renderer.update) {
+            renderer.update(ctx, group);
+          } else {
+            // Fallback: full re-render of this overlay's content
+            group.innerHTML = renderer.render(ctx);
+          }
+        }
       });
+    }
+
+    // Remove stale overlays
+    existingOverlayGroups.forEach((el) => {
+      const id = el.getAttribute('data-overlay-id');
+      if (id && !processedOverlayIds.has(id)) {
+        el.remove();
+      }
+    });
   }
 
   /**
@@ -556,136 +606,141 @@ class VizBuilderImpl implements VizBuilder {
    * @returns The SVG string representation of the scene
    */
   private _renderSceneToSvg(scene: VizScene): string {
-      const { viewBox, nodes, edges, overlays } = scene;
-      const nodesById = new Map(nodes.map(n => [n.id, n]));
-      const edgesById = new Map(edges.map(e => [e.id, e]));
+    const { viewBox, nodes, edges, overlays } = scene;
+    const nodesById = new Map(nodes.map((n) => [n.id, n]));
+    const edgesById = new Map(edges.map((e) => [e.id, e]));
 
-      let svgContent = `<svg viewBox="0 0 ${viewBox.w} ${viewBox.h}" xmlns="http://www.w3.org/2000/svg">`;
-      
-      // Inject Styles
-      svgContent += `<style>${DEFAULT_VIZ_CSS}</style>`;
+    let svgContent = `<svg viewBox="0 0 ${viewBox.w} ${viewBox.h}" xmlns="http://www.w3.org/2000/svg">`;
 
-      // Defs (Arrow Marker)
-      svgContent += `
+    // Inject Styles
+    svgContent += `<style>${DEFAULT_VIZ_CSS}</style>`;
+
+    // Defs (Arrow Marker)
+    svgContent += `
         <defs>
           <marker id="viz-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
           </marker>
         </defs>`;
 
-      // Render Edges
-      svgContent += `<g class="viz-layer-edges">`;
-      edges.forEach(edge => {
-          const start = nodesById.get(edge.from);
-          const end = nodesById.get(edge.to);
-          if (!start || !end) return;
+    // Render Edges
+    svgContent += '<g class="viz-layer-edges">';
+    edges.forEach((edge) => {
+      const start = nodesById.get(edge.from);
+      const end = nodesById.get(edge.to);
+      if (!start || !end) return;
 
-          // Animations
-          let animClasses = "";
-          let animStyleStr = "";
+      // Animations
+      let animClasses = '';
+      let animStyleStr = '';
 
-          if (edge.animations) {
-              edge.animations.forEach(spec => {
-                  const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(spec.id);
-                  if (renderer) {
-                      if (renderer.getClass) {
-                          animClasses += ` ${renderer.getClass({ spec, element: edge })}`;
-                      }
-                      if (renderer.getStyle) {
-                          const styles = renderer.getStyle({ spec, element: edge });
-                          Object.entries(styles).forEach(([k, v]) => {
-                              animStyleStr += `${k}: ${v}; `;
-                          });
-                      }
-                  }
+      if (edge.animations) {
+        edge.animations.forEach((spec) => {
+          const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(
+            spec.id
+          );
+          if (renderer) {
+            if (renderer.getClass) {
+              animClasses += ` ${renderer.getClass({ spec, element: edge })}`;
+            }
+            if (renderer.getStyle) {
+              const styles = renderer.getStyle({ spec, element: edge });
+              Object.entries(styles).forEach(([k, v]) => {
+                animStyleStr += `${k}: ${v}; `;
               });
+            }
           }
-
-          const markerEnd = edge.markerEnd === "arrow" ? 'marker-end="url(#viz-arrow)"' : '';
-          
-          svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}">`;
-          svgContent += `<line x1="${start.pos.x}" y1="${start.pos.y}" x2="${end.pos.x}" y2="${end.pos.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
-
-          // Edge Label
-          if (edge.label) {
-             const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
-             const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
-             const labelClass = `viz-edge-label ${edge.label.className || ''}`;
-             svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
-          }
-           svgContent += `</g>`;
-      });
-      svgContent += `</g>`;
-
-      // Render Nodes
-      svgContent += `<g class="viz-layer-nodes">`;
-      nodes.forEach(node => {
-          const { x, y } = node.pos;
-          const { shape } = node;
-          
-          // Animations (Nodes)
-          let animClasses = "";
-           let animStyleStr = "";
-
-          if (node.animations) {
-              node.animations.forEach(spec => {
-                  const renderer = defaultCoreAnimationRegistry.getNodeRenderer(spec.id);
-                   if (renderer) {
-                      if (renderer.getClass) {
-                          animClasses += ` ${renderer.getClass({ spec, element: node })}`;
-                      }
-                      if (renderer.getStyle) {
-                          const styles = renderer.getStyle({ spec, element: node });
-                          Object.entries(styles).forEach(([k, v]) => {
-                              animStyleStr += `${k}: ${v}; `;
-                          });
-                      }
-                  }
-              });
-          }
-
-          const className = `viz-node-group ${node.className || ''} ${animClasses}`;
-          
-          svgContent += `<g class="${className}" style="${animStyleStr}">`;
-          
-          // Shape
-          if (shape.kind === 'circle') {
-             svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape" />`;
-          } else if (shape.kind === 'rect') {
-             svgContent += `<rect x="${x - shape.w/2}" y="${y - shape.h/2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" />`;
-          } else if (shape.kind === 'diamond') {
-             const hw = shape.w / 2;
-             const hh = shape.h / 2;
-             const pts = `${x},${y-hh} ${x+hw},${y} ${x},${y+hh} ${x-hw},${y}`;
-             svgContent += `<polygon points="${pts}" class="viz-node-shape" />`;
-          }
-          
-          // Label
-          if (node.label) {
-             const lx = x + (node.label.dx || 0);
-             const ly = y + (node.label.dy || 0);
-             const labelClass = `viz-node-label ${node.label.className || ''}`;
-             svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${node.label.text}</text>`;
-          }
-          
-          svgContent += `</g>`;
-      });
-      svgContent += `</g>`;
-
-      // Render Overlays
-      if (overlays && overlays.length > 0) {
-          svgContent += `<g class="viz-layer-overlays">`;
-          overlays.forEach(spec => {
-              const renderer = defaultCoreOverlayRegistry.get(spec.id);
-              if (renderer) {
-                  svgContent += renderer.render({ spec, nodesById, edgesById, scene });
-              }
-          });
-          svgContent += `</g>`;
+        });
       }
 
-      svgContent += `</svg>`;
-      return svgContent;
+      const markerEnd =
+        edge.markerEnd === 'arrow' ? 'marker-end="url(#viz-arrow)"' : '';
+
+      svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}">`;
+      svgContent += `<line x1="${start.pos.x}" y1="${start.pos.y}" x2="${end.pos.x}" y2="${end.pos.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
+
+      // Edge Label
+      if (edge.label) {
+        const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
+        const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+        const labelClass = `viz-edge-label ${edge.label.className || ''}`;
+        svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
+      }
+      svgContent += '</g>';
+    });
+    svgContent += '</g>';
+
+    // Render Nodes
+    svgContent += '<g class="viz-layer-nodes">';
+    nodes.forEach((node) => {
+      const { x, y } = node.pos;
+      const { shape } = node;
+
+      // Animations (Nodes)
+      let animClasses = '';
+      let animStyleStr = '';
+
+      if (node.animations) {
+        node.animations.forEach((spec) => {
+          const renderer = defaultCoreAnimationRegistry.getNodeRenderer(
+            spec.id
+          );
+          if (renderer) {
+            if (renderer.getClass) {
+              animClasses += ` ${renderer.getClass({ spec, element: node })}`;
+            }
+            if (renderer.getStyle) {
+              const styles = renderer.getStyle({ spec, element: node });
+              Object.entries(styles).forEach(([k, v]) => {
+                animStyleStr += `${k}: ${v}; `;
+              });
+            }
+          }
+        });
+      }
+
+      const className = `viz-node-group ${node.className || ''} ${animClasses}`;
+
+      svgContent += `<g class="${className}" style="${animStyleStr}">`;
+
+      // Shape
+      if (shape.kind === 'circle') {
+        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape" />`;
+      } else if (shape.kind === 'rect') {
+        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" />`;
+      } else if (shape.kind === 'diamond') {
+        const hw = shape.w / 2;
+        const hh = shape.h / 2;
+        const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
+        svgContent += `<polygon points="${pts}" class="viz-node-shape" />`;
+      }
+
+      // Label
+      if (node.label) {
+        const lx = x + (node.label.dx || 0);
+        const ly = y + (node.label.dy || 0);
+        const labelClass = `viz-node-label ${node.label.className || ''}`;
+        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${node.label.text}</text>`;
+      }
+
+      svgContent += '</g>';
+    });
+    svgContent += '</g>';
+
+    // Render Overlays
+    if (overlays && overlays.length > 0) {
+      svgContent += '<g class="viz-layer-overlays">';
+      overlays.forEach((spec) => {
+        const renderer = defaultCoreOverlayRegistry.get(spec.id);
+        if (renderer) {
+          svgContent += renderer.render({ spec, nodesById, edgesById, scene });
+        }
+      });
+      svgContent += '</g>';
+    }
+
+    svgContent += '</svg>';
+    return svgContent;
   }
 }
 
@@ -703,48 +758,54 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
-  cell(col: number, row: number, align: 'center' | 'start' | 'end' = 'center'): NodeBuilder {
-      const grid = this.parent._getGridConfig();
-      if (!grid) {
-          console.warn("VizBuilder: .cell() called but no grid configured. Use .grid() first.");
-          return this;
-      }
-      
-      const view = this.parent._getViewBox();
-      const availableW = view.w - (grid.padding.x * 2);
-      const availableH = view.h - (grid.padding.y * 2);
-      
-      const cellW = availableW / grid.cols;
-      const cellH = availableH / grid.rows;
-
-      let x = grid.padding.x + (col * cellW);
-      let y = grid.padding.y + (row * cellH);
-
-      // Alignment adjustments
-      if (align === 'center') {
-          x += cellW / 2;
-          y += cellH / 2;
-      } else if (align === 'end') {
-          x += cellW;
-          y += cellH;
-      }
-      
-      this.nodeDef.pos = { x, y };
+  cell(
+    col: number,
+    row: number,
+    align: 'center' | 'start' | 'end' = 'center'
+  ): NodeBuilder {
+    const grid = this.parent._getGridConfig();
+    if (!grid) {
+      console.warn(
+        'VizBuilder: .cell() called but no grid configured. Use .grid() first.'
+      );
       return this;
+    }
+
+    const view = this.parent._getViewBox();
+    const availableW = view.w - grid.padding.x * 2;
+    const availableH = view.h - grid.padding.y * 2;
+
+    const cellW = availableW / grid.cols;
+    const cellH = availableH / grid.rows;
+
+    let x = grid.padding.x + col * cellW;
+    let y = grid.padding.y + row * cellH;
+
+    // Alignment adjustments
+    if (align === 'center') {
+      x += cellW / 2;
+      y += cellH / 2;
+    } else if (align === 'end') {
+      x += cellW;
+      y += cellH;
+    }
+
+    this.nodeDef.pos = { x, y };
+    return this;
   }
 
   circle(r: number): NodeBuilder {
-    this.nodeDef.shape = { kind: "circle", r };
+    this.nodeDef.shape = { kind: 'circle', r };
     return this;
   }
 
   rect(w: number, h: number, rx?: number): NodeBuilder {
-    this.nodeDef.shape = { kind: "rect", w, h, rx };
+    this.nodeDef.shape = { kind: 'rect', w, h, rx };
     return this;
   }
 
   diamond(w: number, h: number): NodeBuilder {
-    this.nodeDef.shape = { kind: "diamond", w, h };
+    this.nodeDef.shape = { kind: 'diamond', w, h };
     return this;
   }
 
@@ -755,19 +816,19 @@ class NodeBuilderImpl implements NodeBuilder {
 
   class(name: string): NodeBuilder {
     if (this.nodeDef.className) {
-        this.nodeDef.className += ` ${name}`;
+      this.nodeDef.className += ` ${name}`;
     } else {
-        this.nodeDef.className = name;
+      this.nodeDef.className = name;
     }
     return this;
   }
 
   animate(type: string, config?: AnimationConfig): NodeBuilder {
-      if (!this.nodeDef.animations) {
-          this.nodeDef.animations = [];
-      }
-      this.nodeDef.animations.push({ id: type, params: config });
-      return this;
+    if (!this.nodeDef.animations) {
+      this.nodeDef.animations = [];
+    }
+    this.nodeDef.animations.push({ id: type, params: config });
+    return this;
   }
 
   data(payload: unknown): NodeBuilder {
@@ -798,7 +859,7 @@ class NodeBuilderImpl implements NodeBuilder {
     return this.parent.build();
   }
   svg(): string {
-     return this.parent.svg();
+    return this.parent.svg();
   }
 }
 
@@ -817,30 +878,30 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder {
-    this.edgeDef.label = { position: "mid", text, ...opts };
+    this.edgeDef.label = { position: 'mid', text, ...opts };
     return this;
   }
 
   arrow(enabled: boolean = true): EdgeBuilder {
-    this.edgeDef.markerEnd = enabled ? "arrow" : "none";
+    this.edgeDef.markerEnd = enabled ? 'arrow' : 'none';
     return this;
   }
 
   class(name: string): EdgeBuilder {
-      if (this.edgeDef.className) {
-          this.edgeDef.className += ` ${name}`;
-      } else {
-          this.edgeDef.className = name;
-      }
+    if (this.edgeDef.className) {
+      this.edgeDef.className += ` ${name}`;
+    } else {
+      this.edgeDef.className = name;
+    }
     return this;
   }
 
   animate(type: string, config?: AnimationConfig): EdgeBuilder {
-      if (!this.edgeDef.animations) {
-          this.edgeDef.animations = [];
-      }
-      this.edgeDef.animations.push({ id: type, params: config });
-      return this;
+    if (!this.edgeDef.animations) {
+      this.edgeDef.animations = [];
+    }
+    this.edgeDef.animations.push({ id: type, params: config });
+    return this;
   }
 
   hitArea(px: number): EdgeBuilder {
@@ -870,13 +931,13 @@ class EdgeBuilderImpl implements EdgeBuilder {
     return this.parent.edge(from, to, id);
   }
   overlay<T>(id: string, params: T, key?: string): VizBuilder {
-      return this.parent.overlay(id, params, key);
+    return this.parent.overlay(id, params, key);
   }
   build(): VizScene {
     return this.parent.build();
   }
   svg(): string {
-     return this.parent.svg();
+    return this.parent.svg();
   }
 }
 

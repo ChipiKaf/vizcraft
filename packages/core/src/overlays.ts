@@ -1,55 +1,56 @@
-
 import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CoreOverlayRenderContext<T = any> {
-    spec: VizOverlaySpec<T>;
-    nodesById: Map<string, VizNode>;
-    edgesById: Map<string, VizEdge>;
-    scene: VizScene;
+  spec: VizOverlaySpec<T>;
+  nodesById: Map<string, VizNode>;
+  edgesById: Map<string, VizEdge>;
+  scene: VizScene;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CoreOverlayRenderer<T = any> {
-    render: (ctx: CoreOverlayRenderContext<T>) => string;
-    update?: (ctx: CoreOverlayRenderContext<T>, container: SVGGElement) => void;
+  render: (ctx: CoreOverlayRenderContext<T>) => string;
+  update?: (ctx: CoreOverlayRenderContext<T>, container: SVGGElement) => void;
 }
 
 export class CoreOverlayRegistry {
-    private overlays = new Map<string, CoreOverlayRenderer>();
+  private overlays = new Map<string, CoreOverlayRenderer>();
 
-    register(id: string, renderer: CoreOverlayRenderer) {
-        this.overlays.set(id, renderer);
-        return this;
-    }
+  register(id: string, renderer: CoreOverlayRenderer) {
+    this.overlays.set(id, renderer);
+    return this;
+  }
 
-    get(id: string) {
-        return this.overlays.get(id);
-    }
+  get(id: string) {
+    return this.overlays.get(id);
+  }
 }
 
 // Built-in Overlay: Signal
 export const coreSignalOverlay: CoreOverlayRenderer<{
-    from: string;
-    to: string;
-    progress: number;
-    magnitude?: number;
+  from: string;
+  to: string;
+  progress: number;
+  magnitude?: number;
 }> = {
-    render: ({ spec, nodesById }) => {
-        const { from, to, progress } = spec.params;
-        const start = nodesById.get(from);
-        const end = nodesById.get(to);
-        
-        if (!start || !end) return '';
+  render: ({ spec, nodesById }) => {
+    const { from, to, progress } = spec.params;
+    const start = nodesById.get(from);
+    const end = nodesById.get(to);
 
-        const x = start.pos.x + (end.pos.x - start.pos.x) * progress;
-        const y = start.pos.y + (end.pos.y - start.pos.y) * progress;
+    if (!start || !end) return '';
 
-        let v = Math.abs(spec.params.magnitude ?? 1);
-        if (v > 1) v = 1;
-        const r = 2 + v * 4;
+    const x = start.pos.x + (end.pos.x - start.pos.x) * progress;
+    const y = start.pos.y + (end.pos.y - start.pos.y) * progress;
 
-        const className = spec.className ?? "viz-signal";
+    let v = Math.abs(spec.params.magnitude ?? 1);
+    if (v > 1) v = 1;
+    const r = 2 + v * 4;
 
-        return `
+    const className = spec.className ?? 'viz-signal';
+
+    return `
             <g transform="translate(${x}, ${y})">
                 <g class="${className}">
                     <circle r="10" fill="transparent" stroke="none" />
@@ -57,139 +58,146 @@ export const coreSignalOverlay: CoreOverlayRenderer<{
                 </g>
             </g>
         `;
-    }
+  },
 };
 
 // Built-in Overlay: Grid Labels
 export const coreGridLabelsOverlay: CoreOverlayRenderer<{
-    colLabels?: Record<number, string>;
-    rowLabels?: Record<number, string>;
-    yOffset?: number;
-    xOffset?: number;
+  colLabels?: Record<number, string>;
+  rowLabels?: Record<number, string>;
+  yOffset?: number;
+  xOffset?: number;
 }> = {
-    render: ({ spec, scene }) => {
-        const grid = scene.grid;
-        if (!grid) return '';
+  render: ({ spec, scene }) => {
+    const grid = scene.grid;
+    if (!grid) return '';
 
-        const { w, h } = scene.viewBox;
-        const { colLabels, rowLabels, yOffset = 20, xOffset = 20 } = spec.params;
+    const { w, h } = scene.viewBox;
+    const { colLabels, rowLabels, yOffset = 20, xOffset = 20 } = spec.params;
 
-        // Safer string rendering for overlay to avoid weird spacing if grid missing
-        const cellW = (w - (grid.padding.x * 2)) / grid.cols;
-        const cellH = (h - (grid.padding.y * 2)) / grid.rows;
+    // Safer string rendering for overlay to avoid weird spacing if grid missing
+    const cellW = (w - grid.padding.x * 2) / grid.cols;
+    const cellH = (h - grid.padding.y * 2) / grid.rows;
 
-        let output = '';
+    let output = '';
 
-        if (colLabels) {
-            Object.entries(colLabels).forEach(([colStr, text]) => {
-                const col = parseInt(colStr, 10);
-                const x = grid.padding.x + (col * cellW) + (cellW / 2);
-                const cls = spec.className || "viz-grid-label";
-                output += `<text x="${x}" y="${yOffset}" class="${cls}" text-anchor="middle">${text}</text>`;
-            });
-        }
-
-        if (rowLabels) {
-            Object.entries(rowLabels).forEach(([rowStr, text]) => {
-                const row = parseInt(rowStr, 10);
-                const y = grid.padding.y + (row * cellH) + (cellH / 2);
-                const cls = spec.className || "viz-grid-label";
-                output += `<text x="${xOffset}" y="${y}" dy=".35em" class="${cls}" text-anchor="middle">${text}</text>`;
-            });
-        }
-
-        return output;
+    if (colLabels) {
+      Object.entries(colLabels).forEach(([colStr, text]) => {
+        const col = parseInt(colStr, 10);
+        const x = grid.padding.x + col * cellW + cellW / 2;
+        const cls = spec.className || 'viz-grid-label';
+        output += `<text x="${x}" y="${yOffset}" class="${cls}" text-anchor="middle">${text}</text>`;
+      });
     }
+
+    if (rowLabels) {
+      Object.entries(rowLabels).forEach(([rowStr, text]) => {
+        const row = parseInt(rowStr, 10);
+        const y = grid.padding.y + row * cellH + cellH / 2;
+        const cls = spec.className || 'viz-grid-label';
+        output += `<text x="${xOffset}" y="${y}" dy=".35em" class="${cls}" text-anchor="middle">${text}</text>`;
+      });
+    }
+
+    return output;
+  },
 };
 
 // ... (OverlayRegistry and other exports remain unchanged) ...
 
+interface DataPoint {
+  id: string;
+  currentNodeId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
 // Built-in Overlay: Data Points
 export const coreDataPointOverlay: CoreOverlayRenderer<{
-    points: { id: string; currentNodeId: string; [key: string]: any }[];
+  points: DataPoint[];
 }> = {
-    render: ({ spec, nodesById }) => {
-        const { points } = spec.params;
-        let output = '';
+  render: ({ spec, nodesById }) => {
+    const { points } = spec.params;
+    let output = '';
 
-        points.forEach(point => {
-            const node = nodesById.get(point.currentNodeId);
-            if (!node) return;
+    points.forEach((point) => {
+      const node = nodesById.get(point.currentNodeId);
+      if (!node) return;
 
-            const idNum = parseInt(point.id.split('-')[1] || '0', 10);
-            const offsetX = ((idNum % 5) - 2) * 10;
-            const offsetY = ((idNum % 3) - 1) * 10;
+      const idNum = parseInt(point.id.split('-')[1] || '0', 10);
+      const offsetX = ((idNum % 5) - 2) * 10;
+      const offsetY = ((idNum % 3) - 1) * 10;
 
-            const x = node.pos.x + offsetX;
-            const y = node.pos.y + offsetY;
-            
-            const cls = spec.className ?? "viz-data-point";
-            // Important: Add data-id so we can find it later in update()
-            output += `<circle data-id="${point.id}" cx="${x}" cy="${y}" r="6" class="${cls}" />`;
-        });
+      const x = node.pos.x + offsetX;
+      const y = node.pos.y + offsetY;
 
-        return output;
-    },
-    update: ({ spec, nodesById }, container) => {
-        const { points } = spec.params;
-        const svgNS = "http://www.w3.org/2000/svg";
-        
-        // 1. Map existing elements by data-id
-        const existingMap = new Map<string, SVGElement>();
-        Array.from(container.children).forEach(child => {
-            if (child.tagName === 'circle') {
-                const id = child.getAttribute('data-id');
-                if (id) existingMap.set(id, child as SVGElement);
-            }
-        });
+      const cls = spec.className ?? 'viz-data-point';
+      // Important: Add data-id so we can find it later in update()
+      output += `<circle data-id="${point.id}" cx="${x}" cy="${y}" r="6" class="${cls}" />`;
+    });
 
-        const processedIds = new Set<string>();
+    return output;
+  },
+  update: ({ spec, nodesById }, container) => {
+    const { points } = spec.params;
+    const svgNS = 'http://www.w3.org/2000/svg';
 
-        // 2. Create or Update Points
-        points.forEach(point => {
-             const node = nodesById.get(point.currentNodeId);
-             if (!node) return;
+    // 1. Map existing elements by data-id
+    const existingMap = new Map<string, SVGElement>();
+    Array.from(container.children).forEach((child) => {
+      if (child.tagName === 'circle') {
+        const id = child.getAttribute('data-id');
+        if (id) existingMap.set(id, child as SVGElement);
+      }
+    });
 
-             processedIds.add(point.id);
+    const processedIds = new Set<string>();
 
-             const idNum = parseInt(point.id.split('-')[1] || '0', 10);
-             const offsetX = ((idNum % 5) - 2) * 10;
-             const offsetY = ((idNum % 3) - 1) * 10;
+    // 2. Create or Update Points
+    points.forEach((point) => {
+      const node = nodesById.get(point.currentNodeId);
+      if (!node) return;
 
-             const x = node.pos.x + offsetX;
-             const y = node.pos.y + offsetY;
+      processedIds.add(point.id);
 
-             let circle = existingMap.get(point.id);
+      const idNum = parseInt(point.id.split('-')[1] || '0', 10);
+      const offsetX = ((idNum % 5) - 2) * 10;
+      const offsetY = ((idNum % 3) - 1) * 10;
 
-             if (!circle) {
-                 // Create new
-                 circle = document.createElementNS(svgNS, "circle");
-                 circle.setAttribute("data-id", point.id);
-                 circle.setAttribute("r", "6");
-                 container.appendChild(circle);
-             }
+      const x = node.pos.x + offsetX;
+      const y = node.pos.y + offsetY;
 
-             // Update attrs (this triggers CSS transition if class has it)
-             circle.setAttribute("cx", String(x));
-             circle.setAttribute("cy", String(y));
-             
-             const cls = spec.className ?? "viz-data-point";
-             // Only set class if different to avoid potential re-flows (though usually fine)
-             if (circle.getAttribute("class") !== cls) {
-                 circle.setAttribute("class", cls);
-             }
-        });
+      let circle = existingMap.get(point.id);
 
-        // 3. Remove stale points
-        existingMap.forEach((el, id) => {
-            if (!processedIds.has(id)) {
-                el.remove();
-            }
-        });
-    }
+      if (!circle) {
+        // Create new
+        circle = document.createElementNS(svgNS, 'circle');
+        circle.setAttribute('data-id', point.id);
+        circle.setAttribute('r', '6');
+        container.appendChild(circle);
+      }
+
+      // Update attrs (this triggers CSS transition if class has it)
+      circle.setAttribute('cx', String(x));
+      circle.setAttribute('cy', String(y));
+
+      const cls = spec.className ?? 'viz-data-point';
+      // Only set class if different to avoid potential re-flows (though usually fine)
+      if (circle.getAttribute('class') !== cls) {
+        circle.setAttribute('class', cls);
+      }
+    });
+
+    // 3. Remove stale points
+    existingMap.forEach((el, id) => {
+      if (!processedIds.has(id)) {
+        el.remove();
+      }
+    });
+  },
 };
 
 export const defaultCoreOverlayRegistry = new CoreOverlayRegistry()
-    .register("signal", coreSignalOverlay)
-    .register("grid-labels", coreGridLabelsOverlay)
-    .register("data-points", coreDataPointOverlay);
+  .register('signal', coreSignalOverlay)
+  .register('grid-labels', coreGridLabelsOverlay)
+  .register('data-points', coreDataPointOverlay);
