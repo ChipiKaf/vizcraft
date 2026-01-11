@@ -6,8 +6,8 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz } from 'vizcraft';
 
-export const flowBuilder = viz()
-  .view(400, 100)
+export const flowBuilder = viz().view(400, 100);
+export const flowScene = flowBuilder
   .node('a')
   .at(50, 50)
   .circle(20)
@@ -19,8 +19,8 @@ export const flowBuilder = viz()
   .arrow()
   .done();
 
-export const interactiveBuilder = viz()
-  .view(400, 200)
+export const interactiveBuilder = viz().view(400, 200);
+export const interactiveScene = interactiveBuilder
   .node('btn')
   .at(200, 100)
   .rect(120, 50, 10)
@@ -44,19 +44,20 @@ The \`flow\` animation simulates data moving along an edge.
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz()
-  .view(400, 100)
+const builder = viz().view(400, 100);
+
+builder
   .node('a').at(50, 50).circle(20)
   .node('b').at(350, 50).circle(20)
   .edge('a', 'b')
-    .animate('flow', { duration: '1s' })
-    .arrow()
-    .done();
+  .animate('flow', { duration: '1s' })
+  .arrow()
+  .done();
 
 const container = document.getElementById('viz-flow');
 if (container) builder.mount(container);
 `}>
-  <VizMount builder={flowBuilder} style={{ height: '100px', width: '100%' }} />
+  <VizMount builder={flowScene} style={{ height: '100px', width: '100%' }} />
 </CodePreview>
 
 ## Interactivity
@@ -66,21 +67,22 @@ You can handle click events on nodes and edges.
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz()
-  .view(400, 200)
+const builder = viz().view(400, 200);
+
+builder
   .node('btn')
-    .at(200, 100)
-    .rect(120, 50, 10)
-    .label('Click Me')
-    .class('interactive-node')
-    .onClick((id) => alert(\`Clicked node \${id}\`))
-    .done();
+  .at(200, 100)
+  .rect(120, 50, 10)
+  .label('Click Me')
+  .class('interactive-node')
+  .onClick((id) => alert(\`Clicked node \${id}\`))
+  .done();
 
 const container = document.getElementById('viz-interactive');
 if (container) builder.mount(container);
 `}>
   <VizMount
-    builder={interactiveBuilder}
+    builder={interactiveScene}
     style={{ height: '200px', width: '100%' }}
   />
 </CodePreview>

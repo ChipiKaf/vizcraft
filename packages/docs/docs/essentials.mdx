@@ -6,8 +6,8 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz } from 'vizcraft';
 
-export const gridBuilder = viz()
-  .view(500, 300)
+export const gridBuilder = viz().view(500, 300);
+export const gridScene = gridBuilder
   .grid(5, 3, { x: 20, y: 20 })
   .node('n1')
   .cell(0, 0)
@@ -23,15 +23,16 @@ export const gridBuilder = viz()
   .diamond(60, 60)
   .done();
 
-export const edgesBuilder = viz()
-  .view(500, 200)
+export const edgesBuilder = viz().view(500, 200);
+export const edgesScene = edgesBuilder
   .node('A')
   .at(50, 100)
+  .circle(26)
   .label('Start')
   .node('B')
   .at(450, 100)
-  .label('End')
   .rect(80, 40)
+  .label('End')
   .edge('A', 'B')
   .arrow()
   .label('Connects to')
@@ -48,10 +49,9 @@ VizCraft uses a fluent builder pattern to construct your scene. The entry point 
 ```typescript
 import { viz } from 'vizcraft';
 
-const scene = viz()
-  .view(800, 600) // Set viewBox
-  .node('a').at(100, 100).build() // Add a node
-  .build(); // Finalize scene
+const builder = viz().view(800, 600); // Set viewBox
+builder.node('a').at(100, 100).circle(24).done(); // Add a node
+const scene = builder.build(); // Finalize scene
 ```
 
 ### View & Grid
@@ -61,8 +61,9 @@ You can define the canvas size with \`.view(w, h)\` and optionally set up a grid
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz()
-  .view(500, 300)
+const builder = viz().view(500, 300);
+
+builder
   .grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
   .node('n1').cell(0, 0).label('0,0').rect(60, 40)
   .node('n2').cell(2, 1).label('2,1').circle(30)
@@ -72,7 +73,7 @@ const container = document.getElementById('viz-grid');
 if (container) builder.mount(container);
 `}>
   <VizMount
-    builder={gridBuilder}
+    builder={gridScene}
     style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
@@ -101,17 +102,24 @@ By default, edges stop at the node boundary. Use \`.connect('center')\` to draw 
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz()
-  .view(500, 200)
-  .node('A').at(50, 100).label('Start')
-  .node('B').at(450, 100).label('End').rect(80, 40)
+const builder = viz().view(500, 200);
+
+builder
+  .node('A')
+  .at(50, 100)
+  .circle(26)
+  .label('Start')
+  .node('B')
+  .at(450, 100)
+  .rect(80, 40)
+  .label('End')
   .edge('A', 'B')
-    .arrow()
-    .label('Connects to')
-    .done();
+  .arrow()
+  .label('Connects to')
+  .done();
 
 const container = document.getElementById('viz-edges');
 if (container) builder.mount(container);
 `}>
-  <VizMount builder={edgesBuilder} style={{ height: '200px', width: '100%' }} />
+  <VizMount builder={edgesScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>

@@ -1016,7 +1016,7 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder {
-    this.edgeDef.label = { position: 'mid', text, ...opts };
+    this.edgeDef.label = { position: 'mid', text, dy: -10, ...opts };
     return this;
   }
 

@@ -6,8 +6,8 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz } from 'vizcraft';
 
-export const mountBuilder = viz()
-  .view(400, 200)
+export const mountBuilder = viz().view(400, 200);
+export const mountScene = mountBuilder
   .node('left')
   .at(80, 100)
   .circle(18)
@@ -29,19 +29,20 @@ VizCraft renders through the builder's \`mount\` method. You create a builder, p
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz()
-  .view(400, 200)
+const builder = viz().view(400, 200);
+
+builder
   .node('left').at(80, 100).circle(18).label('Left')
   .node('right').at(320, 100).rect(60, 40, 8).label('Right')
   .edge('left', 'right')
-    .arrow()
-    .done();
+  .arrow()
+  .done();
 
 const container = document.getElementById('viz-mount');
 if (container) builder.mount(container);
 `}>
   <VizMount
-    builder={mountBuilder}
+    builder={mountScene}
     style={{ height: '200px', width: '100%', border: '1px solid #eee' }}
   />
 </CodePreview>
