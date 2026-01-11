@@ -9,23 +9,37 @@ interface StepIndicatorProps {
   passCount?: number;
   isProcessing?: boolean;
   nextButtonConfig?: {
-      text?: string;
-      processingText?: string;
-      color?: string;
+    text?: string;
+    processingText?: string;
+    color?: string;
   };
   restartButtonConfig?: {
-      text?: string;
-      color?: string;
+    text?: string;
+    color?: string;
   };
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1, isProcessing = false, nextButtonConfig, restartButtonConfig }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({
+  steps,
+  currentStep,
+  onNextStep,
+  onReset,
+  passCount = 1,
+  isProcessing = false,
+  nextButtonConfig,
+  restartButtonConfig,
+}) => {
   const isFinished = currentStep >= steps.length;
 
   return (
     <div className="step-indicator">
-      <h2>Process Flow <span style={{ fontSize: '0.8em', opacity: 0.6, marginLeft: '10px' }}>Pass {passCount}</span></h2>
-      
+      <h2>
+        Process Flow{' '}
+        <span style={{ fontSize: '0.8em', opacity: 0.6, marginLeft: '10px' }}>
+          Pass {passCount}
+        </span>
+      </h2>
+
       <div className="step-list">
         {steps.map((step, index) => {
           let status = 'pending';
@@ -50,19 +64,26 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNex
 
       <div className="controls">
         {isFinished ? (
-          <button onClick={onReset} style={{ background: restartButtonConfig?.color || '#4f46e5' }}>
+          <button
+            onClick={onReset}
+            style={{ background: restartButtonConfig?.color || '#4f46e5' }}
+          >
             {restartButtonConfig?.text || 'Start Next Pass'}
           </button>
         ) : (
-          <button 
-            onClick={onNextStep} 
+          <button
+            onClick={onNextStep}
             disabled={isProcessing}
             style={{
-                ...(isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                ...(nextButtonConfig?.color ? { background: nextButtonConfig.color } : {})
+              ...(isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+              ...(nextButtonConfig?.color
+                ? { background: nextButtonConfig.color }
+                : {}),
             }}
           >
-            {isProcessing ? (nextButtonConfig?.processingText || 'Processing...') : (nextButtonConfig?.text || 'Next Step')}
+            {isProcessing
+              ? nextButtonConfig?.processingText || 'Processing...'
+              : nextButtonConfig?.text || 'Next Step'}
           </button>
         )}
       </div>
