@@ -64,6 +64,7 @@ export interface VizEdge {
   to: string;
   label?: EdgeLabel;
   markerEnd?: 'arrow' | 'none';
+  anchor?: 'center' | 'boundary';
   className?: string;
   hitArea?: number; // width in px
   data?: unknown;

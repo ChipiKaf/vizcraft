@@ -96,6 +96,7 @@ VizCraft supports three built-in shapes:
 ## Edges
 
 Edges connect two nodes using \`.edge(fromId, toId)\`.
+By default, edges stop at the node boundary. Use \`.connect('center')\` to draw center-to-center.
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
