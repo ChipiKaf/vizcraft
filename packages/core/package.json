@@ -1,6 +1,29 @@
 {
   "name": "vizcraft",
   "version": "0.1.1",
+  "description": "A fluent, type-safe SVG scene builder for composing nodes, edges, animations, and overlays with incremental DOM updates and no framework dependency.",
+  "keywords": [
+    "visualization",
+    "svg",
+    "graph",
+    "diagram",
+    "animation",
+    "react",
+    "typescript"
+  ],
+  "author": {
+    "name": "Chipili Kafwilo",
+    "email": "ckafwilo@gmail.com",
+    "url": "https://chipilidev.com"
+  },
+  "homepage": "https://github.com/ChipiKaf/vizcraft#readme",
+  "bugs": {
+    "url": "https://github.com/ChipiKaf/vizcraft/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChipiKaf/vizcraft.git"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
