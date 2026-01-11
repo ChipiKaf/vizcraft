@@ -22,7 +22,7 @@
     "email": "ckafwilo@gmail.com",
     "url": "https://chipilidev.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.6",

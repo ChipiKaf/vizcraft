@@ -124,4 +124,4 @@ Contributions are welcome! This is a monorepo managed with Turbo.
 
 ## 📄 License
 
-ISC © Chipili Kafwilo
+MIT License © Chipili Kafwilo
