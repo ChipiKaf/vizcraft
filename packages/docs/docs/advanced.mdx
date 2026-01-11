@@ -1,0 +1,90 @@
+---
+sidebar_position: 4
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz } from 'vizcraft';
+
+export const flowBuilder = viz()
+  .view(400, 100)
+  .node('a')
+  .at(50, 50)
+  .circle(20)
+  .node('b')
+  .at(350, 50)
+  .circle(20)
+  .edge('a', 'b')
+  .animate('flow', { duration: '1s' })
+  .arrow()
+  .done();
+
+export const interactiveBuilder = viz()
+  .view(400, 200)
+  .node('btn')
+  .at(200, 100)
+  .rect(120, 50, 10)
+  .label('Click Me')
+  .class('interactive-node')
+  .onClick((id) => alert(`Clicked node ${id}`))
+  .done();
+
+# Advanced Features
+
+Take your visualizations to the next level with animations and interactivity.
+
+## Animations
+
+VizCraft has a built-in animation system. You can attach animations to nodes and edges.
+
+### Edge Flow
+
+The \`flow\` animation simulates data moving along an edge.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 100)
+  .node('a').at(50, 50).circle(20)
+  .node('b').at(350, 50).circle(20)
+  .edge('a', 'b')
+    .animate('flow', { duration: '1s' })
+    .arrow()
+    .done();
+
+const container = document.getElementById('viz-flow');
+if (container) builder.mount(container);
+`}>
+  <VizMount builder={flowBuilder} style={{ height: '100px', width: '100%' }} />
+</CodePreview>
+
+## Interactivity
+
+You can handle click events on nodes and edges.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 200)
+  .node('btn')
+    .at(200, 100)
+    .rect(120, 50, 10)
+    .label('Click Me')
+    .class('interactive-node')
+    .onClick((id) => alert(\`Clicked node \${id}\`))
+    .done();
+
+const container = document.getElementById('viz-interactive');
+if (container) builder.mount(container);
+`}>
+  <VizMount
+    builder={interactiveBuilder}
+    style={{ height: '200px', width: '100%' }}
+  />
+</CodePreview>
+
+:::info
+Interactive elements will automatically get \`cursor: pointer\` if an \`onClick\` handler is attached, but you can also enforce it via styles.
+:::

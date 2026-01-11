@@ -24,7 +24,6 @@
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-vizcraft": "workspace:*",
     "sass": "^1.97.2",
     "vizcraft": "workspace:*"
   },

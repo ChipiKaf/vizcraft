@@ -1,0 +1,116 @@
+---
+sidebar_position: 3
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz } from 'vizcraft';
+
+export const gridBuilder = viz()
+  .view(500, 300)
+  .grid(5, 3, { x: 20, y: 20 })
+  .node('n1')
+  .cell(0, 0)
+  .label('0,0')
+  .rect(60, 40)
+  .node('n2')
+  .cell(2, 1)
+  .label('2,1')
+  .circle(30)
+  .node('n3')
+  .cell(4, 2)
+  .label('4,2')
+  .diamond(60, 60)
+  .done();
+
+export const edgesBuilder = viz()
+  .view(500, 200)
+  .node('A')
+  .at(50, 100)
+  .label('Start')
+  .node('B')
+  .at(450, 100)
+  .label('End')
+  .rect(80, 40)
+  .edge('A', 'B')
+  .arrow()
+  .label('Connects to')
+  .done();
+
+# Essentials
+
+Learn the basics of creating scenes with VizCraft.
+
+## The Builder API
+
+VizCraft uses a fluent builder pattern to construct your scene. The entry point is the \`viz()\` function.
+
+```typescript
+import { viz } from 'vizcraft';
+
+const scene = viz()
+  .view(800, 600) // Set viewBox
+  .node('a').at(100, 100).build() // Add a node
+  .build(); // Finalize scene
+```
+
+### View & Grid
+
+You can define the canvas size with \`.view(w, h)\` and optionally set up a grid for easy positioning.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(500, 300)
+  .grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
+  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
+  .node('n2').cell(2, 1).label('2,1').circle(30)
+  .node('n3').cell(4, 2).label('4,2').diamond(60, 60).done();
+
+const container = document.getElementById('viz-grid');
+if (container) builder.mount(container);
+`}>
+  <VizMount
+    builder={gridBuilder}
+    style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
+  />
+</CodePreview>
+
+## Nodes
+
+Nodes are the primary entities in your graph. You can create them with \`.node(id)\`.
+
+### Shapes
+
+VizCraft supports three built-in shapes:
+- \`.circle(r)\`
+- \`.rect(w, h, [rx])\`
+- \`.diamond(w, h)\`
+
+### Positioning
+
+- \`.at(x, y)\`: Absolute positioning.
+- \`.cell(col, row, [align])\` Grid-based positioning (requires \`.grid()\`).
+
+## Edges
+
+Edges connect two nodes using \`.edge(fromId, toId)\`.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(500, 200)
+  .node('A').at(50, 100).label('Start')
+  .node('B').at(450, 100).label('End').rect(80, 40)
+  .edge('A', 'B')
+    .arrow()
+    .label('Connects to')
+    .done();
+
+const container = document.getElementById('viz-edges');
+if (container) builder.mount(container);
+`}>
+  <VizMount builder={edgesBuilder} style={{ height: '200px', width: '100%' }} />
+</CodePreview>

@@ -6,12 +6,12 @@ sidebar_position: 1
 
 Welcome to the **VizCraft** documentation!
 
-VizCraft is a fluent, type-safe SVG scene builder for composing nodes, edges, animations, and overlays with incremental DOM updates and no framework dependency (core). It also provides React bindings for easy integration.
+VizCraft is a fluent, type-safe SVG scene builder for composing nodes, edges, animations, and overlays with incremental DOM updates and no framework dependency.
 
 ## Key Features
 
 - **Fluent API**: Builder pattern for easy scene composition.
-- **Framework Agnostic Core**: Use it with Vanilla JS, React, Vue, Svelte, etc.
+- **Framework Agnostic Core**: Use it with Vanilla JS or any framework.
 - **High Performance**: efficient DOM updates.
 - **Interactive**: Built-in support for gestures and interactions.
 - **Animations**: Powerful animation system.
@@ -19,9 +19,9 @@ VizCraft is a fluent, type-safe SVG scene builder for composing nodes, edges, an
 ## Installation
 
 ```bash
-npm install vizcraft react-vizcraft
+npm install vizcraft
 # or
-pnpm add vizcraft react-vizcraft
+pnpm add vizcraft
 ```
 
 ## Getting Started
