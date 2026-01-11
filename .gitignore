@@ -7,4 +7,3 @@ _index.ts
 tsconfig.tsbuildinfo
 
 .turbo
-.github/workflows/*.yml

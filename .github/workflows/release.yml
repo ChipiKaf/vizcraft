@@ -1,0 +1,54 @@
+name: Release (Changesets)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        # Uses packageManager field from package.json to determine version
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies (root)
+        run: pnpm install
+
+      - name: Build all workspaces
+        run: pnpm run build
+
+      - name: Configure npm auth (token + provenance)
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "provenance=true" >> ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Release PR or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpx @changesets/cli version
+          publish: pnpx @changesets/cli publish
+          commit: 'chore: version packages'
+          title: 'Release: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
