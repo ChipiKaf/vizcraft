@@ -12,6 +12,79 @@ import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
 
+type SvgAttrValue = string | number | undefined;
+
+function setSvgAttributes(el: SVGElement, attrs: Record<string, SvgAttrValue>) {
+  Object.entries(attrs).forEach(([key, value]) => {
+    if (value === undefined) {
+      el.removeAttribute(key);
+    } else {
+      el.setAttribute(key, String(value));
+    }
+  });
+}
+
+function svgAttributeString(attrs: Record<string, SvgAttrValue>) {
+  return Object.entries(attrs)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => ` ${key}="${String(value)}"`)
+    .join('');
+}
+
+function computeNodeAnchor(
+  node: VizNode,
+  target: { x: number; y: number },
+  anchor: 'center' | 'boundary'
+) {
+  if (anchor === 'center') {
+    return { x: node.pos.x, y: node.pos.y };
+  }
+
+  const dx = target.x - node.pos.x;
+  const dy = target.y - node.pos.y;
+  if (dx === 0 && dy === 0) {
+    return { x: node.pos.x, y: node.pos.y };
+  }
+
+  if (node.shape.kind === 'circle') {
+    const dist = Math.hypot(dx, dy) || 1;
+    const scale = node.shape.r / dist;
+    return {
+      x: node.pos.x + dx * scale,
+      y: node.pos.y + dy * scale,
+    };
+  }
+
+  if (node.shape.kind === 'rect') {
+    const hw = node.shape.w / 2;
+    const hh = node.shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: node.pos.x + dx * scale,
+      y: node.pos.y + dy * scale,
+    };
+  }
+
+  const hw = node.shape.w / 2;
+  const hh = node.shape.h / 2;
+  const denom = Math.abs(dx) / hw + Math.abs(dy) / hh;
+  const scale = denom === 0 ? 0 : 1 / denom;
+  return {
+    x: node.pos.x + dx * scale,
+    y: node.pos.y + dy * scale,
+  };
+}
+
+function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
+  const anchor = edge.anchor ?? 'boundary';
+  const startAnchor = computeNodeAnchor(start, end.pos, anchor);
+  const endAnchor = computeNodeAnchor(end, start.pos, anchor);
+  return { start: startAnchor, end: endAnchor };
+}
+
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
   grid(
@@ -42,6 +115,9 @@ interface NodeBuilder {
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
+  fill(color: string): NodeBuilder;
+  stroke(color: string, width?: number): NodeBuilder;
+  opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
   data(payload: unknown): NodeBuilder;
@@ -60,6 +136,7 @@ interface EdgeBuilder {
   straight(): EdgeBuilder;
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder;
   arrow(enabled?: boolean): EdgeBuilder;
+  connect(anchor: 'center' | 'boundary'): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
@@ -334,12 +411,14 @@ class VizBuilderImpl implements VizBuilder {
       }
       group.setAttribute('class', classes);
 
+      const endpoints = computeEdgeEndpoints(start, end, edge);
+
       // Update Line
       const line = group.querySelector('.viz-edge') as SVGLineElement;
-      line.setAttribute('x1', String(start.pos.x));
-      line.setAttribute('y1', String(start.pos.y));
-      line.setAttribute('x2', String(end.pos.x));
-      line.setAttribute('y2', String(end.pos.y));
+      line.setAttribute('x1', String(endpoints.start.x));
+      line.setAttribute('y1', String(endpoints.start.y));
+      line.setAttribute('x2', String(endpoints.end.x));
+      line.setAttribute('y2', String(endpoints.end.y));
       line.setAttribute('stroke', 'currentColor');
       if (edge.markerEnd === 'arrow') {
         line.setAttribute('marker-end', 'url(#viz-arrow)');
@@ -353,10 +432,10 @@ class VizBuilderImpl implements VizBuilder {
       if (edge.hitArea || edge.onClick) {
         const hit = document.createElementNS(svgNS, 'line');
         hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
-        hit.setAttribute('x1', String(start.pos.x));
-        hit.setAttribute('y1', String(start.pos.y));
-        hit.setAttribute('x2', String(end.pos.x));
-        hit.setAttribute('y2', String(end.pos.y));
+        hit.setAttribute('x1', String(endpoints.start.x));
+        hit.setAttribute('y1', String(endpoints.start.y));
+        hit.setAttribute('x2', String(endpoints.end.x));
+        hit.setAttribute('y2', String(endpoints.end.y));
         hit.setAttribute('stroke', 'transparent');
         hit.setAttribute('stroke-width', String(edge.hitArea || 10));
         hit.style.cursor = edge.onClick ? 'pointer' : '';
@@ -375,8 +454,10 @@ class VizBuilderImpl implements VizBuilder {
 
       if (edge.label) {
         const text = document.createElementNS(svgNS, 'text');
-        const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
-        const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+        const mx =
+          (endpoints.start.x + endpoints.end.x) / 2 + (edge.label.dx || 0);
+        const my =
+          (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
         text.setAttribute('x', String(mx));
         text.setAttribute('y', String(my));
         text.setAttribute(
@@ -509,13 +590,18 @@ class VizBuilderImpl implements VizBuilder {
         shape!.setAttribute('points', pts);
       }
 
+      setSvgAttributes(shape!, {
+        fill: node.style?.fill ?? 'none',
+        stroke: node.style?.stroke ?? '#111',
+        'stroke-width': node.style?.strokeWidth ?? 2,
+        opacity: node.style?.opacity,
+      });
+
       // Label (Recreate for simplicity as usually just text/pos changes)
       let label = group.querySelector('.viz-node-label') as SVGTextElement;
       if (!label && node.label) {
         label = document.createElementNS(svgNS, 'text');
         label.setAttribute('class', 'viz-node-label');
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('dominant-baseline', 'middle');
         group.appendChild(label);
       }
 
@@ -524,12 +610,22 @@ class VizBuilderImpl implements VizBuilder {
         const ly = y + (node.label.dy || 0);
         label!.setAttribute('x', String(lx));
         label!.setAttribute('y', String(ly));
+        label!.setAttribute('text-anchor', node.label.textAnchor || 'middle');
+        label!.setAttribute(
+          'dominant-baseline',
+          node.label.dominantBaseline || 'middle'
+        );
 
         // Update class carefully to preserve 'viz-node-label'
         label!.setAttribute(
           'class',
           `viz-node-label ${node.label.className || ''}`
         );
+        setSvgAttributes(label!, {
+          fill: node.label.fill,
+          'font-size': node.label.fontSize,
+          'font-weight': node.label.fontWeight,
+        });
         label!.textContent = node.label.text;
       } else if (label) {
         label.remove();
@@ -656,13 +752,16 @@ class VizBuilderImpl implements VizBuilder {
       const markerEnd =
         edge.markerEnd === 'arrow' ? 'marker-end="url(#viz-arrow)"' : '';
 
+      const endpoints = computeEdgeEndpoints(start, end, edge);
       svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}">`;
-      svgContent += `<line x1="${start.pos.x}" y1="${start.pos.y}" x2="${end.pos.x}" y2="${end.pos.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
+      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
 
       // Edge Label
       if (edge.label) {
-        const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
-        const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+        const mx =
+          (endpoints.start.x + endpoints.end.x) / 2 + (edge.label.dx || 0);
+        const my =
+          (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
         const labelClass = `viz-edge-label ${edge.label.className || ''}`;
         svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
       }
@@ -703,16 +802,23 @@ class VizBuilderImpl implements VizBuilder {
 
       svgContent += `<g class="${className}" style="${animStyleStr}">`;
 
+      const shapeStyleAttrs = svgAttributeString({
+        fill: node.style?.fill ?? 'none',
+        stroke: node.style?.stroke ?? '#111',
+        'stroke-width': node.style?.strokeWidth ?? 2,
+        opacity: node.style?.opacity,
+      });
+
       // Shape
       if (shape.kind === 'circle') {
-        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape" />`;
+        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape"${shapeStyleAttrs} />`;
       } else if (shape.kind === 'rect') {
-        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" />`;
+        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape"${shapeStyleAttrs} />`;
       } else if (shape.kind === 'diamond') {
         const hw = shape.w / 2;
         const hh = shape.h / 2;
         const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
-        svgContent += `<polygon points="${pts}" class="viz-node-shape" />`;
+        svgContent += `<polygon points="${pts}" class="viz-node-shape"${shapeStyleAttrs} />`;
       }
 
       // Label
@@ -720,7 +826,14 @@ class VizBuilderImpl implements VizBuilder {
         const lx = x + (node.label.dx || 0);
         const ly = y + (node.label.dy || 0);
         const labelClass = `viz-node-label ${node.label.className || ''}`;
-        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${node.label.text}</text>`;
+        const labelAttrs = svgAttributeString({
+          fill: node.label.fill,
+          'font-size': node.label.fontSize,
+          'font-weight': node.label.fontWeight,
+          'text-anchor': node.label.textAnchor || 'middle',
+          'dominant-baseline': node.label.dominantBaseline || 'middle',
+        });
+        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}"${labelAttrs}>${node.label.text}</text>`;
       }
 
       svgContent += '</g>';
@@ -814,6 +927,31 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  fill(color: string): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      fill: color,
+    };
+    return this;
+  }
+
+  stroke(color: string, width?: number): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      stroke: color,
+      strokeWidth: width ?? this.nodeDef.style?.strokeWidth,
+    };
+    return this;
+  }
+
+  opacity(value: number): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      opacity: value,
+    };
+    return this;
+  }
+
   class(name: string): NodeBuilder {
     if (this.nodeDef.className) {
       this.nodeDef.className += ` ${name}`;
@@ -878,12 +1016,17 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder {
-    this.edgeDef.label = { position: 'mid', text, ...opts };
+    this.edgeDef.label = { position: 'mid', text, dy: -10, ...opts };
     return this;
   }
 
   arrow(enabled: boolean = true): EdgeBuilder {
     this.edgeDef.markerEnd = enabled ? 'arrow' : 'none';
+    return this;
+  }
+
+  connect(anchor: 'center' | 'boundary'): EdgeBuilder {
+    this.edgeDef.anchor = anchor;
     return this;
   }
 

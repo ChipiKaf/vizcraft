@@ -10,6 +10,11 @@ export type NodeLabel = {
   dx?: number;
   dy?: number;
   className?: string;
+  fill?: string;
+  fontSize?: number | string;
+  fontWeight?: number | string;
+  textAnchor?: 'start' | 'middle' | 'end';
+  dominantBaseline?: string;
 };
 
 export type AnimationDuration = `${number}s`;
@@ -33,6 +38,12 @@ export interface VizNode {
   pos: Vec2;
   shape: NodeShape;
   label?: NodeLabel;
+  style?: {
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    opacity?: number;
+  };
   className?: string; // e.g. "active", "input-layer"
   data?: unknown; // User payload
   onClick?: (id: string, node: VizNode) => void;
@@ -53,6 +64,7 @@ export interface VizEdge {
   to: string;
   label?: EdgeLabel;
   markerEnd?: 'arrow' | 'none';
+  anchor?: 'center' | 'boundary';
   className?: string;
   hitArea?: number; // width in px
   data?: unknown;
