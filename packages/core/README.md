@@ -33,10 +33,18 @@ import { VizBuilderImpl } from 'vizcraft';
 const builder = new VizBuilderImpl();
 
 // Define your scene
-builder.view(500, 500)
-       .node('a').at(100, 100).circle(15).label('A')
-       .node('b').at(400, 100).circle(15).label('B')
-       .edge('a', 'b').arrow();
+builder
+  .view(500, 500)
+  .node('a')
+  .at(100, 100)
+  .circle(15)
+  .label('A')
+  .node('b')
+  .at(400, 100)
+  .circle(15)
+  .label('B')
+  .edge('a', 'b')
+  .arrow();
 
 // Build the scene model
 const scene = builder.build();
@@ -49,16 +57,18 @@ builder.mount(container);
 ## 📖 Core Concepts
 
 ### The Builder (`VizBuilder`)
+
 The heart of VizCraft is the `VizBuilder`. It allows you to construct a `VizScene` which acts as the blueprint for your visualization.
 
 ```typescript
-b.view(width, height)    // Set the coordinate space
- .grid(cols, rows)       // (Optional) Define layout grid
- .node(id)               // Start defining a node
- .edge(from, to)         // Start defining an edge
+b.view(width, height) // Set the coordinate space
+  .grid(cols, rows) // (Optional) Define layout grid
+  .node(id) // Start defining a node
+  .edge(from, to); // Start defining an edge
 ```
 
 ### Nodes
+
 Nodes are the primary entities in your graph. They can have shapes, labels, and styles.
 
 ```typescript
@@ -73,18 +83,20 @@ b.node('n1')
 ```
 
 ### Edges
+
 Edges connect nodes and can be styled, directed, or animated.
 
 ```typescript
 b.edge('n1', 'n2')
- .arrow()                // Add an arrowhead
- .straight()             // (Default) Straight line
- .label('Connection')
- .animate('flow')        // Add animation
+  .arrow() // Add an arrowhead
+  .straight() // (Default) Straight line
+  .label('Connection')
+  .animate('flow'); // Add animation
 ```
 
 ### Animations
-VizCraft supports declarative animations. You define *what* happens, and the renderer handles the interpolation.
+
+VizCraft supports declarative animations. You define _what_ happens, and the renderer handles the interpolation.
 
 - **`stream`**: Particles flowing along an edge.
 - **`pulse`**: Rhythmic scaling or opacity changes.
