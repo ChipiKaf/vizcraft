@@ -1,0 +1,51 @@
+---
+sidebar_position: 2
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import { VizCanvas } from 'react-vizcraft';
+import { viz } from 'vizcraft';
+
+# Interactive Examples
+
+Here you can see **VizCraft** in action.
+
+## Basic Scene
+
+This example demonstrates a simple scene with a single node.
+
+<CodePreview code={`
+import React from 'react';
+import { VizCanvas } from 'react-vizcraft';
+import { viz } from 'vizcraft';
+
+export default function BasicScene() {
+  const scene = viz()
+    .view(800, 600)
+    .node('node1')
+      .at(400, 300)
+      .circle(30)
+      .label('Hello VizCraft')
+    .build();
+
+  return (
+    <div style={{ height: '400px', width: '100%' }}>
+      <VizCanvas scene={scene} />
+    </div>
+  );
+}
+`}>
+  <div style={{ height: '400px', width: '100%', position: 'relative' }}>
+     <VizCanvas
+        scene={
+            viz()
+                .view(800, 600)
+                .node('node1')
+                .at(400, 300)
+                .circle(30)
+                .label('Hello VizCraft')
+                .build()
+        }
+      />
+  </div>
+</CodePreview>

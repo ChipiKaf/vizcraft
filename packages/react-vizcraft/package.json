@@ -7,22 +7,23 @@
   "types": "./dist/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && copyfiles -u 1 \"src/**/*.scss\" dist/",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "vitest run"
   },
   "peerDependencies": {
-    "vizcraft": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "vizcraft": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
-    "vizcraft": "workspace:*",
+    "copyfiles": "^2.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sass": "^1.95.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vizcraft": "workspace:*"
   }
 }
