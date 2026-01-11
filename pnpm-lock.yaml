@@ -101,9 +101,6 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.3(react@19.2.3)
-      react-vizcraft:
-        specifier: workspace:*
-        version: link:../react-vizcraft
       sass:
         specifier: ^1.97.2
         version: 1.97.2
