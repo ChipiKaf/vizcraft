@@ -33,11 +33,25 @@ export interface VizAnimSpec<T = any> {
   when?: boolean; // Condition gate
 }
 
+export type VizRuntimeNodeProps = Partial<{
+  x: number;
+  y: number;
+  opacity: number;
+  scale: number;
+  rotation: number;
+}>;
+
+export type VizRuntimeEdgeProps = Partial<{
+  strokeDashoffset: number;
+  opacity: number;
+}>;
+
 export interface VizNode {
   id: string;
   pos: Vec2;
   shape: NodeShape;
   label?: NodeLabel;
+  runtime?: VizRuntimeNodeProps;
   style?: {
     fill?: string;
     stroke?: string;
@@ -63,6 +77,7 @@ export interface VizEdge {
   from: string;
   to: string;
   label?: EdgeLabel;
+  runtime?: VizRuntimeEdgeProps;
   markerEnd?: 'arrow' | 'none';
   anchor?: 'center' | 'boundary';
   className?: string;

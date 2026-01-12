@@ -411,10 +411,43 @@ class VizBuilderImpl implements VizBuilder {
       }
       group.setAttribute('class', classes);
 
-      const endpoints = computeEdgeEndpoints(start, end, edge);
+      const startEffective: VizNode = {
+        ...start,
+        pos: {
+          x: start.runtime?.x ?? start.pos.x,
+          y: start.runtime?.y ?? start.pos.y,
+        },
+      };
+
+      const endEffective: VizNode = {
+        ...end,
+        pos: {
+          x: end.runtime?.x ?? end.pos.x,
+          y: end.runtime?.y ?? end.pos.y,
+        },
+      };
+
+      const endpoints = computeEdgeEndpoints(
+        startEffective,
+        endEffective,
+        edge
+      );
+
+      // Apply Edge Runtime Overrides
+      if (edge.runtime?.opacity !== undefined) {
+        group.style.opacity = String(edge.runtime.opacity);
+      } else {
+        group.style.opacity = ''; // Reset if not present (or handle via class/default)
+      }
 
       // Update Line
       const line = group.querySelector('.viz-edge') as SVGLineElement;
+
+      if (edge.runtime?.strokeDashoffset !== undefined) {
+        line.style.strokeDashoffset = String(edge.runtime.strokeDashoffset);
+      } else {
+        line.style.strokeDashoffset = '';
+      }
       line.setAttribute('x1', String(endpoints.start.x));
       line.setAttribute('y1', String(endpoints.start.y));
       line.setAttribute('x2', String(endpoints.end.x));
@@ -544,7 +577,8 @@ class VizBuilderImpl implements VizBuilder {
       group.style.cursor = node.onClick ? 'pointer' : '';
 
       // Shape (Update geometry)
-      const { x, y } = node.pos;
+      const x = node.runtime?.x ?? node.pos.x;
+      const y = node.runtime?.y ?? node.pos.y;
 
       // Ideally we reuse the shape element if the kind hasn't changed.
       // Assuming kind rarely changes for same ID.
@@ -594,7 +628,7 @@ class VizBuilderImpl implements VizBuilder {
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
         'stroke-width': node.style?.strokeWidth ?? 2,
-        opacity: node.style?.opacity,
+        opacity: node.runtime?.opacity ?? node.style?.opacity,
       });
 
       // Label (Recreate for simplicity as usually just text/pos changes)
