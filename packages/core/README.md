@@ -27,12 +27,10 @@ yarn add vizcraft
 You can use the core library directly to generate SVG content or mount to a DOM element.
 
 ```typescript
-import { VizBuilderImpl } from 'vizcraft';
+import { viz } from 'vizcraft';
 
-// Create a builder instance
-const builder = new VizBuilderImpl();
+const builder = viz().view(800, 600);
 
-// Define your scene
 builder
   .view(500, 500)
   .node('a')
@@ -46,12 +44,8 @@ builder
   .edge('a', 'b')
   .arrow();
 
-// Build the scene model
-const scene = builder.build();
-
-// Mount to a container
-const container = document.getElementById('viz');
-builder.mount(container);
+const container = document.getElementById('viz-basic');
+if (container) builder.mount(container);
 ```
 
 ## 📖 Core Concepts
