@@ -31,27 +31,36 @@ function svgAttributeString(attrs: Record<string, SvgAttrValue>) {
     .join('');
 }
 
+// Helper to determine effective position (runtime vs static)
+function effectivePos(node: VizNode) {
+  return {
+    x: node.runtime?.x ?? node.pos.x,
+    y: node.runtime?.y ?? node.pos.y,
+  };
+}
+
 function computeNodeAnchor(
   node: VizNode,
   target: { x: number; y: number },
   anchor: 'center' | 'boundary'
 ) {
+  const pos = effectivePos(node);
   if (anchor === 'center') {
-    return { x: node.pos.x, y: node.pos.y };
+    return { x: pos.x, y: pos.y };
   }
 
-  const dx = target.x - node.pos.x;
-  const dy = target.y - node.pos.y;
+  const dx = target.x - pos.x;
+  const dy = target.y - pos.y;
   if (dx === 0 && dy === 0) {
-    return { x: node.pos.x, y: node.pos.y };
+    return { x: pos.x, y: pos.y };
   }
 
   if (node.shape.kind === 'circle') {
     const dist = Math.hypot(dx, dy) || 1;
     const scale = node.shape.r / dist;
     return {
-      x: node.pos.x + dx * scale,
-      y: node.pos.y + dy * scale,
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
     };
   }
 
@@ -63,8 +72,8 @@ function computeNodeAnchor(
       hh / Math.abs(dy || 1e-6)
     );
     return {
-      x: node.pos.x + dx * scale,
-      y: node.pos.y + dy * scale,
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
     };
   }
 
@@ -73,15 +82,19 @@ function computeNodeAnchor(
   const denom = Math.abs(dx) / hw + Math.abs(dy) / hh;
   const scale = denom === 0 ? 0 : 1 / denom;
   return {
-    x: node.pos.x + dx * scale,
-    y: node.pos.y + dy * scale,
+    x: pos.x + dx * scale,
+    y: pos.y + dy * scale,
   };
 }
 
 function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
   const anchor = edge.anchor ?? 'boundary';
-  const startAnchor = computeNodeAnchor(start, end.pos, anchor);
-  const endAnchor = computeNodeAnchor(end, start.pos, anchor);
+  // Use effective positions of start/end nodes to calculate anchors
+  const startPos = effectivePos(start);
+  const endPos = effectivePos(end);
+
+  const startAnchor = computeNodeAnchor(start, endPos, anchor);
+  const endAnchor = computeNodeAnchor(end, startPos, anchor);
   return { start: startAnchor, end: endAnchor };
 }
 
@@ -411,33 +424,14 @@ class VizBuilderImpl implements VizBuilder {
       }
       group.setAttribute('class', classes);
 
-      const startEffective: VizNode = {
-        ...start,
-        pos: {
-          x: start.runtime?.x ?? start.pos.x,
-          y: start.runtime?.y ?? start.pos.y,
-        },
-      };
-
-      const endEffective: VizNode = {
-        ...end,
-        pos: {
-          x: end.runtime?.x ?? end.pos.x,
-          y: end.runtime?.y ?? end.pos.y,
-        },
-      };
-
-      const endpoints = computeEdgeEndpoints(
-        startEffective,
-        endEffective,
-        edge
-      );
+      // Use effective positions (handles runtime overrides internally via helper)
+      const endpoints = computeEdgeEndpoints(start, end, edge);
 
       // Apply Edge Runtime Overrides
       if (edge.runtime?.opacity !== undefined) {
         group.style.opacity = String(edge.runtime.opacity);
       } else {
-        group.style.opacity = ''; // Reset if not present (or handle via class/default)
+        group.style.removeProperty('opacity');
       }
 
       // Update Line
@@ -445,8 +439,14 @@ class VizBuilderImpl implements VizBuilder {
 
       if (edge.runtime?.strokeDashoffset !== undefined) {
         line.style.strokeDashoffset = String(edge.runtime.strokeDashoffset);
+        // Optional: Also set attribute for consistency/export, though style usually wins
+        line.setAttribute(
+          'stroke-dashoffset',
+          String(edge.runtime.strokeDashoffset)
+        );
       } else {
-        line.style.strokeDashoffset = '';
+        line.style.removeProperty('stroke-dashoffset');
+        line.removeAttribute('stroke-dashoffset');
       }
       line.setAttribute('x1', String(endpoints.start.x));
       line.setAttribute('y1', String(endpoints.start.y));
@@ -577,8 +577,7 @@ class VizBuilderImpl implements VizBuilder {
       group.style.cursor = node.onClick ? 'pointer' : '';
 
       // Shape (Update geometry)
-      const x = node.runtime?.x ?? node.pos.x;
-      const y = node.runtime?.y ?? node.pos.y;
+      const { x, y } = effectivePos(node);
 
       // Ideally we reuse the shape element if the kind hasn't changed.
       // Assuming kind rarely changes for same ID.
@@ -787,8 +786,22 @@ class VizBuilderImpl implements VizBuilder {
         edge.markerEnd === 'arrow' ? 'marker-end="url(#viz-arrow)"' : '';
 
       const endpoints = computeEdgeEndpoints(start, end, edge);
-      svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}">`;
-      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
+
+      // Runtime overrides for SVG export
+      let runtimeStyle = '';
+      if (edge.runtime?.opacity !== undefined) {
+        runtimeStyle += `opacity: ${edge.runtime.opacity}; `;
+      }
+
+      let lineRuntimeStyle = '';
+      let lineRuntimeAttrs = '';
+      if (edge.runtime?.strokeDashoffset !== undefined) {
+        lineRuntimeStyle += `stroke-dashoffset: ${edge.runtime.strokeDashoffset}; `;
+        lineRuntimeAttrs += ` stroke-dashoffset="${edge.runtime.strokeDashoffset}"`;
+      }
+
+      svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
+      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" ${markerEnd} stroke="currentColor" style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {
@@ -806,12 +819,17 @@ class VizBuilderImpl implements VizBuilder {
     // Render Nodes
     svgContent += '<g class="viz-layer-nodes">';
     nodes.forEach((node) => {
-      const { x, y } = node.pos;
+      const { x, y } = effectivePos(node);
       const { shape } = node;
 
       // Animations (Nodes)
       let animClasses = '';
       let animStyleStr = '';
+
+      // Apply runtime opacity
+      if (node.runtime?.opacity !== undefined) {
+        animStyleStr += `opacity: ${node.runtime.opacity}; `;
+      }
 
       if (node.animations) {
         node.animations.forEach((spec) => {
