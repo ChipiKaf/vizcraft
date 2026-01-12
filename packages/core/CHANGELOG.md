@@ -1,5 +1,11 @@
 # vizcraft
 
+## 0.1.5
+
+### Patch Changes
+
+- [`ecb5ade`](https://github.com/ChipiKaf/vizcraft/commit/ecb5adef774e30589a0714699ccdb7839530bd50) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - update docs with correct code snippets
+
 ## 0.1.4
 
 ### Patch Changes
