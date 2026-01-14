@@ -1,7 +1,6 @@
 import type { VizScene, VizNode, VizEdge } from '../types';
 import type { AnimationHostAdapter, RegistrableAdapter } from './adapter';
-import type { AnimationTarget } from './spec';
-import { createRegistryAdapter } from './registryAdapter';
+import { createRegistryAdapter, KindHandle } from './registryAdapter';
 
 // @todo: This does not feel too generalizable; consider how to make this more adaptable
 // There are too many hardcoded properties and things specific to VizCraft here.
@@ -24,88 +23,96 @@ export function createVizCraftAdapter(
   const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
   const edgesById = new Map(scene.edges.map((e) => [e.id, e]));
 
-  function resolve(target: AnimationTarget) {
-    const [kind, id] = target.split(':') as [string, string];
-    if (kind === 'node')
-      return { kind: 'node', el: nodesById.get(id) as VizNode | undefined };
-    if (kind === 'edge')
-      return { kind: 'edge', el: edgesById.get(id) as VizEdge | undefined };
-    return undefined;
-  }
-
   const adapter = createRegistryAdapter({
-    resolve: (t) => resolve(t) as { kind: string; el: unknown } | undefined,
     flush: requestRender,
-  }) as AnimationHostAdapter & RegistrableAdapter;
+  }) as AnimationHostAdapter &
+    RegistrableAdapter & {
+      kind(
+        kindName: string,
+        resolver?: (id: string) => unknown | undefined
+      ): {
+        prop(
+          propName: string,
+          handlers: {
+            get?: (el: unknown) => number | undefined;
+            set?: (el: unknown, v: number) => void;
+          }
+        ): KindHandle;
+      };
+    };
 
-  // register node readers/writers
-  adapter.register('node', 'x', {
-    get: (el) => {
-      const n = el as VizNode;
-      return n.runtime?.x ?? n.pos.x;
-    },
-    set: (el, v) => {
-      const n = el as VizNode;
-      n.runtime = n.runtime ?? {};
-      n.runtime.x = v;
-    },
-  });
-  adapter.register('node', 'y', {
-    get: (el) => {
-      const n = el as VizNode;
-      return n.runtime?.y ?? n.pos.y;
-    },
-    set: (el, v) => {
-      const n = el as VizNode;
-      n.runtime = n.runtime ?? {};
-      n.runtime.y = v;
-    },
-  });
-  adapter.register('node', 'opacity', {
-    get: (el) => {
-      const n = el as VizNode;
-      return n.runtime?.opacity ?? n.style?.opacity;
-    },
-    set: (el, v) => {
-      const n = el as VizNode;
-      n.runtime = n.runtime ?? {};
-      n.runtime.opacity = v;
-    },
-  });
-  adapter.register('node', 'scale', {
-    get: (el) => (el as VizNode).runtime?.scale,
-    set: (el, v) => {
-      const n = el as VizNode;
-      n.runtime = n.runtime ?? {};
-      n.runtime.scale = v;
-    },
-  });
-  adapter.register('node', 'rotation', {
-    get: (el) => (el as VizNode).runtime?.rotation,
-    set: (el, v) => {
-      const n = el as VizNode;
-      n.runtime = n.runtime ?? {};
-      n.runtime.rotation = v;
-    },
-  });
+  // register node/edge target resolvers and props using ergonomic handles
+  const node = adapter.kind('node', (id) => nodesById.get(id));
+  const edge = adapter.kind('edge', (id) => edgesById.get(id));
 
-  // register edge readers/writers
-  adapter.register('edge', 'opacity', {
-    get: (el) => (el as VizEdge).runtime?.opacity,
-    set: (el, v) => {
-      const e = el as VizEdge;
-      e.runtime = e.runtime ?? {};
-      e.runtime.opacity = v;
-    },
-  });
-  adapter.register('edge', 'strokeDashoffset', {
-    get: (el) => (el as VizEdge).runtime?.strokeDashoffset,
-    set: (el, v) => {
-      const e = el as VizEdge;
-      e.runtime = e.runtime ?? {};
-      e.runtime.strokeDashoffset = v;
-    },
-  });
+  node
+    .prop('x', {
+      get: (el: unknown) => {
+        const n = el as VizNode;
+        return n.runtime?.x ?? n.pos.x;
+      },
+      set: (el: unknown, v: number) => {
+        const n = el as VizNode;
+        n.runtime = n.runtime ?? {};
+        n.runtime.x = v;
+      },
+    })
+    .prop('y', {
+      get: (el: unknown) => {
+        const n = el as VizNode;
+        return n.runtime?.y ?? n.pos.y;
+      },
+      set: (el: unknown, v: number) => {
+        const n = el as VizNode;
+        n.runtime = n.runtime ?? {};
+        n.runtime.y = v;
+      },
+    })
+    .prop('opacity', {
+      get: (el: unknown) => {
+        const n = el as VizNode;
+        return n.runtime?.opacity ?? n.style?.opacity;
+      },
+      set: (el: unknown, v: number) => {
+        const n = el as VizNode;
+        n.runtime = n.runtime ?? {};
+        n.runtime.opacity = v;
+      },
+    })
+    .prop('scale', {
+      get: (el: unknown) => (el as VizNode).runtime?.scale,
+      set: (el: unknown, v: number) => {
+        const n = el as VizNode;
+        n.runtime = n.runtime ?? {};
+        n.runtime.scale = v;
+      },
+    })
+    .prop('rotation', {
+      get: (el: unknown) => (el as VizNode).runtime?.rotation,
+      set: (el: unknown, v: number) => {
+        const n = el as VizNode;
+        n.runtime = n.runtime ?? {};
+        n.runtime.rotation = v;
+      },
+    });
+
+  edge
+    .prop('opacity', {
+      get: (el: unknown) => (el as VizEdge).runtime?.opacity,
+      set: (el: unknown, v: number) => {
+        const e = el as VizEdge;
+        e.runtime = e.runtime ?? {};
+        e.runtime.opacity = v;
+      },
+    })
+    .prop('strokeDashoffset', {
+      get: (el: unknown) => (el as VizEdge).runtime?.strokeDashoffset,
+      set: (el: unknown, v: number) => {
+        const e = el as VizEdge;
+        e.runtime = e.runtime ?? {};
+        e.runtime.strokeDashoffset = v;
+      },
+    });
 
   return adapter;
 }
