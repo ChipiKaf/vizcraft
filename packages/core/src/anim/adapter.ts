@@ -14,7 +14,10 @@ export interface AnimationHostAdapter {
 
   // called after set()s for a frame (lets host patch DOM efficiently later)
   flush?: () => void;
+}
 
-  // optional registration API so hosts can extend supported kinds/properties
-  register?: (kind: string, prop: string, handlers: PropHandlers) => void;
+// Optional capability: adapters that want to support registration can
+// implement this, but it is NOT required by the core standard.
+export interface RegistrableAdapter {
+  register(kind: string, prop: string, handlers: PropHandlers): void;
 }

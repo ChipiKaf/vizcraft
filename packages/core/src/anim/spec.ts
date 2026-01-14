@@ -1,10 +1,16 @@
-export type AnimationTarget = `node:${string}` | `edge:${string}->${string}`;
+export type AnimationTarget =
+  | (`node:${string}` | `edge:${string}`)
+  | (string & {});
 
-import type { VizRuntimeNodeProps, VizRuntimeEdgeProps } from '../types';
+export type CoreAnimProperty =
+  | 'x'
+  | 'y'
+  | 'opacity'
+  | 'scale'
+  | 'rotation'
+  | 'strokeDashoffset';
 
-export type AnimProperty =
-  | keyof VizRuntimeNodeProps
-  | keyof VizRuntimeEdgeProps;
+export type AnimProperty = CoreAnimProperty | (string & {});
 
 export type Ease = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut';
 
