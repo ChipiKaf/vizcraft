@@ -1,11 +1,5 @@
 import type { AnimationHostAdapter } from './adapter';
-import type {
-  AnimationSpec,
-  TweenSpec,
-  AnimationTarget,
-  AnimProperty,
-  Ease,
-} from './spec';
+import type { AnimationSpec, TweenSpec, Ease } from './spec';
 
 export interface AnimationController {
   play(): void;
@@ -62,10 +56,7 @@ export function createPlayer(adapter: AnimationHostAdapter) {
         t._from = t.from as number;
         continue;
       }
-      const got = adapter.get(
-        t.target as AnimationTarget,
-        t.property as AnimProperty
-      );
+      const got = adapter.get(t.target, t.property);
       t._from = typeof got === 'number' ? got : 0;
     }
     captured = true;
@@ -78,6 +69,9 @@ export function createPlayer(adapter: AnimationHostAdapter) {
       let value: number;
       if (local <= 0) {
         value = t._from;
+      } else if (t.duration <= 0) {
+        // instantaneous tween: if we've reached its start, set to `to`
+        value = local < 0 ? t._from : t.to;
       } else if (local >= t.duration) {
         value = t.to;
       } else {
@@ -86,11 +80,7 @@ export function createPlayer(adapter: AnimationHostAdapter) {
         const eased = fn(p);
         value = t._from + (t.to - t._from) * eased;
       }
-      adapter.set(
-        t.target as AnimationTarget,
-        t.property as AnimProperty,
-        value
-      );
+      adapter.set(t.target, t.property, value);
     }
     adapter.flush?.();
   }

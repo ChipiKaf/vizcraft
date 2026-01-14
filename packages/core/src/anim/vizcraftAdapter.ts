@@ -28,7 +28,9 @@ export function createVizCraftAdapter(
     const [kind, id] = target.split(':') as [string, string];
     if (kind === 'node')
       return { kind: 'node', el: nodesById.get(id) as VizNode | undefined };
-    return { kind: 'edge', el: edgesById.get(id) as VizEdge | undefined };
+    if (kind === 'edge')
+      return { kind: 'edge', el: edgesById.get(id) as VizEdge | undefined };
+    return undefined;
   }
 
   const adapter = createRegistryAdapter({
