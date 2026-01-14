@@ -47,49 +47,49 @@ export function createVizCraftAdapter(
 
   node
     .prop('x', {
-      get: (el: unknown) => {
+      get: (el) => {
         const n = el as VizNode;
         return n.runtime?.x ?? n.pos.x;
       },
-      set: (el: unknown, v: number) => {
+      set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
         n.runtime.x = v;
       },
     })
     .prop('y', {
-      get: (el: unknown) => {
+      get: (el) => {
         const n = el as VizNode;
         return n.runtime?.y ?? n.pos.y;
       },
-      set: (el: unknown, v: number) => {
+      set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
         n.runtime.y = v;
       },
     })
     .prop('opacity', {
-      get: (el: unknown) => {
+      get: (el) => {
         const n = el as VizNode;
         return n.runtime?.opacity ?? n.style?.opacity;
       },
-      set: (el: unknown, v: number) => {
+      set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
         n.runtime.opacity = v;
       },
     })
     .prop('scale', {
-      get: (el: unknown) => (el as VizNode).runtime?.scale,
-      set: (el: unknown, v: number) => {
+      get: (el) => (el as VizNode).runtime?.scale,
+      set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
         n.runtime.scale = v;
       },
     })
     .prop('rotation', {
-      get: (el: unknown) => (el as VizNode).runtime?.rotation,
-      set: (el: unknown, v: number) => {
+      get: (el) => (el as VizNode).runtime?.rotation,
+      set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
         n.runtime.rotation = v;
@@ -98,16 +98,16 @@ export function createVizCraftAdapter(
 
   edge
     .prop('opacity', {
-      get: (el: unknown) => (el as VizEdge).runtime?.opacity,
-      set: (el: unknown, v: number) => {
+      get: (el) => (el as VizEdge).runtime?.opacity,
+      set: (el, v: number) => {
         const e = el as VizEdge;
         e.runtime = e.runtime ?? {};
         e.runtime.opacity = v;
       },
     })
     .prop('strokeDashoffset', {
-      get: (el: unknown) => (el as VizEdge).runtime?.strokeDashoffset,
-      set: (el: unknown, v: number) => {
+      get: (el) => (el as VizEdge).runtime?.strokeDashoffset,
+      set: (el, v: number) => {
         const e = el as VizEdge;
         e.runtime = e.runtime ?? {};
         e.runtime.strokeDashoffset = v;
