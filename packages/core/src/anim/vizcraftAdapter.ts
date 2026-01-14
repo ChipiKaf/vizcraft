@@ -8,6 +8,9 @@ import type {
 import type { AnimationHostAdapter } from './adapter';
 import type { AnimationTarget } from './spec';
 
+// @todo: This does not feel too generalizable; consider how to make this more adaptable
+// There are too many hardcoded properties and things specific to VizCraft here.
+// What happens when we want to animate other things, like overlays, or other properties?
 export function createVizCraftAdapter(
   scene: VizScene,
   requestRender: () => void
