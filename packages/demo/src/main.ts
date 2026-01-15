@@ -38,18 +38,18 @@ document.getElementById('btn-reset')?.addEventListener('click', () => {
   nodeA.runtime = undefined;
   nodeB.runtime = undefined;
   edgeAB.runtime = undefined;
-  builder.mount(container);
+  builder.patchRuntime(container);
 });
 
 document.getElementById('btn-move')?.addEventListener('click', () => {
   // Move B to (400, 500)
   nodeB.runtime = { x: 400, y: 500 };
-  builder.mount(container);
+  builder.patchRuntime(container);
 });
 
 document.getElementById('btn-opacity')?.addEventListener('click', () => {
   nodeA.runtime = { ...nodeA.runtime, opacity: 0.2 };
-  builder.mount(container);
+  builder.patchRuntime(container);
 });
 
 document.getElementById('btn-edge')?.addEventListener('click', () => {
@@ -57,5 +57,5 @@ document.getElementById('btn-edge')?.addEventListener('click', () => {
     opacity: 0.5,
     strokeDashoffset: 10,
   };
-  builder.mount(container);
+  builder.patchRuntime(container);
 });
