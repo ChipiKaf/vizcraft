@@ -34,7 +34,9 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
   const edgeHitsById = new Map<string, SVGLineElement>();
   const edgeLabelsById = new Map<string, SVGTextElement>();
 
-  const nodeLayer = svg.querySelector('.viz-layer-nodes');
+  const nodeLayer =
+    svg.querySelector('[data-viz-layer="nodes"]') ||
+    svg.querySelector('.viz-layer-nodes');
   if (nodeLayer) {
     const groups = Array.from(
       nodeLayer.querySelectorAll<SVGGElement>('g[data-id]')
@@ -44,15 +46,21 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
       if (!id) continue;
       nodeGroupsById.set(id, group);
 
-      const shape = group.querySelector<SVGElement>('.viz-node-shape');
+      const shape =
+        group.querySelector<SVGElement>('[data-viz-role="node-shape"]') ||
+        group.querySelector<SVGElement>('.viz-node-shape');
       if (shape) nodeShapesById.set(id, shape);
 
-      const label = group.querySelector<SVGTextElement>('.viz-node-label');
+      const label =
+        group.querySelector<SVGTextElement>('[data-viz-role="node-label"]') ||
+        group.querySelector<SVGTextElement>('.viz-node-label');
       if (label) nodeLabelsById.set(id, label);
     }
   }
 
-  const edgeLayer = svg.querySelector('.viz-layer-edges');
+  const edgeLayer =
+    svg.querySelector('[data-viz-layer="edges"]') ||
+    svg.querySelector('.viz-layer-edges');
   if (edgeLayer) {
     const groups = Array.from(
       edgeLayer.querySelectorAll<SVGGElement>('g[data-id]')
@@ -62,13 +70,19 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
       if (!id) continue;
       edgeGroupsById.set(id, group);
 
-      const line = group.querySelector<SVGLineElement>('.viz-edge');
+      const line =
+        group.querySelector<SVGLineElement>('[data-viz-role="edge-line"]') ||
+        group.querySelector<SVGLineElement>('.viz-edge');
       if (line) edgeLinesById.set(id, line);
 
-      const hit = group.querySelector<SVGLineElement>('.viz-edge-hit');
+      const hit =
+        group.querySelector<SVGLineElement>('[data-viz-role="edge-hit"]') ||
+        group.querySelector<SVGLineElement>('.viz-edge-hit');
       if (hit) edgeHitsById.set(id, hit);
 
-      const label = group.querySelector<SVGTextElement>('.viz-edge-label');
+      const label =
+        group.querySelector<SVGTextElement>('[data-viz-role="edge-label"]') ||
+        group.querySelector<SVGTextElement>('.viz-edge-label');
       if (label) edgeLabelsById.set(id, label);
     }
   }

@@ -9,7 +9,7 @@ import {
   defaultOverlayRegistry,
 } from './registries/OverlayRegistry';
 
-import './VizCanvas.scss';
+// import './VizCanvas.scss';
 
 export interface VizCanvasProps {
   scene: VizScene;

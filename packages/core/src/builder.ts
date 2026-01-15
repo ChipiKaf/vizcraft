@@ -12,6 +12,13 @@ import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
 import {
+  createRuntimePatchCtx,
+  patchRuntime,
+  type RuntimePatchCtx,
+} from './runtimePatcher';
+
+const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
+import {
   applyShapeGeometry,
   computeNodeAnchor,
   effectivePos,
@@ -66,6 +73,12 @@ interface VizBuilder {
   _getViewBox(): { w: number; h: number };
   svg(): string;
   mount(container: HTMLElement): void;
+
+  /**
+   * Applies runtime-only patches (node.runtime / edge.runtime) to the mounted SVG.
+   * This avoids full DOM reconciliation and is intended for animation frame updates.
+   */
+  patchRuntime(container: HTMLElement): void;
 }
 
 interface NodeBuilder {
@@ -254,6 +267,25 @@ class VizBuilderImpl implements VizBuilder {
     this._renderSceneToDOM(scene, container);
   }
 
+  patchRuntime(container: HTMLElement) {
+    const scene = this.build();
+    const svg = container.querySelector('svg') as SVGSVGElement | null;
+
+    // If not mounted yet, fall back to full mount.
+    if (!svg) {
+      this._renderSceneToDOM(scene, container);
+      return;
+    }
+
+    let ctx = runtimePatchCtxBySvg.get(svg);
+    if (!ctx) {
+      ctx = createRuntimePatchCtx(svg);
+      runtimePatchCtxBySvg.set(svg, ctx);
+    }
+
+    patchRuntime(scene, ctx);
+  }
+
   /**
    * Renders the scene to the DOM.
    * @param scene The scene to render
@@ -298,14 +330,17 @@ class VizBuilderImpl implements VizBuilder {
       // Layers
       const edgeLayer = document.createElementNS(svgNS, 'g');
       edgeLayer.setAttribute('class', 'viz-layer-edges');
+      edgeLayer.setAttribute('data-viz-layer', 'edges');
       svg.appendChild(edgeLayer);
 
       const nodeLayer = document.createElementNS(svgNS, 'g');
       nodeLayer.setAttribute('class', 'viz-layer-nodes');
+      nodeLayer.setAttribute('data-viz-layer', 'nodes');
       svg.appendChild(nodeLayer);
 
       const overlayLayer = document.createElementNS(svgNS, 'g');
       overlayLayer.setAttribute('class', 'viz-layer-overlays');
+      overlayLayer.setAttribute('data-viz-layer', 'overlays');
       svg.appendChild(overlayLayer);
 
       container.appendChild(svg);
@@ -314,9 +349,23 @@ class VizBuilderImpl implements VizBuilder {
     // Update ViewBox
     svg.setAttribute('viewBox', `0 0 ${viewBox.w} ${viewBox.h}`);
 
-    const edgeLayer = svg.querySelector('.viz-layer-edges')!;
-    const nodeLayer = svg.querySelector('.viz-layer-nodes')!;
-    const overlayLayer = svg.querySelector('.viz-layer-overlays')!;
+    const edgeLayer =
+      (svg.querySelector('[data-viz-layer="edges"]') as SVGGElement | null) ||
+      (svg.querySelector('.viz-layer-edges') as SVGGElement | null);
+    const nodeLayer =
+      (svg.querySelector('[data-viz-layer="nodes"]') as SVGGElement | null) ||
+      (svg.querySelector('.viz-layer-nodes') as SVGGElement | null);
+    const overlayLayer =
+      (svg.querySelector(
+        '[data-viz-layer="overlays"]'
+      ) as SVGGElement | null) ||
+      (svg.querySelector('.viz-layer-overlays') as SVGGElement | null);
+
+    if (!edgeLayer || !nodeLayer || !overlayLayer) {
+      // Defensive: if the SVG exists but layers are missing, re-mount cleanly.
+      this._renderSceneToDOM(scene, container);
+      return;
+    }
 
     // --- 1. Reconcile Edges ---
     const existingEdgeGroups = Array.from(edgeLayer.children).filter(
@@ -341,11 +390,13 @@ class VizBuilderImpl implements VizBuilder {
       if (!group) {
         group = document.createElementNS(svgNS, 'g');
         group.setAttribute('data-id', edge.id);
+        group.setAttribute('data-viz-role', 'edge-group');
         edgeLayer.appendChild(group);
 
         // Initial creation of children
         const line = document.createElementNS(svgNS, 'line');
         line.setAttribute('class', 'viz-edge');
+        line.setAttribute('data-viz-role', 'edge-line');
         group.appendChild(line);
 
         // Optional parts created on demand later, but structure expected
@@ -386,7 +437,13 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       // Update Line
-      const line = group.querySelector('.viz-edge') as SVGLineElement;
+      const line =
+        (group.querySelector(
+          '[data-viz-role="edge-line"]'
+        ) as SVGLineElement | null) ||
+        (group.querySelector('.viz-edge') as SVGLineElement | null);
+
+      if (!line) return;
 
       if (edge.runtime?.strokeDashoffset !== undefined) {
         line.style.strokeDashoffset = String(edge.runtime.strokeDashoffset);
@@ -410,12 +467,15 @@ class VizBuilderImpl implements VizBuilder {
         line.removeAttribute('marker-end');
       }
 
-      const oldHit = group.querySelector('.viz-edge-hit');
+      const oldHit =
+        group.querySelector('[data-viz-role="edge-hit"]') ||
+        group.querySelector('.viz-edge-hit');
       if (oldHit) oldHit.remove();
 
       if (edge.hitArea || edge.onClick) {
         const hit = document.createElementNS(svgNS, 'line');
         hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
+        hit.setAttribute('data-viz-role', 'edge-hit');
         hit.setAttribute('x1', String(endpoints.start.x));
         hit.setAttribute('y1', String(endpoints.start.y));
         hit.setAttribute('x2', String(endpoints.end.x));
@@ -433,7 +493,9 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       // Label (Recreate vs Update)
-      const oldLabel = group.querySelector('.viz-edge-label');
+      const oldLabel =
+        group.querySelector('[data-viz-role="edge-label"]') ||
+        group.querySelector('.viz-edge-label');
       if (oldLabel) oldLabel.remove();
 
       if (edge.label) {
@@ -448,6 +510,7 @@ class VizBuilderImpl implements VizBuilder {
           'class',
           `viz-edge-label ${edge.label.className || ''}`
         );
+        text.setAttribute('data-viz-role', 'edge-label');
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
         text.textContent = edge.label.text;
@@ -483,6 +546,7 @@ class VizBuilderImpl implements VizBuilder {
       if (!group) {
         group = document.createElementNS(svgNS, 'g');
         group.setAttribute('data-id', node.id);
+        group.setAttribute('data-viz-role', 'node-group');
         nodeLayer.appendChild(group);
       }
 
@@ -532,7 +596,11 @@ class VizBuilderImpl implements VizBuilder {
 
       // Ideally we reuse the shape element if the kind hasn't changed.
       // Assuming kind rarely changes for same ID.
-      let shape = group.querySelector('.viz-node-shape') as SVGElement;
+      let shape =
+        (group.querySelector(
+          '[data-viz-role="node-shape"]'
+        ) as SVGElement | null) ||
+        (group.querySelector('.viz-node-shape') as SVGElement | null);
 
       const behavior = getShapeBehavior(node.shape);
       const expectedTag = behavior.tagName;
@@ -541,6 +609,7 @@ class VizBuilderImpl implements VizBuilder {
         if (shape) shape.remove();
         shape = document.createElementNS(svgNS, expectedTag);
         shape!.setAttribute('class', 'viz-node-shape');
+        shape!.setAttribute('data-viz-role', 'node-shape');
         group.prepend(shape!); // Shape always at bottom
       }
 
@@ -555,10 +624,15 @@ class VizBuilderImpl implements VizBuilder {
       });
 
       // Label (Recreate for simplicity as usually just text/pos changes)
-      let label = group.querySelector('.viz-node-label') as SVGTextElement;
+      let label =
+        (group.querySelector(
+          '[data-viz-role="node-label"]'
+        ) as SVGTextElement | null) ||
+        (group.querySelector('.viz-node-label') as SVGTextElement | null);
       if (!label && node.label) {
         label = document.createElementNS(svgNS, 'text');
         label.setAttribute('class', 'viz-node-label');
+        label.setAttribute('data-viz-role', 'node-label');
         group.appendChild(label);
       }
 
@@ -578,6 +652,7 @@ class VizBuilderImpl implements VizBuilder {
           'class',
           `viz-node-label ${node.label.className || ''}`
         );
+        label!.setAttribute('data-viz-role', 'node-label');
         setSvgAttributes(label!, {
           fill: node.label.fill,
           'font-size': node.label.fontSize,
@@ -623,6 +698,7 @@ class VizBuilderImpl implements VizBuilder {
             group = document.createElementNS(svgNS, 'g');
             group.setAttribute('data-overlay-id', uniqueKey);
             group.setAttribute('class', `viz-overlay-${spec.id}`);
+            group.setAttribute('data-viz-role', 'overlay-group');
             overlayLayer.appendChild(group);
           }
 
@@ -650,6 +726,9 @@ class VizBuilderImpl implements VizBuilder {
         el.remove();
       }
     });
+
+    // Build/refresh patch context after reconcile so animation flush can patch in-place.
+    runtimePatchCtxBySvg.set(svg, createRuntimePatchCtx(svg));
   }
 
   /**
@@ -677,7 +756,7 @@ class VizBuilderImpl implements VizBuilder {
         </defs>`;
 
     // Render Edges
-    svgContent += '<g class="viz-layer-edges">';
+    svgContent += '<g class="viz-layer-edges" data-viz-layer="edges">';
     edges.forEach((edge) => {
       const start = nodesById.get(edge.from);
       const end = nodesById.get(edge.to);
@@ -724,8 +803,8 @@ class VizBuilderImpl implements VizBuilder {
         lineRuntimeAttrs += ` stroke-dashoffset="${edge.runtime.strokeDashoffset}"`;
       }
 
-      svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
-      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" ${markerEnd} stroke="currentColor" style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
+      svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
+      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} stroke="currentColor" style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {
@@ -734,14 +813,14 @@ class VizBuilderImpl implements VizBuilder {
         const my =
           (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
         const labelClass = `viz-edge-label ${edge.label.className || ''}`;
-        svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
+        svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" data-viz-role="edge-label" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
       }
       svgContent += '</g>';
     });
     svgContent += '</g>';
 
     // Render Nodes
-    svgContent += '<g class="viz-layer-nodes">';
+    svgContent += '<g class="viz-layer-nodes" data-viz-layer="nodes">';
     nodes.forEach((node) => {
       const { x, y } = effectivePos(node);
       const { shape } = node;
@@ -776,7 +855,7 @@ class VizBuilderImpl implements VizBuilder {
 
       const className = `viz-node-group ${node.className || ''} ${animClasses}`;
 
-      svgContent += `<g class="${className}" style="${animStyleStr}">`;
+      svgContent += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}">`;
 
       const shapeStyleAttrs = svgAttributeString({
         fill: node.style?.fill ?? 'none',
@@ -800,7 +879,7 @@ class VizBuilderImpl implements VizBuilder {
           'text-anchor': node.label.textAnchor || 'middle',
           'dominant-baseline': node.label.dominantBaseline || 'middle',
         });
-        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}"${labelAttrs}>${node.label.text}</text>`;
+        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" data-viz-role="node-label"${labelAttrs}>${node.label.text}</text>`;
       }
 
       svgContent += '</g>';
@@ -809,7 +888,7 @@ class VizBuilderImpl implements VizBuilder {
 
     // Render Overlays
     if (overlays && overlays.length > 0) {
-      svgContent += '<g class="viz-layer-overlays">';
+      svgContent += '<g class="viz-layer-overlays" data-viz-layer="overlays">';
       overlays.forEach((spec) => {
         const renderer = defaultCoreOverlayRegistry.get(spec.id);
         if (renderer) {

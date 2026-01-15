@@ -44,7 +44,7 @@ const circleBehavior: ShapeBehavior<'circle'> = {
     el.setAttribute('r', String(shape.r));
   },
   svgMarkup(shape, pos, attrs) {
-    return `<circle cx="${pos.x}" cy="${pos.y}" r="${shape.r}" class="viz-node-shape"${attrs} />`;
+    return `<circle cx="${pos.x}" cy="${pos.y}" r="${shape.r}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
   },
   anchorBoundary(pos, target, shape) {
     const dx = target.x - pos.x;
@@ -72,7 +72,7 @@ const rectBehavior: ShapeBehavior<'rect'> = {
     }
   },
   svgMarkup(shape, pos, attrs) {
-    return `<rect x="${pos.x - shape.w / 2}" y="${pos.y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape"${attrs} />`;
+    return `<rect x="${pos.x - shape.w / 2}" y="${pos.y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
   },
   anchorBoundary(pos, target, shape) {
     const dx = target.x - pos.x;
@@ -99,7 +99,7 @@ const diamondBehavior: ShapeBehavior<'diamond'> = {
   },
   svgMarkup(shape, pos, attrs) {
     const pts = diamondPoints(pos, shape.w, shape.h);
-    return `<polygon points="${pts}" class="viz-node-shape"${attrs} />`;
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
   },
   anchorBoundary(pos, target, shape) {
     const dx = target.x - pos.x;
