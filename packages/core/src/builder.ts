@@ -11,6 +11,13 @@ import type {
 import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
+import {
+  applyShapeGeometry,
+  computeNodeAnchor,
+  effectivePos,
+  getShapeBehavior,
+  shapeSvgMarkup,
+} from './shapes';
 
 type SvgAttrValue = string | number | undefined;
 
@@ -29,62 +36,6 @@ function svgAttributeString(attrs: Record<string, SvgAttrValue>) {
     .filter(([, value]) => value !== undefined)
     .map(([key, value]) => ` ${key}="${String(value)}"`)
     .join('');
-}
-
-// Helper to determine effective position (runtime vs static)
-function effectivePos(node: VizNode) {
-  return {
-    x: node.runtime?.x ?? node.pos.x,
-    y: node.runtime?.y ?? node.pos.y,
-  };
-}
-
-function computeNodeAnchor(
-  node: VizNode,
-  target: { x: number; y: number },
-  anchor: 'center' | 'boundary'
-) {
-  const pos = effectivePos(node);
-  if (anchor === 'center') {
-    return { x: pos.x, y: pos.y };
-  }
-
-  const dx = target.x - pos.x;
-  const dy = target.y - pos.y;
-  if (dx === 0 && dy === 0) {
-    return { x: pos.x, y: pos.y };
-  }
-
-  if (node.shape.kind === 'circle') {
-    const dist = Math.hypot(dx, dy) || 1;
-    const scale = node.shape.r / dist;
-    return {
-      x: pos.x + dx * scale,
-      y: pos.y + dy * scale,
-    };
-  }
-
-  if (node.shape.kind === 'rect') {
-    const hw = node.shape.w / 2;
-    const hh = node.shape.h / 2;
-    const scale = Math.min(
-      hw / Math.abs(dx || 1e-6),
-      hh / Math.abs(dy || 1e-6)
-    );
-    return {
-      x: pos.x + dx * scale,
-      y: pos.y + dy * scale,
-    };
-  }
-
-  const hw = node.shape.w / 2;
-  const hh = node.shape.h / 2;
-  const denom = Math.abs(dx) / hw + Math.abs(dy) / hh;
-  const scale = denom === 0 ? 0 : 1 / denom;
-  return {
-    x: pos.x + dx * scale,
-    y: pos.y + dy * scale,
-  };
 }
 
 function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
@@ -583,45 +534,18 @@ class VizBuilderImpl implements VizBuilder {
       // Assuming kind rarely changes for same ID.
       let shape = group.querySelector('.viz-node-shape') as SVGElement;
 
-      // If shape doesn't exist or kind changed (simplified check: just recreate if kind mismatch logic needed,
-      // but here we just check tag name for simplicity or assume kind is stable).
-      const kindMap: Record<string, string> = {
-        circle: 'circle',
-        rect: 'rect',
-        diamond: 'polygon',
-      };
-      const expectedTag = kindMap[node.shape.kind];
+      const behavior = getShapeBehavior(node.shape);
+      const expectedTag = behavior.tagName;
 
       if (!shape || shape.tagName !== expectedTag) {
         if (shape) shape.remove();
-        if (node.shape.kind === 'circle') {
-          shape = document.createElementNS(svgNS, 'circle');
-        } else if (node.shape.kind === 'rect') {
-          shape = document.createElementNS(svgNS, 'rect');
-        } else if (node.shape.kind === 'diamond') {
-          shape = document.createElementNS(svgNS, 'polygon');
-        }
+        shape = document.createElementNS(svgNS, expectedTag);
         shape!.setAttribute('class', 'viz-node-shape');
         group.prepend(shape!); // Shape always at bottom
       }
 
       // Update Shape Attributes
-      if (node.shape.kind === 'circle') {
-        shape!.setAttribute('cx', String(x));
-        shape!.setAttribute('cy', String(y));
-        shape!.setAttribute('r', String(node.shape.r));
-      } else if (node.shape.kind === 'rect') {
-        shape!.setAttribute('x', String(x - node.shape.w / 2));
-        shape!.setAttribute('y', String(y - node.shape.h / 2));
-        shape!.setAttribute('width', String(node.shape.w));
-        shape!.setAttribute('height', String(node.shape.h));
-        if (node.shape.rx) shape!.setAttribute('rx', String(node.shape.rx));
-      } else if (node.shape.kind === 'diamond') {
-        const hw = node.shape.w / 2;
-        const hh = node.shape.h / 2;
-        const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
-        shape!.setAttribute('points', pts);
-      }
+      applyShapeGeometry(shape!, node.shape, { x, y });
 
       setSvgAttributes(shape!, {
         fill: node.style?.fill ?? 'none',
@@ -862,16 +786,7 @@ class VizBuilderImpl implements VizBuilder {
       });
 
       // Shape
-      if (shape.kind === 'circle') {
-        svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape"${shapeStyleAttrs} />`;
-      } else if (shape.kind === 'rect') {
-        svgContent += `<rect x="${x - shape.w / 2}" y="${y - shape.h / 2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape"${shapeStyleAttrs} />`;
-      } else if (shape.kind === 'diamond') {
-        const hw = shape.w / 2;
-        const hh = shape.h / 2;
-        const pts = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
-        svgContent += `<polygon points="${pts}" class="viz-node-shape"${shapeStyleAttrs} />`;
-      }
+      svgContent += shapeSvgMarkup(shape, { x, y }, shapeStyleAttrs);
 
       // Label
       if (node.label) {
