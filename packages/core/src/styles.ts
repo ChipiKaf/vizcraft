@@ -7,6 +7,13 @@ export const DEFAULT_VIZ_CSS = `
   align-items: center;
 }
 
+.viz-node-label,
+.viz-edge-label {
+  dominant-baseline: middle;
+  alignment-baseline: middle;
+  transform: translateY(-0.1em);
+}
+
 .viz-canvas svg {
   width: 100%;
   height: 100%;

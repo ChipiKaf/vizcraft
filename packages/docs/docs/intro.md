@@ -27,3 +27,5 @@ pnpm add vizcraft
 ## Getting Started
 
 Check out the [Interactive Examples](./examples) to see it in action.
+
+If you're here for motion and timelines, start with the [Animations](./animations) guide.

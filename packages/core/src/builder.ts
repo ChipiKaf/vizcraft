@@ -97,7 +97,10 @@ interface VizBuilder {
   _getViewBox(): { w: number; h: number };
   svg(): string;
   mount(container: HTMLElement): void;
-  mount(container: HTMLElement, opts: { autoplay?: boolean }): void;
+  mount(
+    container: HTMLElement,
+    opts: { autoplay?: boolean; css?: string | string[] }
+  ): void;
 
   /**
    * Plays animation specs against a mounted container.
@@ -319,12 +322,48 @@ class VizBuilderImpl implements VizBuilder {
    * Mounts the scene to the DOM.
    * @param container The container to mount the scene into
    */
-  mount(container: HTMLElement, opts?: { autoplay?: boolean }) {
+  mount(
+    container: HTMLElement,
+    opts?: { autoplay?: boolean; css?: string | string[] }
+  ) {
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
     this._mountedContainer = container;
 
+    const svg = container.querySelector('svg') as SVGSVGElement | null;
+    if (svg && opts?.css) this._injectCssIntoMountedSvg(svg, opts.css);
+
     if (opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
+  }
+
+  private _injectCssIntoMountedSvg(svg: SVGSVGElement, css: string | string[]) {
+    const cssText = (Array.isArray(css) ? css.join('\n') : css).trim();
+    if (!cssText) return;
+
+    const attr = 'data-viz-user-css';
+    const existing = svg.querySelector(
+      `style[${attr}="true"]`
+    ) as HTMLStyleElement | null;
+
+    if (existing) {
+      const prior = existing.textContent ?? '';
+      if (prior.includes(cssText)) return;
+      existing.textContent = `${prior}\n${cssText}`.trim();
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.setAttribute(attr, 'true');
+    style.setAttribute('type', 'text/css');
+    style.textContent = cssText;
+
+    // Prefer placing custom CSS right after the default VizCraft CSS.
+    const firstStyle = svg.querySelector('style');
+    if (firstStyle && firstStyle.parentNode === svg) {
+      svg.insertBefore(style, firstStyle.nextSibling);
+    } else {
+      svg.prepend(style);
+    }
   }
 
   play(): PlaybackController | null;
