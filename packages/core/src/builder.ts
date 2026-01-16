@@ -100,6 +100,20 @@ interface VizBuilder {
   mount(container: HTMLElement, opts: { autoplay?: boolean }): void;
 
   /**
+   * Plays animation specs against a mounted container.
+   *
+   * - If called with no args, plays against the last container passed to `mount()`.
+   *   If `mount()` hasn't been called yet, logs a warning and no-ops.
+   * - If `spec` is omitted, plays the specs stored on the built scene (`scene.animationSpecs`).
+   * - Stops any prior playback started for the same container.
+   * - If the container isn't mounted yet, it will be mounted first.
+   */
+  play(): PlaybackController | null;
+  play(container: HTMLElement): PlaybackController | null;
+  play(container: HTMLElement, spec: AnimationSpec): PlaybackController;
+  play(container: HTMLElement, spec: AnimationSpec[]): PlaybackController;
+
+  /**
    * Applies runtime-only patches (node.runtime / edge.runtime) to the mounted SVG.
    * This avoids full DOM reconciliation and is intended for animation frame updates.
    */
@@ -171,6 +185,7 @@ class VizBuilderImpl implements VizBuilder {
   private _edgeOrder: string[] = [];
   private _gridConfig: VizGridConfig | null = null;
   private _animationSpecs: AnimationSpec[] = [];
+  private _mountedContainer: HTMLElement | null = null;
 
   /**
    * Sets the view box.
@@ -307,25 +322,72 @@ class VizBuilderImpl implements VizBuilder {
   mount(container: HTMLElement, opts?: { autoplay?: boolean }) {
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
+    this._mountedContainer = container;
 
-    if (!opts?.autoplay) return;
+    if (opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
+  }
 
-    const specs = scene.animationSpecs;
-    if (!specs || specs.length === 0) return;
+  play(): PlaybackController | null;
+  play(container: HTMLElement): PlaybackController | null;
+  play(container: HTMLElement, spec: AnimationSpec): PlaybackController;
+  play(container: HTMLElement, spec: AnimationSpec[]): PlaybackController;
+  play(
+    containerOrNothing?: HTMLElement,
+    specOrSpecs?: AnimationSpec | AnimationSpec[]
+  ): PlaybackController | null {
+    if (!containerOrNothing) {
+      const container = this._mountedContainer;
+      if (!container) {
+        console.warn('VizBuilder: Call mount(container) before play().');
+        return null;
+      }
 
-    // Stop any prior autoplay animation for this container.
+      const svg = container.querySelector('svg') as SVGSVGElement | null;
+      if (!svg) {
+        console.warn('VizBuilder: Call mount(container) before play().');
+        return null;
+      }
+
+      // No-arg play() intentionally does not auto-mount.
+      return this._playImpl(container, undefined, false);
+    }
+
+    return this._playImpl(containerOrNothing, specOrSpecs, true);
+  }
+
+  private _playImpl(
+    container: HTMLElement,
+    specOrSpecs: AnimationSpec | AnimationSpec[] | undefined,
+    allowAutoMount: boolean
+  ): PlaybackController | null {
+    const svg = container.querySelector('svg') as SVGSVGElement | null;
+    if (!svg) {
+      if (!allowAutoMount) return null;
+      this.mount(container);
+    }
+
+    const scene = this.build();
+    const specs: AnimationSpec[] = Array.isArray(specOrSpecs)
+      ? specOrSpecs
+      : specOrSpecs
+        ? [specOrSpecs]
+        : (scene.animationSpecs ?? []);
+
+    if (!specOrSpecs && specs.length === 0) return null;
+
+    // Stop any prior playback for this container.
     autoplayControllerByContainer.get(container)?.stop();
 
-    // Play all stored specs together (tweens already carry their own delays).
+    // Play all specs together (tweens already carry their own delays).
     const combined: AnimationSpec = {
       version: 'viz-anim/1',
       tweens: specs.flatMap((s) => s.tweens),
     };
-
     const controller = createBuilderPlayback({ builder: this, container });
     controller.load(combined);
-    controller.play();
+    if (combined.tweens.length > 0) controller.play();
     autoplayControllerByContainer.set(container, controller);
+    return controller;
   }
 
   patchRuntime(container: HTMLElement) {

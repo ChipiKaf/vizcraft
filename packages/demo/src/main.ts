@@ -1,4 +1,4 @@
-import { playAnimationSpec, viz } from 'vizcraft';
+import { type PlaybackController, viz } from 'vizcraft';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -33,13 +33,24 @@ const setupScene = () => {
 
 setupScene();
 
+// Register a data-only AnimationSpec on the scene (stored internally on the builder).
+builder.animate((anim) =>
+  anim
+    .node('a')
+    .to({ x: 200, opacity: 0.3 }, { duration: 600 })
+    .node('b')
+    .to({ x: 500, y: 450 }, { duration: 700 })
+    .edge('a->b')
+    .to({ strokeDashoffset: -100 }, { duration: 1000 })
+);
+
 // Manual Runtime Updates
 const scene = builder.build();
 const nodeA = scene.nodes.find((n) => n.id === 'a')!;
 const nodeB = scene.nodes.find((n) => n.id === 'b')!;
 const edgeAB = scene.edges.find((e) => e.id === 'a->b')!;
 
-let activeController: ReturnType<typeof playAnimationSpec> | null = null;
+let activeController: PlaybackController | null = null;
 
 document.getElementById('btn-reset')?.addEventListener('click', () => {
   activeController?.stop();
@@ -72,17 +83,8 @@ document.getElementById('btn-edge')?.addEventListener('click', () => {
 document.getElementById('btn-play-spec')?.addEventListener('click', () => {
   activeController?.stop();
 
-  const spec = builder.animate((anim) =>
-    anim
-      .node('a')
-      .to({ x: 200, opacity: 0.3 }, { duration: 600 })
-      .node('b')
-      .to({ x: 500, y: 450 }, { duration: 700 })
-      .edge('a->b')
-      .to({ strokeDashoffset: -100 }, { duration: 1000 })
-  );
-
-  activeController = playAnimationSpec({ builder, container, spec });
+  // Replay the stored spec(s) against the last mounted container.
+  activeController = builder.play();
 });
 
 document.getElementById('btn-pause-spec')?.addEventListener('click', () => {
