@@ -107,14 +107,14 @@ export class AnimationBuilder {
       const tween: TweenSpec = {
         kind: 'tween',
         target: this.currentTarget,
-        property: property as AnimProperty,
+        property: property,
         to: value,
         duration,
         delay: this.cursorMs,
         easing,
       };
 
-      const from = froms?.[property as AnimProperty];
+      const from = froms?.[property];
       if (isNumber(from)) tween.from = from;
 
       this.tweens.push(tween);
