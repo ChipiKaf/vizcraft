@@ -21,6 +21,8 @@ import type { AnimationSpec } from './anim/spec';
 import {
   buildAnimationSpec,
   type AnimationBuilder,
+  type AnimatableProps,
+  type TweenOptions,
 } from './anim/animationBuilder';
 
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
@@ -110,6 +112,10 @@ interface NodeBuilder {
   opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
+  animate(cb: (anim: AnimationBuilder) => unknown): NodeBuilder;
+
+  /** Sugar for `animate(a => a.to(...))`. */
+  animateTo(props: AnimatableProps, opts: TweenOptions): NodeBuilder;
   data(payload: unknown): NodeBuilder;
   onClick(handler: (id: string, node: VizNode) => void): NodeBuilder;
   done(): VizBuilder;
@@ -130,6 +136,10 @@ interface EdgeBuilder {
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
+  animate(cb: (anim: AnimationBuilder) => unknown): EdgeBuilder;
+
+  /** Sugar for `animate(a => a.to(...))`. */
+  animateTo(props: AnimatableProps, opts: TweenOptions): EdgeBuilder;
   data(payload: unknown): EdgeBuilder;
   onClick(handler: (id: string, edge: VizEdge) => void): EdgeBuilder;
   done(): VizBuilder;
@@ -1029,12 +1039,38 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
-  animate(type: string, config?: AnimationConfig): NodeBuilder {
-    if (!this.nodeDef.animations) {
-      this.nodeDef.animations = [];
+  animate(type: string, config?: AnimationConfig): NodeBuilder;
+  animate(cb: (anim: AnimationBuilder) => unknown): NodeBuilder;
+  animate(
+    typeOrCb: string | ((anim: AnimationBuilder) => unknown),
+    config?: AnimationConfig
+  ): NodeBuilder {
+    if (typeof typeOrCb === 'string') {
+      if (!this.nodeDef.animations) {
+        this.nodeDef.animations = [];
+      }
+      this.nodeDef.animations.push({ id: typeOrCb, params: config });
+      return this;
     }
-    this.nodeDef.animations.push({ id: type, params: config });
+
+    const id = this.nodeDef.id;
+    if (!id) {
+      throw new Error('NodeBuilder.animate(cb): node has no id');
+    }
+
+    // Compile to a portable AnimationSpec and store on the scene via the parent builder.
+    this.parent.animate((anim) => {
+      anim.node(id);
+      typeOrCb(anim);
+    });
+
     return this;
+  }
+
+  animateTo(props: AnimatableProps, opts: TweenOptions): NodeBuilder {
+    return this.animate((anim) => {
+      anim.to(props, opts);
+    });
   }
 
   data(payload: unknown): NodeBuilder {
@@ -1107,12 +1143,38 @@ class EdgeBuilderImpl implements EdgeBuilder {
     return this;
   }
 
-  animate(type: string, config?: AnimationConfig): EdgeBuilder {
-    if (!this.edgeDef.animations) {
-      this.edgeDef.animations = [];
+  animate(type: string, config?: AnimationConfig): EdgeBuilder;
+  animate(cb: (anim: AnimationBuilder) => unknown): EdgeBuilder;
+  animate(
+    typeOrCb: string | ((anim: AnimationBuilder) => unknown),
+    config?: AnimationConfig
+  ): EdgeBuilder {
+    if (typeof typeOrCb === 'string') {
+      if (!this.edgeDef.animations) {
+        this.edgeDef.animations = [];
+      }
+      this.edgeDef.animations.push({ id: typeOrCb, params: config });
+      return this;
     }
-    this.edgeDef.animations.push({ id: type, params: config });
+
+    const id = this.edgeDef.id || `${this.edgeDef.from}->${this.edgeDef.to}`;
+    if (!id) {
+      throw new Error('EdgeBuilder.animate(cb): edge has no id');
+    }
+
+    // Compile to a portable AnimationSpec and store on the scene via the parent builder.
+    this.parent.animate((anim) => {
+      anim.edge(id);
+      typeOrCb(anim);
+    });
+
     return this;
+  }
+
+  animateTo(props: AnimatableProps, opts: TweenOptions): EdgeBuilder {
+    return this.animate((anim) => {
+      anim.to(props, opts);
+    });
   }
 
   hitArea(px: number): EdgeBuilder {
@@ -1138,8 +1200,14 @@ class EdgeBuilderImpl implements EdgeBuilder {
   node(id: string): NodeBuilder {
     return this.parent.node(id);
   }
+  /**
+   * Defines an edge between two nodes.
+   * @param from id of the source node
+   * @param to id of the target node
+   * @param id (optional) id of the edge. If not provided, defaults to "from->to"
+   */
   edge(from: string, to: string, id?: string): EdgeBuilder {
-    return this.parent.edge(from, to, id);
+    return this.parent.edge(from, to, id || `${from}->${to}`); // Default ID to from->to
   }
   overlay<T>(id: string, params: T, key?: string): VizBuilder {
     return this.parent.overlay(id, params, key);
