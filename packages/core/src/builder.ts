@@ -17,6 +17,12 @@ import {
   type RuntimePatchCtx,
 } from './runtimePatcher';
 
+import type { AnimationSpec } from './anim/spec';
+import {
+  buildAnimationSpec,
+  type AnimationBuilder,
+} from './anim/animationBuilder';
+
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
 import {
   applyShapeGeometry,
@@ -63,6 +69,13 @@ interface VizBuilder {
     rows: number,
     padding?: { x: number; y: number }
   ): VizBuilder;
+
+  /**
+   * Fluent, data-only animation authoring. Compiles immediately to an `AnimationSpec`.
+   * The compiled spec is also stored on the built scene as `scene.animationSpecs`.
+   */
+  animate(cb: (anim: AnimationBuilder) => unknown): AnimationSpec;
+
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
@@ -137,6 +150,7 @@ class VizBuilderImpl implements VizBuilder {
   private _nodeOrder: string[] = [];
   private _edgeOrder: string[] = [];
   private _gridConfig: VizGridConfig | null = null;
+  private _animationSpecs: AnimationSpec[] = [];
 
   /**
    * Sets the view box.
@@ -175,6 +189,12 @@ class VizBuilderImpl implements VizBuilder {
   overlay<T>(id: string, params: T, key?: string): VizBuilder {
     this._overlays.push({ id, params, key });
     return this;
+  }
+
+  animate(cb: (anim: AnimationBuilder) => unknown): AnimationSpec {
+    const spec = buildAnimationSpec(cb);
+    this._animationSpecs.push(spec);
+    return spec;
   }
 
   /**
@@ -234,10 +254,12 @@ class VizBuilderImpl implements VizBuilder {
 
     return {
       viewBox: this._viewBox,
-      grid: this._gridConfig || undefined,
+      grid: this._gridConfig ?? undefined,
       nodes,
       edges,
       overlays: this._overlays,
+      animationSpecs:
+        this._animationSpecs.length > 0 ? [...this._animationSpecs] : undefined,
     };
   }
 
