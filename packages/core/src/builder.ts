@@ -62,6 +62,18 @@ function svgAttributeString(attrs: Record<string, SvgAttrValue>) {
     .join('');
 }
 
+function animFallbackClass(id: string) {
+  // Convention: `animate('flow')` -> `.viz-anim-flow`
+  return `viz-anim-${id}`;
+}
+
+function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
+  if (!params || typeof params !== 'object') return [];
+  return Object.entries(params as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => [`--viz-anim-${k}`, String(v)] as [string, string]);
+}
+
 function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
   const anchor = edge.anchor ?? 'boundary';
   // Use effective positions of start/end nodes to calculate anchors
@@ -571,6 +583,7 @@ class VizBuilderImpl implements VizBuilder {
 
       if (edge.animations) {
         edge.animations.forEach((spec) => {
+          if (spec.when === false) return;
           const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(
             spec.id
           );
@@ -583,6 +596,11 @@ class VizBuilderImpl implements VizBuilder {
                 group!.style.setProperty(k, String(v));
               });
             }
+          } else {
+            classes += ` ${animFallbackClass(spec.id)}`;
+            animFallbackStyleEntries(spec.params).forEach(([k, v]) => {
+              group!.style.setProperty(k, v);
+            });
           }
         });
       }
@@ -718,6 +736,7 @@ class VizBuilderImpl implements VizBuilder {
 
       if (node.animations) {
         node.animations.forEach((spec) => {
+          if (spec.when === false) return;
           const renderer = defaultCoreAnimationRegistry.getNodeRenderer(
             spec.id
           );
@@ -730,6 +749,11 @@ class VizBuilderImpl implements VizBuilder {
                 group!.style.setProperty(k, String(v));
               });
             }
+          } else {
+            classes += ` ${animFallbackClass(spec.id)}`;
+            animFallbackStyleEntries(spec.params).forEach(([k, v]) => {
+              group!.style.setProperty(k, v);
+            });
           }
         });
       }
@@ -930,6 +954,7 @@ class VizBuilderImpl implements VizBuilder {
 
       if (edge.animations) {
         edge.animations.forEach((spec) => {
+          if (spec.when === false) return;
           const renderer = defaultCoreAnimationRegistry.getEdgeRenderer(
             spec.id
           );
@@ -943,6 +968,11 @@ class VizBuilderImpl implements VizBuilder {
                 animStyleStr += `${k}: ${v}; `;
               });
             }
+          } else {
+            animClasses += ` ${animFallbackClass(spec.id)}`;
+            animFallbackStyleEntries(spec.params).forEach(([k, v]) => {
+              animStyleStr += `${k}: ${v}; `;
+            });
           }
         });
       }
@@ -998,6 +1028,7 @@ class VizBuilderImpl implements VizBuilder {
 
       if (node.animations) {
         node.animations.forEach((spec) => {
+          if (spec.when === false) return;
           const renderer = defaultCoreAnimationRegistry.getNodeRenderer(
             spec.id
           );
@@ -1011,6 +1042,11 @@ class VizBuilderImpl implements VizBuilder {
                 animStyleStr += `${k}: ${v}; `;
               });
             }
+          } else {
+            animClasses += ` ${animFallbackClass(spec.id)}`;
+            animFallbackStyleEntries(spec.params).forEach(([k, v]) => {
+              animStyleStr += `${k}: ${v}; `;
+            });
           }
         });
       }

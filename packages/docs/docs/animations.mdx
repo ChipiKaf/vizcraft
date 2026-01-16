@@ -8,17 +8,25 @@ import VizPlaybackControls from '@site/src/components/VizPlaybackControls';
 import { defaultCoreAnimationRegistry, viz } from 'vizcraft';
 
 export const pulseCss = `
-@keyframes vizPulse {
-  0%, 100% { transform: scale(1); opacity: 1; stroke-width: 2; }
-  50% { transform: scale(var(--viz-anim-scale, 1.35)); opacity: 0.35; stroke-width: 6; }
+@keyframes vizPulseScale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(var(--viz-anim-scale, 1.35)); }
+}
+
+@keyframes vizPulseStyle {
+0%, 100% { opacity: 1; stroke-width: 2; }
+50% { opacity: 0.35; stroke-width: 6; }
+}
+
+.viz-anim-pulse {
+transform-box: fill-box;
+transform-origin: 50% 50%;
+will-change: transform;
+animation: vizPulseScale var(--viz-anim-duration, 900ms) ease-in-out infinite;
 }
 
 .viz-anim-pulse .viz-node-shape {
-transform-box: fill-box;
-transform-origin: center;
-transform-origin: 50% 50%;
-will-change: transform;
-animation: vizPulse var(--viz-anim-duration, 900ms) ease-in-out infinite;
+animation: vizPulseStyle var(--viz-anim-duration, 900ms) ease-in-out infinite;
 }
 `;
 
@@ -195,16 +203,25 @@ getStyle: ({ spec }) => ({
 
 // 2) Provide the CSS somewhere in your app
 const pulseCss = [
-'@keyframes vizPulse {',
-' 0%, 100% { transform: scale(1); opacity: 1; stroke-width: 2; }',
-' 50% { transform: scale(var(--viz-anim-scale, 1.35)); opacity: 0.35; stroke-width: 6; }',
+'@keyframes vizPulseScale {',
+' 0%, 100% { transform: scale(1); }',
+' 50% { transform: scale(var(--viz-anim-scale, 1.35)); }',
+'}',
+'',
+'@keyframes vizPulseStyle {',
+' 0%, 100% { opacity: 1; stroke-width: 2; }',
+' 50% { opacity: 0.35; stroke-width: 6; }',
+'}',
+'',
+'.viz-anim-pulse {',
+' transform-box: fill-box;',
+' transform-origin: 50% 50%;',
+' will-change: transform;',
+' animation: vizPulseScale var(--viz-anim-duration, 900ms) ease-in-out infinite;',
 '}',
 '',
 '.viz-anim-pulse .viz-node-shape {',
-' transform-box: fill-box;',
-' transform-origin: center;',
-' will-change: transform;',
-' animation: vizPulse var(--viz-anim-duration, 900ms) ease-in-out infinite;',
+' animation: vizPulseStyle var(--viz-anim-duration, 900ms) ease-in-out infinite;',
 '}',
 ].join('\n');
 
@@ -279,7 +296,7 @@ Add CSS somewhere in your app (global stylesheet, CSS module, or injected `<styl
 /* The node wrapper is the element that gets the class. */
 .viz-anim-pulse {
   transform-box: fill-box;
-  transform-origin: center;
+  transform-origin: 50% 50%;
   animation: vizPulse var(--viz-anim-duration, 900ms) ease-in-out infinite;
 }
 ```
