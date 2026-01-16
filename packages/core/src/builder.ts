@@ -24,8 +24,17 @@ import {
   type AnimatableProps,
   type TweenOptions,
 } from './anim/animationBuilder';
+import {
+  createBuilderPlayback,
+  type PlaybackController,
+} from './anim/playback';
 
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
+
+const autoplayControllerByContainer = new WeakMap<
+  HTMLElement,
+  PlaybackController
+>();
 import {
   applyShapeGeometry,
   computeNodeAnchor,
@@ -88,6 +97,7 @@ interface VizBuilder {
   _getViewBox(): { w: number; h: number };
   svg(): string;
   mount(container: HTMLElement): void;
+  mount(container: HTMLElement, opts: { autoplay?: boolean }): void;
 
   /**
    * Applies runtime-only patches (node.runtime / edge.runtime) to the mounted SVG.
@@ -294,9 +304,28 @@ class VizBuilderImpl implements VizBuilder {
    * Mounts the scene to the DOM.
    * @param container The container to mount the scene into
    */
-  mount(container: HTMLElement) {
+  mount(container: HTMLElement, opts?: { autoplay?: boolean }) {
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
+
+    if (!opts?.autoplay) return;
+
+    const specs = scene.animationSpecs;
+    if (!specs || specs.length === 0) return;
+
+    // Stop any prior autoplay animation for this container.
+    autoplayControllerByContainer.get(container)?.stop();
+
+    // Play all stored specs together (tweens already carry their own delays).
+    const combined: AnimationSpec = {
+      version: 'viz-anim/1',
+      tweens: specs.flatMap((s) => s.tweens),
+    };
+
+    const controller = createBuilderPlayback({ builder: this, container });
+    controller.load(combined);
+    controller.play();
+    autoplayControllerByContainer.set(container, controller);
   }
 
   patchRuntime(container: HTMLElement) {
