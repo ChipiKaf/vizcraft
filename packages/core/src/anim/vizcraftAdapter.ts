@@ -71,7 +71,7 @@ export function createVizCraftAdapter(
     .prop('opacity', {
       get: (el) => {
         const n = el as VizNode;
-        return n.runtime?.opacity ?? n.style?.opacity;
+        return n.runtime?.opacity ?? n.style?.opacity ?? 1;
       },
       set: (el, v: number) => {
         const n = el as VizNode;
@@ -80,7 +80,7 @@ export function createVizCraftAdapter(
       },
     })
     .prop('scale', {
-      get: (el) => (el as VizNode).runtime?.scale,
+      get: (el) => (el as VizNode).runtime?.scale ?? 1,
       set: (el, v: number) => {
         const n = el as VizNode;
         n.runtime = n.runtime ?? {};
@@ -98,7 +98,7 @@ export function createVizCraftAdapter(
 
   edge
     .prop('opacity', {
-      get: (el) => (el as VizEdge).runtime?.opacity,
+      get: (el) => (el as VizEdge).runtime?.opacity ?? 1,
       set: (el, v: number) => {
         const e = el as VizEdge;
         e.runtime = e.runtime ?? {};

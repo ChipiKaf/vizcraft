@@ -1,4 +1,4 @@
-import { viz } from 'vizcraft';
+import { playAnimationSpec, viz } from 'vizcraft';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -11,6 +11,11 @@ app.innerHTML = `
       <button id="btn-move">Move Node B</button>
       <button id="btn-opacity">Fade Node A</button>
       <button id="btn-edge">Animate Edge</button>
+      <span style="margin: 0 10px;">|</span>
+      <button id="btn-play-spec">Play AnimationSpec</button>
+      <button id="btn-pause-spec">Pause</button>
+      <button id="btn-resume-spec">Resume</button>
+      <button id="btn-stop-spec">Stop</button>
     </div>
   </div>
 `;
@@ -34,7 +39,10 @@ const nodeA = scene.nodes.find((n) => n.id === 'a')!;
 const nodeB = scene.nodes.find((n) => n.id === 'b')!;
 const edgeAB = scene.edges.find((e) => e.id === 'a->b')!;
 
+let activeController: ReturnType<typeof playAnimationSpec> | null = null;
+
 document.getElementById('btn-reset')?.addEventListener('click', () => {
+  activeController?.stop();
   nodeA.runtime = undefined;
   nodeB.runtime = undefined;
   edgeAB.runtime = undefined;
@@ -58,4 +66,33 @@ document.getElementById('btn-edge')?.addEventListener('click', () => {
     strokeDashoffset: 10,
   };
   builder.patchRuntime(container);
+});
+
+// Data-only AnimationSpec playback
+document.getElementById('btn-play-spec')?.addEventListener('click', () => {
+  activeController?.stop();
+
+  const spec = builder.animate((anim) =>
+    anim
+      .node('a')
+      .to({ x: 200, opacity: 0.3 }, { duration: 600 })
+      .node('b')
+      .to({ x: 500, y: 450 }, { duration: 700 })
+      .edge('a->b')
+      .to({ strokeDashoffset: -100 }, { duration: 1000 })
+  );
+
+  activeController = playAnimationSpec({ builder, container, spec });
+});
+
+document.getElementById('btn-pause-spec')?.addEventListener('click', () => {
+  activeController?.pause();
+});
+
+document.getElementById('btn-resume-spec')?.addEventListener('click', () => {
+  activeController?.play();
+});
+
+document.getElementById('btn-stop-spec')?.addEventListener('click', () => {
+  activeController?.stop();
 });

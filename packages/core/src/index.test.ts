@@ -27,7 +27,8 @@ describe('vizcraft core', () => {
 
     expect(spec.version).toBe('viz-anim/1');
     expect(spec.tweens.length).toBe(2);
-    expect(spec.tweens[0].target).toBe('node:a');
+    expect(spec.tweens[0]).toBeDefined();
+    expect(spec.tweens[0]!.target).toBe('node:a');
 
     const scene = builder.build();
     expect(scene.animationSpecs?.length).toBe(1);
@@ -42,7 +43,8 @@ describe('vizcraft core', () => {
 
     const scene = builder.build();
     expect(scene.animationSpecs).toBeUndefined();
-    expect(scene.edges[0].animations?.[0].id).toBe('flow');
+    expect(scene.edges[0]).toBeDefined();
+    expect(scene.edges[0]!.animations?.[0]?.id).toBe('flow');
   });
 
   it('supports element-level .animate(cb) and animateTo(...) sugar', () => {
@@ -58,8 +60,13 @@ describe('vizcraft core', () => {
     const scene = builder.build();
     expect(scene.animationSpecs?.length).toBe(2);
 
-    const [nodeSpec, edgeSpec] = scene.animationSpecs ?? [];
-    expect(nodeSpec.tweens[0].target).toBe('node:a');
-    expect(edgeSpec.tweens[0].target).toBe('edge:a->b');
+    const nodeSpec = scene.animationSpecs?.[0];
+    const edgeSpec = scene.animationSpecs?.[1];
+    expect(nodeSpec).toBeDefined();
+    expect(edgeSpec).toBeDefined();
+    expect(nodeSpec!.tweens[0]).toBeDefined();
+    expect(edgeSpec!.tweens[0]).toBeDefined();
+    expect(nodeSpec!.tweens[0]!.target).toBe('node:a');
+    expect(edgeSpec!.tweens[0]!.target).toBe('edge:a->b');
   });
 });
