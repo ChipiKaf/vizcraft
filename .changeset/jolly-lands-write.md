@@ -1,5 +1,0 @@
----
-'vizcraft': patch
----
-
-Update documentation
