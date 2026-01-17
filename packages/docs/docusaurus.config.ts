@@ -6,7 +6,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'VizCraft',
-  tagline: 'Fluent, Type-Safe SVG Scene Builder',
+  tagline:
+    'Fluent, Type-Safe SVG Scene Builder with native animation orchestration',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
