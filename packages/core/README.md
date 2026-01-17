@@ -8,7 +8,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 
 - **Fluent Builder API**: Define your visualization scene using a readable, chainable API.
 - **Grid System**: Built-in 2D grid system for easy, structured layout of nodes.
-- **Declarative Animations**: Animate layout changes, edge flow, and node states with a simple declarative config.
+- **Two Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`) and data-only timeline animations (`AnimationSpec`).
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 
@@ -46,6 +46,25 @@ builder
 
 const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
+```
+
+## 📚 Documentation (Topics)
+
+For a guided walkthrough, the repo docs are organized like this:
+
+- [Introduction](../../packages/docs/docs/intro.md)
+- [Examples](../../packages/docs/docs/examples.mdx)
+- [Essentials](../../packages/docs/docs/essentials.mdx)
+- [Animations](../../packages/docs/docs/animations/index.mdx)
+  - [Animation Builder API](../../packages/docs/docs/animations/animation-builder-api.mdx)
+- [Advanced](../../packages/docs/docs/advanced.mdx)
+- [Types](../../packages/docs/docs/types.mdx)
+
+Run the docs locally (monorepo):
+
+```bash
+pnpm install
+pnpm -C packages/docs start
 ```
 
 ## 📖 Core Concepts
@@ -90,11 +109,128 @@ b.edge('n1', 'n2')
 
 ### Animations
 
-VizCraft supports declarative animations. You define _what_ happens, and the renderer handles the interpolation.
+VizCraft supports **two complementary animation approaches**:
 
-- **`stream`**: Particles flowing along an edge.
-- **`pulse`**: Rhythmic scaling or opacity changes.
-- **Transition**: Moving a node from one position to another.
+1. **Registry/CSS animations** (simple, reusable effects)
+
+Attach an animation by name to a node/edge. The default core registry includes:
+
+- `flow` (edge)
+
+```ts
+import { viz } from 'vizcraft';
+
+const b = viz().view(520, 160);
+
+b.node('a')
+  .at(70, 80)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(450, 80)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .animate('flow', { duration: '1s' })
+  .done();
+```
+
+2. **Data-only timeline animations (`AnimationSpec`)** (sequenced tweens)
+
+- Author with `builder.animate((anim) => ...)`.
+- VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
+- Play them with `builder.play()`.
+
+```ts
+import { viz } from 'vizcraft';
+
+const b = viz().view(520, 240);
+
+b.node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .done();
+
+b.animate((anim) =>
+  anim
+    .node('a')
+    .to({ x: 200, opacity: 0.35 }, { duration: 600 })
+    .node('b')
+    .to({ x: 440, y: 170 }, { duration: 700 })
+    .edge('a->b')
+    .to({ strokeDashoffset: -120 }, { duration: 900 })
+);
+
+const container = document.getElementById('viz-basic');
+if (container) {
+  b.mount(container);
+  b.play();
+}
+```
+
+#### Animating edges with custom ids
+
+If you create an edge with a custom id (third arg), target it explicitly in animations:
+
+```ts
+const b = viz().view(520, 240);
+b.node('a')
+  .at(120, 120)
+  .circle(20)
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .edge('a', 'b', 'e1')
+  .done();
+
+b.animate((anim) =>
+  anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+);
+```
+
+#### Custom animatable properties (advanced)
+
+Specs can carry adapter extensions so you can animate your own numeric properties:
+
+```ts
+b.animate((anim) =>
+  anim
+    .extendAdapter((adapter) => {
+      adapter.register?.('node', 'r', {
+        get: (target) => adapter.get(target, 'r'),
+        set: (target, v) => adapter.set(target, 'r', v),
+      });
+    })
+    .node('a')
+    .to({ r: 42 }, { duration: 500 })
+);
+```
+
+### Playback controls
+
+`builder.play()` returns a controller with `pause()`, `play()` (resume), and `stop()`.
+
+```ts
+const controller = b.play();
+controller?.pause();
+controller?.play();
+controller?.stop();
+```
+
+### Supported properties (core adapter)
+
+Out of the box, timeline playback supports these numeric properties:
+
+- Node: `x`, `y`, `opacity`, `scale`, `rotation`
+- Edge: `opacity`, `strokeDashoffset`
 
 ## 🎨 Styling
 
@@ -130,4 +266,4 @@ Contributions are welcome! This is a monorepo managed with Turbo.
 
 ## 📄 License
 
-MIT License © Chipili Kafwilo
+MIT License

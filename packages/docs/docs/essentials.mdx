@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+title: Essentials
 ---
 
 import CodePreview from '@site/src/components/CodePreview';
@@ -38,8 +39,6 @@ export const edgesScene = edgesBuilder
   .label('Connects to')
   .done();
 
-# Essentials
-
 Learn the basics of creating scenes with VizCraft.
 
 ## The Builder API
@@ -64,14 +63,15 @@ import { viz } from 'vizcraft';
 const builder = viz().view(500, 300);
 
 builder
-  .grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
-  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
-  .node('n2').cell(2, 1).label('2,1').circle(30)
-  .node('n3').cell(4, 2).label('4,2').diamond(60, 60).done();
+.grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
+.node('n1').cell(0, 0).label('0,0').rect(60, 40)
+.node('n2').cell(2, 1).label('2,1').circle(30)
+.node('n3').cell(4, 2).label('4,2').diamond(60, 60).done();
 
 const container = document.getElementById('viz-grid');
 if (container) builder.mount(container);
 `}>
+
   <VizMount
     builder={gridScene}
     style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
@@ -85,6 +85,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 ### Shapes
 
 VizCraft supports three built-in shapes:
+
 - \`.circle(r)\`
 - \`.rect(w, h, [rx])\`
 - \`.diamond(w, h)\`
@@ -105,21 +106,28 @@ import { viz } from 'vizcraft';
 const builder = viz().view(500, 200);
 
 builder
-  .node('A')
-  .at(50, 100)
-  .circle(26)
-  .label('Start')
-  .node('B')
-  .at(450, 100)
-  .rect(80, 40)
-  .label('End')
-  .edge('A', 'B')
-  .arrow()
-  .label('Connects to')
-  .done();
+.node('A')
+.at(50, 100)
+.circle(26)
+.label('Start')
+.node('B')
+.at(450, 100)
+.rect(80, 40)
+.label('End')
+.edge('A', 'B')
+.arrow()
+.label('Connects to')
+.done();
 
 const container = document.getElementById('viz-edges');
 if (container) builder.mount(container);
 `}>
+
   <VizMount builder={edgesScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
+
+## Animations
+
+For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:
+
+- [Animations](./animations)

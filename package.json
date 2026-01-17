@@ -9,6 +9,7 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest run --watch",
     "test:turbo": "turbo run test",
+    "start:docs": "pnpm -C packages/docs start",
     "prepare": "husky",
     "lint": "eslint 'packages/**/*.{ts,tsx}' --ignore-pattern '**/*.d.ts'",
     "typecheck": "turbo typecheck",

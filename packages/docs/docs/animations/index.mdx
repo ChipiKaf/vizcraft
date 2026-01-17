@@ -1,0 +1,473 @@
+---
+slug: /animations
+sidebar_position: 1
+title: Animations
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import VizPlaybackControls from '@site/src/components/VizPlaybackControls';
+import { viz } from 'vizcraft';
+
+export const pulseCss = `
+@keyframes vizPulseScale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(var(--viz-anim-scale, 1.35)); }
+}
+
+@keyframes vizPulseStyle {
+0%, 100% { opacity: 1; stroke-width: 2; }
+50% { opacity: 0.35; stroke-width: 6; }
+}
+
+.viz-anim-pulse {
+transform-box: fill-box;
+transform-origin: 50% 50%;
+will-change: transform;
+animation: vizPulseScale var(--viz-anim-duration, 900ms) ease-in-out infinite;
+}
+
+.viz-anim-pulse .viz-node-shape {
+animation: vizPulseStyle var(--viz-anim-duration, 900ms) ease-in-out infinite;
+}
+`;
+
+export const flowBuilder = viz().view(520, 160);
+export const flowScene = flowBuilder
+  .node('a')
+  .at(70, 80)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(450, 80)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .animate('flow', { duration: '1s' })
+  .done();
+
+export const specBuilder = viz().view(520, 240);
+export const specScene = specBuilder
+  .node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .done();
+export const specAnim = specBuilder.animate((anim) => {
+  anim.node('a');
+  anim.to({ x: 200, opacity: 0.35 }, { duration: 600 });
+  anim.node('b');
+  anim.to({ x: 440, y: 170 }, { duration: 700 });
+  anim.edge('a->b');
+  anim.to({ strokeDashoffset: -120 }, { duration: 900 });
+});
+
+export const timelineBuilder = viz().view(520, 240);
+export const timelineScene = timelineBuilder
+  .node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .node('b')
+  .at(400, 120)
+  .circle(20)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .done();
+export const timelineAnim = timelineBuilder.animate((anim) => {
+  anim.node('a');
+  anim.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' });
+  anim.wait(600);
+  anim.to({ x: 120 }, { duration: 1200, easing: 'easeInOut' });
+  anim.at(0);
+  anim.node('b');
+  anim.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' });
+  anim.wait(600);
+  anim.to({ y: 120 }, { duration: 1200, easing: 'easeInOut' });
+});
+
+export const elementAnimBuilder = viz().view(520, 240);
+export const elementAnimScene = elementAnimBuilder
+  .node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .animateTo({ x: 220, opacity: 0.4 }, { duration: 650 })
+  .node('b')
+  .at(400, 120)
+  .circle(20)
+  .label('B')
+  .animateTo({ y: 170 }, { duration: 650 })
+  .edge('a', 'b')
+  .arrow()
+  .animateTo({ strokeDashoffset: -120 }, { duration: 900 })
+  .done();
+
+export const pulseBuilder = viz().view(520, 180);
+export const pulseScene = pulseBuilder
+  .node('a')
+  .at(160, 90)
+  .circle(24)
+  .fill('#D1FAE5')
+  .stroke('#065F46', 2)
+  .label('Pulse')
+  .animate('pulse', { duration: '650ms', scale: 1.35 })
+  .node('b')
+  .at(360, 90)
+  .rect(90, 50, 12)
+  .label('Static')
+  .done();
+
+export const customPropBuilder = viz().view(520, 200);
+export const customPropScene = customPropBuilder
+  .node('a')
+  .at(260, 100)
+  .circle(18)
+  .label('r')
+  .done();
+
+export function extendCircleRadius(adapter) {
+  if (!adapter || typeof adapter.register !== 'function') return;
+
+adapter.register('node', 'r', {
+get: (el) => (el?.shape?.kind === 'circle' ? el.shape.r : undefined),
+set: (el, v) => {
+if (el?.shape?.kind === 'circle') el.shape.r = v;
+},
+});
+}
+
+export const customPropAnim = customPropBuilder.animate((anim) => {
+  anim.extendAdapter(extendCircleRadius);
+  anim.node('a');
+  anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+  anim.wait(250);
+  anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
+VizCraft supports **two complementary animation systems**:
+
+1. **Data-only timeline animations ([AnimationSpec](../types.mdx#animationspec))** (preferred) — authored with a fluent callback and played via `builder.play()`.
+2. **Registry/CSS animations (legacy / lightweight)** — e.g. `.animate('flow')` adds CSS classes/vars.
+
+Both approaches render efficiently by patching the mounted SVG in-place.
+
+For a full authoring reference, see [Animation Builder API](./animation-builder-api.mdx).
+
+---
+
+## 1) Data-only animations ([AnimationSpec](../types.mdx#animationspec))
+
+Data-only animations are authored as a **portable timeline** (an [AnimationSpec](../types.mdx#animationspec)) containing numeric tweens ([TweenSpec](../types.mdx#tweenspec)).
+
+### Mental model
+
+- You compile a timeline with `builder.animate((anim) => ...)`.
+- VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
+- You play them with `builder.play()`.
+
+Under the hood, the player updates `node.runtime` / `edge.runtime` and VizCraft patches only the relevant SVG attrs/styles.
+
+---
+
+## Create an [AnimationSpec](../types.mdx#animationspec) with `builder.animate(cb)`
+
+This is the most direct way to author a timeline.
+
+:::note
+The live preview below uses a builder declared at the top of this MDX file.
+:::
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+
+builder
+.node('a').at(120, 120).circle(20).label('A')
+.node('b').at(400, 120).rect(70, 44, 10).label('B')
+.edge('a', 'b').arrow()
+.done();
+
+// Build & store an AnimationSpec on the scene
+builder.animate((anim) =>
+anim
+.node('a').to({ x: 200, opacity: 0.35 }, { duration: 600 })
+.node('b').to({ x: 440, y: 170 }, { duration: 700 })
+.edge('a->b').to({ strokeDashoffset: -120 }, { duration: 900 })
+);
+
+const container = document.getElementById('viz-spec');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={specScene} />
+</CodePreview>
+
+---
+
+## Targeting: nodes vs edges
+
+- `anim.node('id')` targets `node:<id>`
+- `anim.edge('a->b')` targets `edge:a->b` (edge id form)
+- `anim.edge('a', 'b')` is a convenience that compiles to `edge:a->b`
+
+---
+
+## Element-level authoring: `animate(cb)` and `animateTo(...)`
+
+If you prefer to attach data-only motion closer to where an element is defined:
+
+- `node.animate(cb)` / `edge.animate(cb)` compiles and stores an `AnimationSpec`.
+- `node.animateTo(props, opts)` / `edge.animateTo(props, opts)` is sugar for a single `.to(...)` step.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+
+builder
+.node('a').at(120, 120).circle(20).label('A')
+.animateTo({ x: 220, opacity: 0.4 }, { duration: 650 })
+.node('b').at(400, 120).circle(20).label('B')
+.animateTo({ y: 170 }, { duration: 650 })
+.edge('a', 'b').arrow()
+.animateTo({ strokeDashoffset: -120 }, { duration: 900 })
+.done();
+
+const container = document.getElementById('viz-element-level');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={elementAnimScene} />
+</CodePreview>
+
+:::tip
+`edge.animate('flow')` is still the registry/CSS system; `edge.animate(cb)` is the data-only timeline system.
+:::
+
+---
+
+## Timeline control: `.wait(ms)` and `.at(ms)`
+
+By default, `.to(...)` calls are **sequential**: each `.to` advances an internal “cursor”.
+
+- Use `.wait(…)` to insert a gap.
+- Use `.at(…)` to jump the cursor.
+
+:::note
+The live preview below uses a builder declared at the top of this MDX file.
+:::
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+
+builder
+.node('a').at(120, 120).circle(20).label('A')
+.node('b').at(400, 120).circle(20).label('B')
+.edge('a', 'b').arrow()
+.done();
+
+builder.animate((anim) =>
+anim
+.node('a')
+.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' })
+.wait(600)
+.to({ x: 120 }, { duration: 1200, easing: 'easeInOut' })
+.at(0)
+.node('b')
+.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' })
+.wait(600)
+.to({ y: 120 }, { duration: 1200, easing: 'easeInOut' })
+);
+
+const container = document.getElementById('viz-timeline');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={timelineScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## Custom properties (advanced)
+
+An [AnimationSpec](../types.mdx#animationspec) can target **any string property** (not just the core ones), as long as the playback adapter knows how to read/write it.
+
+You can register custom properties directly on the `anim` builder via `anim.extendAdapter(...)` ([ExtendAdapter](../types.mdx#extendadapter-advanced)). Here’s an example that animates a circle node’s radius via a custom prop named `r`.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder.node('a').at(260, 100).circle(18).label('r').done();
+
+// Note: 'r' is not a core property, but AnimationSpec supports it.
+builder.animate((anim) => {
+anim.extendAdapter((adapter) => {
+// Register a node property called 'r' (circle radius)
+adapter.register?.('node', 'r', {
+get: (el) => (el.shape.kind === 'circle' ? el.shape.r : undefined),
+set: (el, v) => {
+if (el.shape.kind === 'circle') el.shape.r = v;
+},
+});
+});
+
+anim.node('a');
+anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+anim.wait(250);
+anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
+const container = document.getElementById('viz-custom-prop');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={customPropScene} />
+</CodePreview>
+
+---
+
+## Supported properties (core adapter)
+
+Out of the box, the core player knows how to animate these numeric properties:
+
+- Node: `x`, `y`, `opacity`, `scale`, `rotation`
+- Edge: `opacity`, `strokeDashoffset`
+
+`AnimationSpec` itself supports any string property, but **playback only works for properties that the adapter registers**.
+
+---
+
+## Playback API
+
+### `builder.play()` (recommended)
+
+- `builder.mount(container)` stores the container internally
+- `builder.play()` replays the stored `scene.animationSpecs`
+- If `play()` is called before `mount()`, it logs a warning and does nothing
+
+### Multiple specs
+
+Every call to `builder.animate(...)` (or element-level `animate/animateTo`) appends another spec to `scene.animationSpecs`.
+`builder.play()` combines all of them and plays them together (tweens keep their own delays).
+
+### `builder.play(container, spec)`
+
+If you want to play a one-off spec without storing it on the builder, you can pass a spec explicitly.
+
+### `mount(container, { autoplay: true })`
+
+If you prefer a single call:
+
+```ts
+builder.mount(container, { autoplay: true });
+```
+
+---
+
+## How stopping works
+
+`controller.stop()` restores runtime properties back to their captured “base” values.
+
+Tip: If you’re mixing manual `node.runtime = ...` updates with timeline playback, decide which one is authoritative at any given time.
+
+---
+
+## 2) Registry/CSS animations (e.g. `flow`)
+
+Registry animations are useful when you want a simple, reusable effect that doesn’t need per-frame JS interpolation.
+
+- You attach an animation by name (like `flow`).
+- VizCraft adds an animation CSS class and optional CSS variables.
+
+### Edge flow
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 160);
+
+builder
+.node('a').at(70, 80).circle(18).label('A')
+.node('b').at(450, 80).rect(70, 44, 10).label('B')
+.edge('a', 'b').arrow().animate('flow', { duration: '1s' })
+.done();
+
+const container = document.getElementById('viz-flow');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount builder={flowScene} />
+</CodePreview>
+
+---
+
+### Node pulse
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const pulseCss = ` + "`" + `
+@keyframes vizPulseScale {
+0%, 100% { transform: scale(1); }
+50% { transform: scale(var(--viz-anim-scale, 1.35)); }
+}
+
+@keyframes vizPulseStyle {
+0%, 100% { opacity: 1; stroke-width: 2; }
+50% { opacity: 0.35; stroke-width: 6; }
+}
+
+.viz-anim-pulse {
+transform-box: fill-box;
+transform-origin: 50% 50%;
+will-change: transform;
+animation: vizPulseScale var(--viz-anim-duration, 900ms) ease-in-out infinite;
+}
+
+.viz-anim-pulse .viz-node-shape {
+animation: vizPulseStyle var(--viz-anim-duration, 900ms) ease-in-out infinite;
+}
+` + "`" + `;
+
+const builder = viz().view(520, 180);
+
+builder
+.node('a').at(160, 90).circle(24)
+.fill('#D1FAE5').stroke('#065F46', 2)
+.label('Pulse')
+.animate('pulse', { duration: '650ms', scale: 1.35 })
+.node('b').at(360, 90).rect(90, 50, 12)
+.label('Static')
+.done();
+
+const container = document.getElementById('viz-pulse');
+if (container) builder.mount(container, { css: pulseCss });
+`}>
+
+  <VizMount builder={pulseScene} css={pulseCss} />
+</CodePreview>

@@ -1,0 +1,209 @@
+---
+sidebar_position: 99
+title: Types
+---
+
+This page documents the public TypeScript types you’ll most commonly touch when using VizCraft.
+
+:::tip
+All types shown here are exported from `vizcraft` and can be imported as `import type { ... } from 'vizcraft'`.
+:::
+
+---
+
+## VizScene
+
+A scene is the complete, serializable description of what to render.
+
+**Shape**
+
+- `viewBox: { w: number; h: number }` — the SVG coordinate space.
+- `nodes: VizNode[]` — nodes to render.
+- `edges: VizEdge[]` — edges to render.
+- `overlays?: VizOverlaySpec[]` — optional overlay layer.
+- `animationSpecs?: AnimationSpec[]` — optional data-only timelines compiled via `builder.animate(...)`.
+
+---
+
+## VizNode
+
+A node in the scene graph.
+
+**Key properties**
+
+- `id: string` — unique id.
+- `pos: { x: number; y: number }` — base position.
+- `shape: NodeShape` — geometry.
+- `label?: NodeLabel` — optional text label.
+- `style?: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }` — base styling.
+- `className?: string` — extra CSS class.
+- `runtime?: VizRuntimeNodeProps` — **runtime-only** overrides (what the animation system writes).
+- `animations?: VizAnimSpec[]` — registry/CSS animation requests (e.g. `pulse`, `flow`).
+- `data?: unknown` — your payload.
+
+---
+
+## VizEdge
+
+An edge connecting two nodes.
+
+**Key properties**
+
+- `id: string` — unique id (commonly `"a->b"`).
+- `from: string` / `to: string` — node ids.
+- `markerEnd?: 'arrow' | 'none'` — arrow head.
+- `anchor?: 'center' | 'boundary'` — connection behavior.
+- `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
+- `animations?: VizAnimSpec[]` — registry/CSS animation requests.
+- `data?: unknown` — your payload.
+
+---
+
+## NodeShape
+
+Supported node geometry.
+
+- `{ kind: 'circle'; r: number }`
+- `{ kind: 'rect'; w: number; h: number; rx?: number }`
+- `{ kind: 'diamond'; w: number; h: number }`
+
+---
+
+## VizRuntimeNodeProps
+
+Numeric properties the core runtime patcher knows how to apply for nodes.
+
+- `x?: number`
+- `y?: number`
+- `opacity?: number`
+- `scale?: number`
+- `rotation?: number`
+
+---
+
+## VizRuntimeEdgeProps
+
+Numeric properties the core runtime patcher knows how to apply for edges.
+
+- `strokeDashoffset?: number`
+- `opacity?: number`
+
+---
+
+## AnimationSpec
+
+A **portable, data-only timeline**.
+
+An `AnimationSpec` is what `builder.animate((anim) => ...)` compiles to, and what the player executes.
+
+**Shape**
+
+- `version: 'viz-anim/1'`
+- `tweens: TweenSpec[]`
+
+---
+
+## TweenSpec
+
+A single numeric tween.
+
+**Shape**
+
+- `kind: 'tween'`
+- `target: AnimationTarget`
+- `property: AnimProperty`
+- `to: number`
+- `duration: number` (ms)
+- `delay?: number` (ms)
+- `easing?: Ease`
+- `from?: number` — optional explicit start value.
+
+---
+
+## AnimationTarget
+
+Identifies _what_ you’re animating.
+
+- Nodes use the form `node:<id>`.
+- Edges use the form `edge:<id>` (commonly `edge:a->b`).
+
+---
+
+## AnimProperty
+
+The property name being animated.
+
+- Core properties are listed in `CoreAnimProperty`.
+- You can also use any other string property name, as long as the playback adapter registers handlers for it.
+
+---
+
+## CoreAnimProperty
+
+Properties supported out-of-the-box by the core adapter.
+
+- Nodes: `x`, `y`, `opacity`, `scale`, `rotation`
+- Edges: `opacity`, `strokeDashoffset`
+
+---
+
+## Ease
+
+Built-in easing names.
+
+- `linear`
+- `easeIn`
+- `easeOut`
+- `easeInOut`
+
+---
+
+## AnimatableProps
+
+The property bag you pass to `anim.to(...)`.
+
+- It hints core properties in TypeScript.
+- It also permits arbitrary numeric keys (for custom properties).
+
+---
+
+## TweenOptions
+
+Options you pass to `anim.to(props, opts)`.
+
+- `duration: number` (ms)
+- `easing?: Ease`
+- `from?: Partial<Record<AnimProperty, number>>` — per-property explicit start values.
+
+---
+
+## PlaybackController
+
+Controller returned by `builder.play()` and `playAnimationSpec(...)`.
+
+Common methods:
+
+- `play()`
+- `pause()`
+- `stop()`
+
+---
+
+## ExtendAdapter (advanced)
+
+Callback used to register custom animatable properties.
+
+**Signature**
+
+- `(adapter: AnimationHostAdapter & Partial<RegistrableAdapter>) => void`
+
+You’ll typically use it via `anim.extendAdapter((adapter) => { adapter.register?.(...) })`.
+
+---
+
+## AnimationHostAdapter and RegistrableAdapter (advanced)
+
+These are the low-level interfaces the player uses to read/write properties.
+
+- `AnimationHostAdapter` — must implement `get(target, prop)` and `set(target, prop, value)`.
+- `RegistrableAdapter` — optional capability that exposes `register(kind, prop, { get, set })`.

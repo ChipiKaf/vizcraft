@@ -1,23 +1,12 @@
 ---
-sidebar_position: 4
+sidebar_position: 6
+title: Advanced
 ---
+
+import { viz } from 'vizcraft';
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
-import { viz } from 'vizcraft';
-
-export const flowBuilder = viz().view(400, 100);
-export const flowScene = flowBuilder
-  .node('a')
-  .at(50, 50)
-  .circle(20)
-  .node('b')
-  .at(350, 50)
-  .circle(20)
-  .edge('a', 'b')
-  .animate('flow', { duration: '1s' })
-  .arrow()
-  .done();
 
 export const interactiveBuilder = viz().view(400, 200);
 export const interactiveScene = interactiveBuilder
@@ -29,36 +18,13 @@ export const interactiveScene = interactiveBuilder
   .onClick((id) => alert(`Clicked node ${id}`))
   .done();
 
-# Advanced Features
-
 Take your visualizations to the next level with animations and interactivity.
 
 ## Animations
 
-VizCraft has a built-in animation system. You can attach animations to nodes and edges.
+Animations now have their own dedicated guide:
 
-### Edge Flow
-
-The \`flow\` animation simulates data moving along an edge.
-
-<CodePreview code={`
-import { viz } from 'vizcraft';
-
-const builder = viz().view(400, 100);
-
-builder
-  .node('a').at(50, 50).circle(20)
-  .node('b').at(350, 50).circle(20)
-  .edge('a', 'b')
-  .animate('flow', { duration: '1s' })
-  .arrow()
-  .done();
-
-const container = document.getElementById('viz-flow');
-if (container) builder.mount(container);
-`}>
-  <VizMount builder={flowScene} style={{ height: '100px', width: '100%' }} />
-</CodePreview>
+- See: [Animations](./animations)
 
 ## Interactivity
 
@@ -70,17 +36,18 @@ import { viz } from 'vizcraft';
 const builder = viz().view(400, 200);
 
 builder
-  .node('btn')
-  .at(200, 100)
-  .rect(120, 50, 10)
-  .label('Click Me')
-  .class('interactive-node')
-  .onClick((id) => alert(\`Clicked node \${id}\`))
-  .done();
+.node('btn')
+.at(200, 100)
+.rect(120, 50, 10)
+.label('Click Me')
+.class('interactive-node')
+.onClick((id) => alert(\`Clicked node \${id}\`))
+.done();
 
 const container = document.getElementById('viz-interactive');
 if (container) builder.mount(container);
 `}>
+
   <VizMount
     builder={interactiveScene}
     style={{ height: '200px', width: '100%' }}

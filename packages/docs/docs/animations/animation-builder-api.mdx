@@ -1,0 +1,115 @@
+---
+sidebar_position: 2
+title: Animation Builder API
+---
+
+This page documents the fluent `AnimationBuilder` API you receive as `anim` inside `builder.animate((anim) => ...)`.
+
+- Output type: [AnimationSpec](../types.mdx#animationspec)
+- Tween unit: [TweenSpec](../types.mdx#tweenspec)
+
+---
+
+## Overview
+
+`AnimationBuilder` is a _timeline compiler_:
+
+- You select a target (`node` / `edge`).
+- You add tweens with `to(...)`.
+- Time advances via an internal cursor (sequential by default).
+
+---
+
+## Target selection
+
+### `anim.node(id: string)`
+
+Targets a node by id.
+
+- Target form: [AnimationTarget](../types.mdx#animationtarget) = `node:<id>`
+- Returns: `AnimationBuilder` (chainable)
+
+### `anim.edge(id: string)`
+
+Targets an edge by id.
+
+- Target form: [AnimationTarget](../types.mdx#animationtarget) = `edge:<id>`
+- Typical id format: `"a->b"`
+- Returns: `AnimationBuilder` (chainable)
+
+### `anim.edge(from: string, to: string, id?: string)`
+
+Convenience overload.
+
+- If `id` is provided, equivalent to `anim.edge(id)`.
+- Otherwise, equivalent to `anim.edge(from + '->' + to)`.
+- Returns: `AnimationBuilder`
+
+---
+
+## Writing tweens
+
+### `anim.to(props: AnimatableProps, opts: TweenOptions)`
+
+Adds tweens for the current target.
+
+- `props`: [AnimatableProps](../types.mdx#animatableprops)
+  - One tween is emitted per numeric property in `props`.
+  - Non-numeric values are ignored.
+- `opts`: [TweenOptions](../types.mdx#tweenoptions)
+  - `duration: number` (ms)
+  - `easing?: Ease` ([Ease](../types.mdx#ease))
+  - `from?: Partial<Record<AnimProperty, number>>` ([AnimProperty](../types.mdx#animproperty))
+
+**Time behavior**
+
+- The tween’s `delay` is the current internal cursor time.
+- After `.to(...)`, the cursor advances by `duration` (sequential by default).
+
+**Errors**
+
+- Throws if you call `to(...)` without selecting a target first.
+
+---
+
+## Timeline control
+
+### `anim.wait(ms: number)`
+
+Advances the internal cursor by `ms` without adding tweens.
+
+### `anim.at(ms: number)`
+
+Sets the internal cursor to an absolute time offset (ms).
+
+This is the main way to schedule multiple sequences in parallel (e.g. move A and B at the same time).
+
+---
+
+## Custom properties (advanced)
+
+### `anim.extendAdapter(cb: ExtendAdapter)`
+
+Registers custom animatable properties for the spec produced by this `animate(...)` call.
+
+- `cb`: [ExtendAdapter](../types.mdx#extendadapter-advanced)
+- During playback, VizCraft will call your callback with an adapter that may support `register(...)`.
+
+Typical usage:
+
+- Add a custom property name (e.g. `r`) and provide `get/set` handlers.
+- Then tween that property with `.to({ r: 42 }, { duration: 500 })`.
+
+---
+
+## Example: parallel sequences
+
+```ts
+builder.animate((anim) => {
+  anim.at(0).node('a');
+  anim.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' });
+
+  anim.at(0).node('b');
+  anim.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' });
+});
+```
