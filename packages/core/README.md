@@ -48,6 +48,25 @@ const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
+## 📚 Documentation (Topics)
+
+For a guided walkthrough, the repo docs are organized like this:
+
+- [Introduction](../../packages/docs/docs/intro.md)
+- [Examples](../../packages/docs/docs/examples.mdx)
+- [Essentials](../../packages/docs/docs/essentials.mdx)
+- [Animations](../../packages/docs/docs/animations/index.mdx)
+  - [Animation Builder API](../../packages/docs/docs/animations/animation-builder-api.mdx)
+- [Advanced](../../packages/docs/docs/advanced.mdx)
+- [Types](../../packages/docs/docs/types.mdx)
+
+Run the docs locally (monorepo):
+
+```bash
+pnpm install
+pnpm -C packages/docs start
+```
+
 ## 📖 Core Concepts
 
 ### The Builder (`VizBuilder`)
@@ -157,6 +176,44 @@ if (container) {
 }
 ```
 
+#### Animating edges with custom ids
+
+If you create an edge with a custom id (third arg), target it explicitly in animations:
+
+```ts
+const b = viz().view(520, 240);
+b.node('a')
+  .at(120, 120)
+  .circle(20)
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .edge('a', 'b', 'e1')
+  .done();
+
+b.animate((anim) =>
+  anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+);
+```
+
+#### Custom animatable properties (advanced)
+
+Specs can carry adapter extensions so you can animate your own numeric properties:
+
+```ts
+b.animate((anim) =>
+  anim
+    .extendAdapter((adapter) => {
+      adapter.register?.('node', 'r', {
+        get: (target) => adapter.get(target, 'r'),
+        set: (target, v) => adapter.set(target, 'r', v),
+      });
+    })
+    .node('a')
+    .to({ r: 42 }, { duration: 500 })
+);
+```
+
 ### Playback controls
 
 `builder.play()` returns a controller with `pause()`, `play()` (resume), and `stop()`.
@@ -209,4 +266,4 @@ Contributions are welcome! This is a monorepo managed with Turbo.
 
 ## 📄 License
 
-MIT License © Chipili Kafwilo
+MIT License

@@ -40,6 +40,25 @@ const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
+## 📚 Documentation (Topics)
+
+The repo docs are organized like the site sidebar:
+
+- [Introduction](packages/docs/docs/intro.md)
+- [Examples](packages/docs/docs/examples.mdx)
+- [Essentials](packages/docs/docs/essentials.mdx)
+- [Animations](packages/docs/docs/animations/index.mdx)
+  - [Animation Builder API](packages/docs/docs/animations/animation-builder-api.mdx)
+- [Advanced](packages/docs/docs/advanced.mdx)
+- [Types](packages/docs/docs/types.mdx)
+
+Run the docs locally:
+
+```bash
+pnpm install
+pnpm -C packages/docs start
+```
+
 ## 📖 Core Concepts
 
 ### The Builder (`VizBuilder`)
@@ -51,6 +70,13 @@ b.view(width, height)    // Set the coordinate space
  .node(id)               // Start defining a node
  .edge(from, to)         // Start defining an edge
 ```
+
+Common lifecycle:
+
+- `builder.build()` creates a serializable `VizScene`.
+- `builder.mount(container)` renders into an SVG inside your container.
+- `builder.play()` plays any compiled timeline specs.
+- `builder.patchRuntime(container)` applies runtime-only updates (useful for per-frame updates without remounting).
 
 ### Nodes
 Nodes are the primary entities in your graph. They can have shapes, labels, and styles.
@@ -131,6 +157,45 @@ if (container) {
 }
 ```
 
+#### Animating edges with custom ids
+
+Edges can have any id (you can pass it as the optional third argument to `builder.edge(from, to, id)`):
+
+```ts
+const b = viz().view(520, 240);
+b.node('a').at(120, 120).circle(20).label('A')
+ .node('b').at(400, 120).rect(70, 44, 10).label('B')
+ .edge('a', 'b', 'e1').arrow()
+ .done();
+
+b.animate((anim) =>
+  anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+);
+```
+
+When you don’t provide an explicit edge id, the default convention is `"from->to"`.
+
+#### Custom animatable properties (advanced)
+
+You can animate properties that aren’t in the core set by extending the adapter for a specific spec:
+
+```ts
+b.animate((anim) =>
+  anim
+    .extendAdapter((adapter) => {
+      // adapter may support register(kind, prop, { get, set })
+      adapter.register?.('node', 'r', {
+        get: (target) => adapter.get(target, 'r'),
+        set: (target, v) => adapter.set(target, 'r', v),
+      });
+    })
+    .node('a')
+    .to({ r: 42 }, { duration: 500 })
+);
+```
+
+See the docs for the recommended `get/set` implementations for SVG attributes.
+
 ### Playback controls
 
 `builder.play()` returns a controller with `pause()`, `play()` (resume), and `stop()`.
@@ -173,6 +238,12 @@ VizCraft generates standard SVG elements with predictable classes, making it eas
 }
 ```
 
+## 🧭 Advanced Topics
+
+- **Interactivity**: attach `onClick` handlers to nodes/edges.
+- **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.
+- **React integration**: see the workspace package [packages/react-vizcraft](packages/react-vizcraft) (monorepo).
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is a monorepo managed with Turbo.
@@ -183,4 +254,4 @@ Contributions are welcome! This is a monorepo managed with Turbo.
 
 ## 📄 License
 
-MIT License © Chipili Kafwilo
+MIT License

@@ -76,11 +76,12 @@ export class AnimationBuilder {
    *
    * - `edge('a->b')` (id form)
    * - `edge('a', 'b')` (convenience; compiles to `edge:a->b`)
+   * - `edge('a', 'b', 'custom-id')` (explicit id; compiles to `edge:custom-id`)
    */
   edge(id: string): this;
-  edge(from: string, to: string): this;
-  edge(a: string, b?: string): this {
-    const id = b === undefined ? a : `${a}->${b}`;
+  edge(from: string, to: string, id?: string): this;
+  edge(a: string, b?: string, c?: string): this {
+    const id = b === undefined ? a : (c ?? `${a}->${b}`);
     this.currentTarget = toTarget('edge', id);
     return this;
   }

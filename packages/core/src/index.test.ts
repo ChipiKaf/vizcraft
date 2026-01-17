@@ -69,4 +69,18 @@ describe('vizcraft core', () => {
     expect(nodeSpec!.tweens[0]!.target).toBe('node:a');
     expect(edgeSpec!.tweens[0]!.target).toBe('edge:a->b');
   });
+
+  it('allows animating edges with custom ids via anim.edge(from, to, id)', () => {
+    const builder = viz();
+    builder.node('a').at(0, 0);
+    builder.node('b').at(10, 10);
+    builder.edge('a', 'b', 'e1');
+
+    const spec = builder.animate((anim) =>
+      anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -50 }, { duration: 250 })
+    );
+
+    expect(spec.tweens.length).toBe(1);
+    expect(spec.tweens[0]!.target).toBe('edge:e1');
+  });
 });

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+title: Examples
 ---
 
 import CodePreview from '@site/src/components/CodePreview';
@@ -15,8 +16,6 @@ export const basicScene = basicBuilder
   .label('Hello VizCraft', { dy: 5, fontWeight: 600 })
   .done();
 
-# Interactive Examples
-
 Here you can see **VizCraft** in action.
 
 ## Basic Scene
@@ -29,11 +28,11 @@ import { viz } from 'vizcraft';
 const builder = viz().view(800, 600);
 
 builder
-  .node('node1')
-  .at(400, 300)
-  .circle(100)
-  .label('Hello VizCraft', { dy: 5, fontWeight: 600 })
-  .done();
+.node('node1')
+.at(400, 300)
+.circle(100)
+.label('Hello VizCraft', { dy: 5, fontWeight: 600 })
+.done();
 
 const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
