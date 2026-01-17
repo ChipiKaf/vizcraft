@@ -1,6 +1,6 @@
 {
   "name": "vizcraft",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "A fluent, type-safe SVG scene builder for composing nodes, edges, animations, and overlays with incremental DOM updates and no framework dependency.",
   "keywords": [
     "visualization",
