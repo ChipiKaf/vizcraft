@@ -1,5 +1,12 @@
 # demo
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`f8fd369`](https://github.com/ChipiKaf/vizcraft/commit/f8fd369ca32a4653059f8e6697a17dcea56edc8c)]:
+  - vizcraft@0.2.1
+
 ## 0.0.1
 
 ### Patch Changes

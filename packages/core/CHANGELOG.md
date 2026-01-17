@@ -1,5 +1,11 @@
 # vizcraft
 
+## 0.2.1
+
+### Patch Changes
+
+- [`f8fd369`](https://github.com/ChipiKaf/vizcraft/commit/f8fd369ca32a4653059f8e6697a17dcea56edc8c) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Update documentation
+
 ## 0.2.0
 
 ### Minor Changes
