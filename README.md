@@ -1,5 +1,14 @@
 # VizCraft
 
+[![npm version](https://img.shields.io/npm/v/vizcraft.svg)](https://www.npmjs.com/package/vizcraft)
+[![npm downloads](https://img.shields.io/npm/dm/vizcraft.svg)](https://www.npmjs.com/package/vizcraft)
+[![CI](https://github.com/ChipiKaf/vizcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/ChipiKaf/vizcraft/actions/workflows/ci.yml)
+[![Release](https://github.com/ChipiKaf/vizcraft/actions/workflows/release.yml/badge.svg)](https://github.com/ChipiKaf/vizcraft/actions/workflows/release.yml)
+[![Snapshot](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml/badge.svg)](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml)
+[![license](https://img.shields.io/npm/l/vizcraft.svg)](LICENSE)
+
+📖 Full documentation: https://vizcraft-docs.vercel.app/
+
 **A declarative, builder-based library for creating animated SVG network visualizations and algorithm demos.**
 
 VizCraft is designed to make creating beautiful, animated node-link diagrams and complex visualizations intuitive and powerful. Whether you are building an educational tool, explaining an algorithm, or just need a great looking graph, VizCraft provides the primitives you need.
@@ -40,7 +49,11 @@ const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
+For more examples and best practices, see the full docs: https://vizcraft-docs.vercel.app/
+
 ## 📚 Documentation (Topics)
+
+Full documentation site: https://vizcraft-docs.vercel.app/
 
 The repo docs are organized like the site sidebar:
 
@@ -104,6 +117,8 @@ b.edge('n1', 'n2')
 ```
 
 ### Animations
+
+See the full Animations guide: https://vizcraft-docs.vercel.app/
 
 VizCraft supports **two complementary animation approaches**:
 
@@ -239,6 +254,8 @@ VizCraft generates standard SVG elements with predictable classes, making it eas
 ```
 
 ## 🧭 Advanced Topics
+
+For deeper guides and API references, see: https://vizcraft-docs.vercel.app/
 
 - **Interactivity**: attach `onClick` handlers to nodes/edges.
 - **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.
