@@ -28,6 +28,8 @@ import {
   createBuilderPlayback,
   type PlaybackController,
 } from './anim/playback';
+import type { ExtendAdapter } from './anim/extendAdapter';
+import { getAdapterExtensions } from './anim/specExtensions';
 
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
 
@@ -35,6 +37,7 @@ const autoplayControllerByContainer = new WeakMap<
   HTMLElement,
   PlaybackController
 >();
+
 import {
   applyShapeGeometry,
   computeNodeAnchor,
@@ -426,6 +429,11 @@ class VizBuilderImpl implements VizBuilder {
 
     if (!specOrSpecs && specs.length === 0) return null;
 
+    const adapterExtensions: ExtendAdapter[] = [];
+    for (const s of specs) {
+      adapterExtensions.push(...getAdapterExtensions(s));
+    }
+
     // Stop any prior playback for this container.
     autoplayControllerByContainer.get(container)?.stop();
 
@@ -434,7 +442,17 @@ class VizBuilderImpl implements VizBuilder {
       version: 'viz-anim/1',
       tweens: specs.flatMap((s) => s.tweens),
     };
-    const controller = createBuilderPlayback({ builder: this, container });
+
+    const controller = createBuilderPlayback({
+      builder: this,
+      container,
+      extendAdapter:
+        adapterExtensions.length > 0
+          ? (adapter) => {
+              for (const ext of adapterExtensions) ext(adapter);
+            }
+          : undefined,
+    });
     controller.load(combined);
     if (combined.tweens.length > 0) controller.play();
     autoplayControllerByContainer.set(container, controller);

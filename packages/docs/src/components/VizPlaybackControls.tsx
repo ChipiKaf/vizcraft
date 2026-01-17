@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { type PlaybackController, viz } from 'vizcraft';
+import {
+  createBuilderPlayback,
+  type ExtendAdapter,
+  type PlaybackController,
+  viz,
+} from 'vizcraft';
 
 type VizBuilder = ReturnType<typeof viz>;
 
@@ -10,6 +15,8 @@ interface VizPlaybackControlsProps {
   style?: CSSProperties;
   /** Auto-play on mount. Defaults to true. */
   autoPlay?: boolean;
+  /** Optional extension point for custom animatable properties. */
+  extendAdapter?: ExtendAdapter;
 }
 
 export default function VizPlaybackControls({
@@ -17,6 +24,7 @@ export default function VizPlaybackControls({
   className,
   style,
   autoPlay = true,
+  extendAdapter,
 }: VizPlaybackControlsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controllerRef = useRef<PlaybackController | null>(null);
@@ -28,10 +36,41 @@ export default function VizPlaybackControls({
 
     builder.mount(container);
 
-    if (autoPlay) {
+    const start = () => {
       controllerRef.current?.stop();
-      controllerRef.current = builder.play();
+
+      // If the caller didn't provide an explicit adapter extension, prefer the
+      // builder's built-in play(), which also honors per-spec anim.extendAdapter().
+      if (!extendAdapter) {
+        controllerRef.current = builder.play();
+        forceRender((n) => n + 1);
+        return;
+      }
+
+      const scene = builder.build();
+      const specs = scene.animationSpecs ?? [];
+      if (specs.length === 0) {
+        controllerRef.current = builder.play();
+        forceRender((n) => n + 1);
+        return;
+      }
+
+      const controller = createBuilderPlayback({
+        builder,
+        container,
+        extendAdapter,
+      });
+      controller.load({
+        version: 'viz-anim/1',
+        tweens: specs.flatMap((s) => s.tweens),
+      });
+      controller.play();
+      controllerRef.current = controller;
       forceRender((n) => n + 1);
+    };
+
+    if (autoPlay) {
+      start();
     }
 
     return () => {
@@ -42,11 +81,39 @@ export default function VizPlaybackControls({
       builder.play(container, []);
       container.innerHTML = '';
     };
-  }, [builder, autoPlay]);
+  }, [builder, autoPlay, extendAdapter]);
 
   const play = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
     controllerRef.current?.stop();
-    controllerRef.current = builder.play();
+
+    if (!extendAdapter) {
+      controllerRef.current = builder.play();
+      forceRender((n) => n + 1);
+      return;
+    }
+
+    const scene = builder.build();
+    const specs = scene.animationSpecs ?? [];
+    if (specs.length === 0) {
+      controllerRef.current = builder.play();
+      forceRender((n) => n + 1);
+      return;
+    }
+
+    const controller = createBuilderPlayback({
+      builder,
+      container,
+      extendAdapter,
+    });
+    controller.load({
+      version: 'viz-anim/1',
+      tweens: specs.flatMap((s) => s.tweens),
+    });
+    controller.play();
+    controllerRef.current = controller;
     forceRender((n) => n + 1);
   };
 

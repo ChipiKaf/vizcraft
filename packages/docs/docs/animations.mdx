@@ -124,6 +124,33 @@ export const pulseScene = pulseBuilder
   .label('Static')
   .done();
 
+export const customPropBuilder = viz().view(520, 200);
+export const customPropScene = customPropBuilder
+  .node('a')
+  .at(260, 100)
+  .circle(18)
+  .label('r')
+  .done();
+
+export function extendCircleRadius(adapter) {
+  if (!adapter || typeof adapter.register !== 'function') return;
+
+adapter.register('node', 'r', {
+get: (el) => (el?.shape?.kind === 'circle' ? el.shape.r : undefined),
+set: (el, v) => {
+if (el?.shape?.kind === 'circle') el.shape.r = v;
+},
+});
+}
+
+export const customPropAnim = customPropBuilder.animate((anim) => {
+  anim.extendAdapter(extendCircleRadius);
+  anim.node('a');
+  anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+  anim.wait(250);
+  anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
 # Animations
 
 VizCraft supports **two complementary animation systems**:
@@ -276,6 +303,48 @@ builder.play();
 `}>
 
   <VizPlaybackControls builder={timelineScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## Custom properties (advanced)
+
+`AnimationSpec` can target **any string property** (not just the core ones), as long as the playback adapter knows how to read/write it.
+
+You can register custom properties directly on the `anim` builder via `anim.extendAdapter(...)`. Here’s an example that animates a circle node’s radius via a custom prop named `r`.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder.node('a').at(260, 100).circle(18).label('r').done();
+
+// Note: 'r' is not a core property, but AnimationSpec supports it.
+builder.animate((anim) => {
+anim.extendAdapter((adapter) => {
+// Register a node property called 'r' (circle radius)
+adapter.register?.('node', 'r', {
+get: (el) => (el.shape.kind === 'circle' ? el.shape.r : undefined),
+set: (el, v) => {
+if (el.shape.kind === 'circle') el.shape.r = v;
+},
+});
+});
+
+anim.node('a');
+anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+anim.wait(250);
+anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
+const container = document.getElementById('viz-custom-prop');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={customPropScene} />
 </CodePreview>
 
 ---

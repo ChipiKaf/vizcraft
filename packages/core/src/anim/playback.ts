@@ -2,6 +2,8 @@ import type { VizScene } from '../types';
 import { createPlayer, type AnimationController } from './player';
 import type { AnimationSpec } from './spec';
 import { createVizCraftAdapter } from './vizcraftAdapter';
+import type { ExtendAdapter } from './extendAdapter';
+import { getAdapterExtensions } from './specExtensions';
 
 /**
  * A player that can be (re)loaded with specs.
@@ -13,11 +15,15 @@ export type PlaybackController = AnimationController & {
   load(spec: AnimationSpec): AnimationController;
 };
 
+export type { ExtendAdapter };
+
 export function createScenePlayback(opts: {
   scene: VizScene;
   requestRender: () => void;
+  extendAdapter?: ExtendAdapter;
 }): PlaybackController {
   const adapter = createVizCraftAdapter(opts.scene, opts.requestRender);
+  opts.extendAdapter?.(adapter);
   return createPlayer(adapter) as PlaybackController;
 }
 
@@ -31,10 +37,15 @@ export function createScenePlayback(opts: {
 export function createBuilderPlayback(opts: {
   builder: { build(): VizScene; patchRuntime(container: HTMLElement): void };
   container: HTMLElement;
+  extendAdapter?: ExtendAdapter;
 }): PlaybackController {
   const scene = opts.builder.build();
   const requestRender = () => opts.builder.patchRuntime(opts.container);
-  return createScenePlayback({ scene, requestRender });
+  return createScenePlayback({
+    scene,
+    requestRender,
+    extendAdapter: opts.extendAdapter,
+  });
 }
 
 /**
@@ -45,10 +56,21 @@ export function playAnimationSpec(opts: {
   container: HTMLElement;
   spec: AnimationSpec;
   autoPlay?: boolean;
+  extendAdapter?: ExtendAdapter;
 }): PlaybackController {
+  const adapterExtensions = getAdapterExtensions(opts.spec);
+  const extendAdapter: ExtendAdapter | undefined =
+    adapterExtensions.length > 0 || opts.extendAdapter
+      ? (adapter) => {
+          for (const ext of adapterExtensions) ext(adapter);
+          opts.extendAdapter?.(adapter);
+        }
+      : undefined;
+
   const controller = createBuilderPlayback({
     builder: opts.builder,
     container: opts.container,
+    extendAdapter,
   });
 
   controller.load(opts.spec);

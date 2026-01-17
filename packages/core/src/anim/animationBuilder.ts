@@ -6,6 +6,11 @@ import type {
   Ease,
   TweenSpec,
 } from './spec';
+import type { ExtendAdapter } from './extendAdapter';
+import {
+  ADAPTER_EXTENSIONS,
+  type AnimationSpecWithAdapterExtensions,
+} from './specExtensions';
 
 export type TweenOptions = {
   duration: number; // ms
@@ -48,6 +53,17 @@ export class AnimationBuilder {
   private cursorMs = 0;
   private currentTarget: AnimationTarget | null = null;
   private readonly tweens: TweenSpec[] = [];
+  private readonly adapterExtensions: ExtendAdapter[] = [];
+
+  /**
+   * Register custom animated properties for this spec.
+   *
+   * This avoids needing to thread an `extendAdapter` callback into playback helpers.
+   */
+  extendAdapter(cb: ExtendAdapter): this {
+    this.adapterExtensions.push(cb);
+    return this;
+  }
 
   /** Select a node by id (compiles to target `node:<id>`). */
   node(id: string): this {
@@ -126,10 +142,16 @@ export class AnimationBuilder {
   }
 
   build(): AnimationSpec {
-    return {
+    const spec: AnimationSpecWithAdapterExtensions = {
       version: 'viz-anim/1',
       tweens: [...this.tweens],
     };
+
+    if (this.adapterExtensions.length > 0) {
+      spec[ADAPTER_EXTENSIONS] = [...this.adapterExtensions];
+    }
+
+    return spec;
   }
 }
 

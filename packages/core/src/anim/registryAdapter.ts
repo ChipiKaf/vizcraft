@@ -1,4 +1,9 @@
-import type { AnimationHostAdapter, PropReader, PropWriter } from './adapter';
+import type {
+  AnimationHostAdapter,
+  PropReader,
+  PropWriter,
+  RegistrableAdapter,
+} from './adapter';
 import type { AnimationTarget, AnimProperty } from './spec';
 
 type TargetResolver = (id: string) => unknown | undefined;
@@ -124,7 +129,9 @@ export function createRegistryAdapter(opts: { flush?: () => void }) {
     set,
     flush,
     kind,
-  } as AnimationHostAdapter & {
-    kind(kindName: string, resolver?: TargetResolver): KindHandle;
-  };
+    register,
+  } as AnimationHostAdapter &
+    RegistrableAdapter & {
+      kind(kindName: string, resolver?: TargetResolver): KindHandle;
+    };
 }
