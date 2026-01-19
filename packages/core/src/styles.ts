@@ -9,9 +9,10 @@ export const DEFAULT_VIZ_CSS = `
 
 .viz-node-label,
 .viz-edge-label {
+  text-anchor: middle;
   dominant-baseline: middle;
   alignment-baseline: middle;
-  transform: translateY(-0.1em);
+  transform: translateY(0);
 }
 
 .viz-canvas svg {

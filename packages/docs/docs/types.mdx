@@ -94,7 +94,7 @@ Numeric properties the core runtime patcher knows how to apply for edges.
 
 A **portable, data-only timeline**.
 
-An `AnimationSpec` is what `builder.animate((anim) => ...)` compiles to, and what the player executes.
+An `AnimationSpec` is what `builder.animate((aBuilder) => ...)` compiles to, and what the player executes.
 
 **Shape**
 
@@ -160,7 +160,7 @@ Built-in easing names.
 
 ## AnimatableProps
 
-The property bag you pass to `anim.to(...)`.
+The property bag you pass to `aBuilder.to(...)`.
 
 - It hints core properties in TypeScript.
 - It also permits arbitrary numeric keys (for custom properties).
@@ -169,7 +169,7 @@ The property bag you pass to `anim.to(...)`.
 
 ## TweenOptions
 
-Options you pass to `anim.to(props, opts)`.
+Options you pass to `aBuilder.to(props, opts)`.
 
 - `duration: number` (ms)
 - `easing?: Ease`
@@ -197,7 +197,7 @@ Callback used to register custom animatable properties.
 
 - `(adapter: AnimationHostAdapter & Partial<RegistrableAdapter>) => void`
 
-You’ll typically use it via `anim.extendAdapter((adapter) => { adapter.register?.(...) })`.
+You’ll typically use it via `aBuilder.extendAdapter((adapter) => { adapter.register?.(...) })`.
 
 ---
 
