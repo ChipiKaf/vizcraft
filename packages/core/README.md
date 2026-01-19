@@ -7,7 +7,7 @@
 [![Snapshot](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml/badge.svg)](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml)
 [![license](https://img.shields.io/npm/l/vizcraft.svg)](LICENSE)
 
-📖 Full documentation: https://vizcraft-docs.vercel.app/
+📖 Full documentation: [docs here](https://vizcraft-docs.vercel.app/docs/intro)
 
 **A declarative, builder-based library for creating animated SVG network visualizations and algorithm demos.**
 
@@ -41,7 +41,6 @@ import { viz } from 'vizcraft';
 const builder = viz().view(800, 600);
 
 builder
-  .view(500, 500)
   .node('a')
   .at(100, 100)
   .circle(15)
@@ -57,21 +56,21 @@ const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
-More walkthroughs and examples: https://vizcraft-docs.vercel.app/
+More walkthroughs and examples: [docs here](https://vizcraft-docs.vercel.app/docs/examples).
 
 ## 📚 Documentation (Topics)
 
-Full documentation site: https://vizcraft-docs.vercel.app/
+Full documentation site: [docs here](https://vizcraft-docs.vercel.app/docs/intro)
 
-For a guided walkthrough, the repo docs are organized like this:
+Docs topics (same as the sidebar):
 
-- [Introduction](../../packages/docs/docs/intro.md)
-- [Examples](../../packages/docs/docs/examples.mdx)
-- [Essentials](../../packages/docs/docs/essentials.mdx)
-- [Animations](../../packages/docs/docs/animations/index.mdx)
-  - [Animation Builder API](../../packages/docs/docs/animations/animation-builder-api.mdx)
-- [Advanced](../../packages/docs/docs/advanced.mdx)
-- [Types](../../packages/docs/docs/types.mdx)
+- [Introduction](https://vizcraft-docs.vercel.app/docs/intro)
+- [Examples](https://vizcraft-docs.vercel.app/docs/examples)
+- [Essentials](https://vizcraft-docs.vercel.app/docs/essentials)
+- [Animations](https://vizcraft-docs.vercel.app/docs/animations)
+  - [Animation Builder API](https://vizcraft-docs.vercel.app/docs/animations/animation-builder-api)
+- [Advanced](https://vizcraft-docs.vercel.app/docs/advanced)
+- [Types](https://vizcraft-docs.vercel.app/docs/types)
 
 Run the docs locally (monorepo):
 
@@ -122,7 +121,7 @@ b.edge('n1', 'n2')
 
 ### Animations
 
-See the full Animations guide: https://vizcraft-docs.vercel.app/
+See the full Animations guide [docs here](https://vizcraft-docs.vercel.app/docs/animations).
 
 VizCraft supports **two complementary animation approaches**:
 
@@ -153,7 +152,7 @@ b.node('a')
 
 2. **Data-only timeline animations (`AnimationSpec`)** (sequenced tweens)
 
-- Author with `builder.animate((anim) => ...)`.
+- Author with `builder.animate((aBuilder) => ...)`.
 - VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
 - Play them with `builder.play()`.
 
@@ -174,8 +173,8 @@ b.node('a')
   .arrow()
   .done();
 
-b.animate((anim) =>
-  anim
+b.animate((aBuilder) =>
+  aBuilder
     .node('a')
     .to({ x: 200, opacity: 0.35 }, { duration: 600 })
     .node('b')
@@ -206,8 +205,10 @@ b.node('a')
   .edge('a', 'b', 'e1')
   .done();
 
-b.animate((anim) =>
-  anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+b.animate((aBuilder) =>
+  aBuilder
+    .edge('a', 'b', 'e1')
+    .to({ strokeDashoffset: -120 }, { duration: 900 })
 );
 ```
 
@@ -216,8 +217,8 @@ b.animate((anim) =>
 Specs can carry adapter extensions so you can animate your own numeric properties:
 
 ```ts
-b.animate((anim) =>
-  anim
+b.animate((aBuilder) =>
+  aBuilder
     .extendAdapter((adapter) => {
       adapter.register?.('node', 'r', {
         get: (target) => adapter.get(target, 'r'),

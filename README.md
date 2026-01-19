@@ -7,7 +7,7 @@
 [![Snapshot](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml/badge.svg)](https://github.com/ChipiKaf/vizcraft/actions/workflows/snapshot.yml)
 [![license](https://img.shields.io/npm/l/vizcraft.svg)](LICENSE)
 
-📖 Full documentation: https://vizcraft-docs.vercel.app/
+📖 Full documentation: [docs here](https://vizcraft-docs.vercel.app/docs/intro)
 
 **A declarative, builder-based library for creating animated SVG network visualizations and algorithm demos.**
 
@@ -40,30 +40,37 @@ import { viz } from 'vizcraft';
 
 const builder = viz().view(800, 600);
 
-builder.view(500, 500)
-       .node('a').at(100, 100).circle(15).label('A')
-       .node('b').at(400, 100).circle(15).label('B')
-       .edge('a', 'b').arrow();
+builder
+  .node('a')
+  .at(100, 100)
+  .circle(15)
+  .label('A')
+  .node('b')
+  .at(400, 100)
+  .circle(15)
+  .label('B')
+  .edge('a', 'b')
+  .arrow();
 
 const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
-For more examples and best practices, see the full docs: https://vizcraft-docs.vercel.app/
+For more examples and best practices, see [docs here](https://vizcraft-docs.vercel.app/docs/examples).
 
 ## 📚 Documentation (Topics)
 
-Full documentation site: https://vizcraft-docs.vercel.app/
+Full documentation site: [docs here](https://vizcraft-docs.vercel.app/docs/intro)
 
-The repo docs are organized like the site sidebar:
+Docs topics (same as the sidebar):
 
-- [Introduction](packages/docs/docs/intro.md)
-- [Examples](packages/docs/docs/examples.mdx)
-- [Essentials](packages/docs/docs/essentials.mdx)
-- [Animations](packages/docs/docs/animations/index.mdx)
-  - [Animation Builder API](packages/docs/docs/animations/animation-builder-api.mdx)
-- [Advanced](packages/docs/docs/advanced.mdx)
-- [Types](packages/docs/docs/types.mdx)
+- [Introduction](https://vizcraft-docs.vercel.app/docs/intro)
+- [Examples](https://vizcraft-docs.vercel.app/docs/examples)
+- [Essentials](https://vizcraft-docs.vercel.app/docs/essentials)
+- [Animations](https://vizcraft-docs.vercel.app/docs/animations)
+  - [Animation Builder API](https://vizcraft-docs.vercel.app/docs/animations/animation-builder-api)
+- [Advanced](https://vizcraft-docs.vercel.app/docs/advanced)
+- [Types](https://vizcraft-docs.vercel.app/docs/types)
 
 Run the docs locally:
 
@@ -118,7 +125,7 @@ b.edge('n1', 'n2')
 
 ### Animations
 
-See the full Animations guide: https://vizcraft-docs.vercel.app/
+See the full Animations guide [docs here](https://vizcraft-docs.vercel.app/docs/animations).
 
 VizCraft supports **two complementary animation approaches**:
 
@@ -143,7 +150,7 @@ b.node('a').at(70, 80).circle(18).label('A')
 
 2) **Data-only timeline animations (`AnimationSpec`)** (sequenced tweens)
 
-- Author with `builder.animate((anim) => ...)`.
+- Author with `builder.animate((aBuilder) => ...)`.
 - VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
 - Play them with `builder.play()`.
 
@@ -158,8 +165,8 @@ b.node('a').at(120, 120).circle(20).label('A')
  .done();
 
 // Create + store a data-only AnimationSpec
-b.animate((anim) =>
-  anim
+b.animate((aBuilder) =>
+  aBuilder
     .node('a').to({ x: 200, opacity: 0.35 }, { duration: 600 })
     .node('b').to({ x: 440, y: 170 }, { duration: 700 })
     .edge('a->b').to({ strokeDashoffset: -120 }, { duration: 900 })
@@ -183,8 +190,8 @@ b.node('a').at(120, 120).circle(20).label('A')
  .edge('a', 'b', 'e1').arrow()
  .done();
 
-b.animate((anim) =>
-  anim.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+b.animate((aBuilder) =>
+  aBuilder.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
 );
 ```
 
@@ -195,8 +202,8 @@ When you don’t provide an explicit edge id, the default convention is `"from->
 You can animate properties that aren’t in the core set by extending the adapter for a specific spec:
 
 ```ts
-b.animate((anim) =>
-  anim
+b.animate((aBuilder) =>
+  aBuilder
     .extendAdapter((adapter) => {
       // adapter may support register(kind, prop, { get, set })
       adapter.register?.('node', 'r', {
@@ -255,7 +262,7 @@ VizCraft generates standard SVG elements with predictable classes, making it eas
 
 ## 🧭 Advanced Topics
 
-For deeper guides and API references, see: https://vizcraft-docs.vercel.app/
+For deeper guides and API references, see [docs here](https://vizcraft-docs.vercel.app/docs/advanced).
 
 - **Interactivity**: attach `onClick` handlers to nodes/edges.
 - **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.

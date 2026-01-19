@@ -7,16 +7,126 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz } from 'vizcraft';
 
-export const basicBuilder = viz().view(800, 600);
+export const basicScene = (() => {
+  const builder = viz().view(800, 600);
+  return builder
+    .node('node1')
+    .at(400, 300)
+    .circle(100)
+    .label('Hello VizCraft', { fontWeight: 600 })
+    .done();
+})();
 
-export const basicScene = basicBuilder
-  .node('node1')
-  .at(400, 300)
-  .circle(100)
-  .label('Hello VizCraft', { dy: 5, fontWeight: 600 })
-  .done();
+export const twoNodeScene = (() => {
+  const builder = viz().view(520, 220);
+  return builder
+    .node('a')
+    .at(120, 110)
+    .circle(22)
+    .label('A', { fontWeight: 600 })
+    .node('b')
+    .at(400, 110)
+    .rect(70, 44, 10)
+    .label('B', { fontWeight: 600 })
+    .edge('a', 'b')
+    .arrow()
+    .label('connects')
+    .done();
+})();
+
+export const gridScene = (() => {
+  const builder = viz().view(520, 320);
+  return builder
+    .grid(4, 3, { x: 30, y: 30 })
+    .node('n1')
+    .cell(0, 0)
+    .rect(72, 46, 12)
+    .label('n1', { fontWeight: 600 })
+    .node('n2')
+    .cell(1, 1)
+    .circle(22)
+    .label('n2', { fontWeight: 600 })
+    .node('n3')
+    .cell(2, 1)
+    .diamond(60, 60)
+    .label('n3', { fontWeight: 600 })
+    .node('n4')
+    .cell(3, 2)
+    .rect(72, 46, 12)
+    .label('n4', { fontWeight: 600 })
+    .edge('n1', 'n2')
+    .arrow()
+    .edge('n2', 'n3')
+    .arrow()
+    .edge('n3', 'n4')
+    .arrow()
+    .done();
+})();
+
+export const dagScene = (() => {
+  const builder = viz().view(720, 360);
+
+builder
+.grid(5, 3, { x: 40, y: 40 })
+.node('S')
+.cell(0, 1)
+.circle(24)
+.class('vc-node-start')
+.label('Start', { fontWeight: 700 })
+.node('A')
+.cell(2, 0)
+.rect(86, 44, 12)
+.class('vc-node-task')
+.label('A', { fontWeight: 700 })
+.node('B')
+.cell(2, 2)
+.rect(86, 44, 12)
+.class('vc-node-task')
+.label('B', { fontWeight: 700 })
+.node('C')
+.cell(4, 1)
+.diamond(70, 70)
+.class('vc-node-merge')
+.label('Merge', { fontWeight: 700 })
+.edge('S', 'A')
+.arrow()
+.class('vc-edge')
+.edge('S', 'B')
+.arrow()
+.class('vc-edge')
+.edge('A', 'C')
+.arrow()
+.class('vc-edge')
+.edge('B', 'C')
+.arrow()
+.class('vc-edge')
+.overlay('grid-labels', {
+colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+rowLabels: { 0: '0', 1: '1', 2: '2' },
+xOffset: 18,
+yOffset: 18,
+})
+.overlay('signal', { from: 'S', to: 'A', progress: 0.55, magnitude: 0.85 })
+.overlay('signal', { from: 'S', to: 'B', progress: 0.4, magnitude: 0.65 });
+
+return builder;
+})();
+
+export const dagCss = `
+.vc-node-start .viz-node-shape { fill: #DCFCE7; stroke: #166534; stroke-width: 2; }
+.vc-node-task .viz-node-shape { fill: #DBEAFE; stroke: #1D4ED8; stroke-width: 2; }
+.vc-node-merge .viz-node-shape { fill: #FFEDD5; stroke: #9A3412; stroke-width: 2; }
+
+.vc-edge { stroke: #334155; stroke-width: 2.5; opacity: 0.9; }
+.viz-edge-arrowhead { fill: #334155; }
+
+.viz-grid-label { font-size: 12px; fill: #64748B; font-weight: 600; }
+.viz-signal .viz-signal-shape { fill: #F43F5E; opacity: 0.9; }
+`;
 
 Here you can see **VizCraft** in action.
+
+Animations are covered separately in the [Animations guide](./animations).
 
 ## Basic Scene
 
@@ -31,7 +141,7 @@ builder
 .node('node1')
 .at(400, 300)
 .circle(100)
-.label('Hello VizCraft', { dy: 5, fontWeight: 600 })
+.label('Hello VizCraft', { fontWeight: 600 })
 .done();
 
 const container = document.getElementById('viz-basic');
@@ -40,5 +150,121 @@ if (container) builder.mount(container);
 
   <div style={{ height: '400px', width: '100%', position: 'relative' }}>
     <VizMount builder={basicScene} style={{ height: '100%', width: '100%' }} />
+  </div>
+</CodePreview>
+
+---
+
+## Two Nodes + One Edge
+
+A minimal “graph” example: two nodes, a labeled arrow edge.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder
+.node('a')
+.at(120, 110)
+.circle(22)
+.label('A', { fontWeight: 600 })
+.node('b')
+.at(400, 110)
+.rect(70, 44, 10)
+.label('B', { fontWeight: 600 })
+.edge('a', 'b')
+.arrow()
+.label('connects')
+.done();
+
+const container = document.getElementById('viz-two-nodes');
+if (container) builder.mount(container);
+`}>
+
+  <div style={{ height: '260px', width: '100%', position: 'relative' }}>
+    <VizMount builder={twoNodeScene} style={{ height: '100%', width: '100%' }} />
+  </div>
+</CodePreview>
+
+---
+
+## Grid Layout + Multiple Shapes
+
+This example uses the grid system for structured layout and shows multiple shapes.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 320);
+
+builder
+.grid(4, 3, { x: 30, y: 30 })
+.node('n1').cell(0, 0).rect(72, 46, 12).label('n1', { fontWeight: 600 })
+.node('n2').cell(1, 1).circle(22).label('n2', { fontWeight: 600 })
+.node('n3').cell(2, 1).diamond(60, 60).label('n3', { fontWeight: 600 })
+.node('n4').cell(3, 2).rect(72, 46, 12).label('n4', { fontWeight: 600 })
+.edge('n1', 'n2').arrow()
+.edge('n2', 'n3').arrow()
+.edge('n3', 'n4').arrow()
+.done();
+
+const container = document.getElementById('viz-grid-example');
+if (container) builder.mount(container);
+`}>
+
+  <div style={{ height: '340px', width: '100%', position: 'relative' }}>
+    <VizMount builder={gridScene} style={{ height: '100%', width: '100%' }} />
+  </div>
+</CodePreview>
+
+---
+
+## Styled DAG + Overlays (No Animations)
+
+This example is a bit more “application-like”: a small DAG with custom CSS classes and a couple of built-in overlays.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const css = ` + "`" + `
+.vc-node-start .viz-node-shape { fill: #DCFCE7; stroke: #166534; stroke-width: 2; }
+.vc-node-task .viz-node-shape { fill: #DBEAFE; stroke: #1D4ED8; stroke-width: 2; }
+.vc-node-merge .viz-node-shape { fill: #FFEDD5; stroke: #9A3412; stroke-width: 2; }
+
+.vc-edge { stroke: #334155; stroke-width: 2.5; opacity: 0.9; }
+.viz-edge-arrowhead { fill: #334155; }
+
+.viz-grid-label { font-size: 12px; fill: #64748B; font-weight: 600; }
+.viz-signal .viz-signal-shape { fill: #F43F5E; opacity: 0.9; }
+` + "`" + `;
+
+const builder = viz().view(720, 360);
+
+builder
+.grid(5, 3, { x: 40, y: 40 })
+.node('S').cell(0, 1).circle(24).class('vc-node-start').label('Start', { fontWeight: 700 })
+.node('A').cell(2, 0).rect(86, 44, 12).class('vc-node-task').label('A', { fontWeight: 700 })
+.node('B').cell(2, 2).rect(86, 44, 12).class('vc-node-task').label('B', { fontWeight: 700 })
+.node('C').cell(4, 1).diamond(70, 70).class('vc-node-merge').label('Merge', { fontWeight: 700 })
+.edge('S', 'A').arrow().class('vc-edge')
+.edge('S', 'B').arrow().class('vc-edge')
+.edge('A', 'C').arrow().class('vc-edge')
+.edge('B', 'C').arrow().class('vc-edge')
+.overlay('grid-labels', {
+colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+rowLabels: { 0: '0', 1: '1', 2: '2' },
+xOffset: 18,
+yOffset: 18,
+})
+.overlay('signal', { from: 'S', to: 'A', progress: 0.55, magnitude: 0.85 })
+.overlay('signal', { from: 'S', to: 'B', progress: 0.4, magnitude: 0.65 });
+
+const container = document.getElementById('viz-dag');
+if (container) builder.mount(container, { css });
+`}>
+
+  <div style={{ height: '420px', width: '100%', position: 'relative' }}>
+    <VizMount builder={dagScene} css={dagCss} style={{ height: '100%', width: '100%' }} />
   </div>
 </CodePreview>

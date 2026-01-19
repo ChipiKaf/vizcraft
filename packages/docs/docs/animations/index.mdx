@@ -60,13 +60,13 @@ export const specScene = specBuilder
   .edge('a', 'b')
   .arrow()
   .done();
-export const specAnim = specBuilder.animate((anim) => {
-  anim.node('a');
-  anim.to({ x: 200, opacity: 0.35 }, { duration: 600 });
-  anim.node('b');
-  anim.to({ x: 440, y: 170 }, { duration: 700 });
-  anim.edge('a->b');
-  anim.to({ strokeDashoffset: -120 }, { duration: 900 });
+export const specAnim = specBuilder.animate((aBuilder) => {
+  aBuilder.node('a');
+  aBuilder.to({ x: 200, opacity: 0.35 }, { duration: 600 });
+  aBuilder.node('b');
+  aBuilder.to({ x: 440, y: 170 }, { duration: 700 });
+  aBuilder.edge('a->b');
+  aBuilder.to({ strokeDashoffset: -120 }, { duration: 900 });
 });
 
 export const timelineBuilder = viz().view(520, 240);
@@ -82,16 +82,16 @@ export const timelineScene = timelineBuilder
   .edge('a', 'b')
   .arrow()
   .done();
-export const timelineAnim = timelineBuilder.animate((anim) => {
-  anim.node('a');
-  anim.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' });
-  anim.wait(600);
-  anim.to({ x: 120 }, { duration: 1200, easing: 'easeInOut' });
-  anim.at(0);
-  anim.node('b');
-  anim.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' });
-  anim.wait(600);
-  anim.to({ y: 120 }, { duration: 1200, easing: 'easeInOut' });
+export const timelineAnim = timelineBuilder.animate((aBuilder) => {
+  aBuilder.node('a');
+  aBuilder.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(600);
+  aBuilder.to({ x: 120 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.at(0);
+  aBuilder.node('b');
+  aBuilder.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(600);
+  aBuilder.to({ y: 120 }, { duration: 1200, easing: 'easeInOut' });
 });
 
 export const elementAnimBuilder = viz().view(520, 240);
@@ -145,12 +145,12 @@ if (el?.shape?.kind === 'circle') el.shape.r = v;
 });
 }
 
-export const customPropAnim = customPropBuilder.animate((anim) => {
-  anim.extendAdapter(extendCircleRadius);
-  anim.node('a');
-  anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
-  anim.wait(250);
-  anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+export const customPropAnim = customPropBuilder.animate((aBuilder) => {
+  aBuilder.extendAdapter(extendCircleRadius);
+  aBuilder.node('a');
+  aBuilder.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
 });
 
 VizCraft supports **two complementary animation systems**:
@@ -170,7 +170,7 @@ Data-only animations are authored as a **portable timeline** (an [AnimationSpec]
 
 ### Mental model
 
-- You compile a timeline with `builder.animate((anim) => ...)`.
+- You compile a timeline with `builder.animate((aBuilder) => ...)`.
 - VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
 - You play them with `builder.play()`.
 
@@ -198,8 +198,8 @@ builder
 .done();
 
 // Build & store an AnimationSpec on the scene
-builder.animate((anim) =>
-anim
+builder.animate((aBuilder) =>
+aBuilder
 .node('a').to({ x: 200, opacity: 0.35 }, { duration: 600 })
 .node('b').to({ x: 440, y: 170 }, { duration: 700 })
 .edge('a->b').to({ strokeDashoffset: -120 }, { duration: 900 })
@@ -219,9 +219,9 @@ builder.play();
 
 ## Targeting: nodes vs edges
 
-- `anim.node('id')` targets `node:<id>`
-- `anim.edge('a->b')` targets `edge:a->b` (edge id form)
-- `anim.edge('a', 'b')` is a convenience that compiles to `edge:a->b`
+- `aBuilder.node('id')` targets `node:<id>`
+- `aBuilder.edge('a->b')` targets `edge:a->b` (edge id form)
+- `aBuilder.edge('a', 'b')` is a convenience that compiles to `edge:a->b`
 
 ---
 
@@ -284,8 +284,8 @@ builder
 .edge('a', 'b').arrow()
 .done();
 
-builder.animate((anim) =>
-anim
+builder.animate((aBuilder) =>
+aBuilder
 .node('a')
 .to({ x: 320 }, { duration: 1200, easing: 'easeInOut' })
 .wait(600)
@@ -313,7 +313,7 @@ builder.play();
 
 An [AnimationSpec](../types.mdx#animationspec) can target **any string property** (not just the core ones), as long as the playback adapter knows how to read/write it.
 
-You can register custom properties directly on the `anim` builder via `anim.extendAdapter(...)` ([ExtendAdapter](../types.mdx#extendadapter-advanced)). Here’s an example that animates a circle node’s radius via a custom prop named `r`.
+You can register custom properties directly on the `aBuilder` builder via `aBuilder.extendAdapter(...)` ([ExtendAdapter](../types.mdx#extendadapter-advanced)). Here’s an example that animates a circle node’s radius via a custom prop named `r`.
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
@@ -322,8 +322,8 @@ const builder = viz().view(520, 200);
 builder.node('a').at(260, 100).circle(18).label('r').done();
 
 // Note: 'r' is not a core property, but AnimationSpec supports it.
-builder.animate((anim) => {
-anim.extendAdapter((adapter) => {
+builder.animate((aBuilder) => {
+aBuilder.extendAdapter((adapter) => {
 // Register a node property called 'r' (circle radius)
 adapter.register?.('node', 'r', {
 get: (el) => (el.shape.kind === 'circle' ? el.shape.r : undefined),
@@ -333,10 +333,10 @@ if (el.shape.kind === 'circle') el.shape.r = v;
 });
 });
 
-anim.node('a');
-anim.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
-anim.wait(250);
-anim.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
+aBuilder.node('a');
+aBuilder.to({ r: 44 }, { duration: 900, easing: 'easeInOut' });
+aBuilder.wait(250);
+aBuilder.to({ r: 18 }, { duration: 900, easing: 'easeInOut' });
 });
 
 const container = document.getElementById('viz-custom-prop');
