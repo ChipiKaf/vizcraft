@@ -589,7 +589,10 @@ class VizBuilderImpl implements VizBuilder {
         if (!group) {
           group = document.createElementNS(svgNS, 'g');
           group.setAttribute('data-overlay-id', uniqueKey);
-          group.setAttribute('class', `viz-overlay-${spec.id}`);
+          group.setAttribute(
+            'class',
+            `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+          );
           group.setAttribute('data-viz-role', 'overlay-group');
           overlayLayer.appendChild(group);
         }
@@ -599,6 +602,7 @@ class VizBuilderImpl implements VizBuilder {
           nodesById,
           edgesById,
           scene,
+          registry: defaultCoreOverlayRegistry,
         };
 
         if (renderer.update) {
@@ -1048,7 +1052,10 @@ class VizBuilderImpl implements VizBuilder {
           if (!group) {
             group = document.createElementNS(svgNS, 'g');
             group.setAttribute('data-overlay-id', uniqueKey);
-            group.setAttribute('class', `viz-overlay-${spec.id}`);
+            group.setAttribute(
+              'class',
+              `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+            );
             group.setAttribute('data-viz-role', 'overlay-group');
             overlayLayer.appendChild(group);
           }
@@ -1058,6 +1065,7 @@ class VizBuilderImpl implements VizBuilder {
             nodesById,
             edgesById: new Map(edges.map((e) => [e.id, e])),
             scene,
+            registry: defaultCoreOverlayRegistry,
           };
 
           if (renderer.update) {
@@ -1255,7 +1263,13 @@ class VizBuilderImpl implements VizBuilder {
       overlays.forEach((spec) => {
         const renderer = defaultCoreOverlayRegistry.get(spec.id);
         if (renderer) {
-          svgContent += renderer.render({ spec, nodesById, edgesById, scene });
+          svgContent += renderer.render({
+            spec,
+            nodesById,
+            edgesById,
+            scene,
+            registry: defaultCoreOverlayRegistry,
+          });
         }
       });
       svgContent += '</g>';

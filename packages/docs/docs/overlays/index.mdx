@@ -63,8 +63,10 @@ This creates a “new overlay” without writing a renderer, because `rect` is a
 
 export const primitiveCss = `
 .viz-selection {
-  fill: rgba(59, 130, 246, 0.12);
-  stroke: rgba(59, 130, 246, 0.9);
+  fill: #3b82f6;
+  fill-opacity: 0.12;
+  stroke: #3b82f6;
+  stroke-opacity: 0.9;
   stroke-width: 2;
 }
 `;
@@ -113,8 +115,10 @@ o
 
 const css = [
 '.viz-selection {',
-' fill: rgba(59, 130, 246, 0.12);',
-' stroke: rgba(59, 130, 246, 0.9);',
+' fill: #3b82f6;',
+' fill-opacity: 0.12;',
+' stroke: #3b82f6;',
+' stroke-opacity: 0.9;',
 ' stroke-width: 2;',
 '}',
 ].join('\n');
@@ -124,6 +128,132 @@ if (container) builder.mount(container, { css });
 `}>
 
   <VizMount builder={primitiveOverlayScene} css={primitiveCss} />
+</CodePreview>
+
+### Styling the rectangle (change color)
+
+You have two good options:
+
+**Why two options?**
+
+- **Params** are great when you want the overlay to be totally self-contained (copy/paste-able, portable, no external CSS).
+- **`className` + CSS** is better when you want theming (dark mode), reuse across multiple overlays, or consistent styling controlled by your app.
+
+1. **Set colors on the overlay params** (simple and portable)
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder.overlay((o) =>
+o.rect(
+{
+x: 110,
+y: 70,
+w: 300,
+h: 80,
+rx: 10,
+fill: 'rgba(239, 68, 68, 0.12)',
+stroke: '#ef4444',
+fill: '#fee2e2',
+strokeWidth: 2,
+},
+{ key: 'sel' }
+)
+);
+`}>
+
+  <VizMount
+    builder={viz()
+      .view(520, 220)
+      .node('a')
+      .at(160, 110)
+      .circle(18)
+      .label('A')
+      .node('b')
+      .at(360, 110)
+      .circle(18)
+      .label('B')
+      .overlay((o) =>
+        o.rect(
+          {
+            x: 110,
+            y: 70,
+            w: 300,
+            h: 80,
+            rx: 10,
+            fill: '#fee2e2',
+            stroke: '#ef4444',
+            strokeWidth: 2,
+          },
+          { key: 'sel' }
+        )
+      )}
+  />
+</CodePreview>
+
+2. **Use `className` + CSS** (recommended for theming)
+
+This is the same approach as the demo above: give the overlay a `className`, then style it via your own CSS.
+
+In plain JS you can also inject CSS at mount time:
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder.overlay((o) =>
+o.rect({ x: 110, y: 70, w: 300, h: 80, rx: 10 }, { key: 'sel', className: 'viz-selection' })
+);
+
+const css = [
+'.viz-selection {',
+' fill: #22c55e;',
+' fill-opacity: 0.12;',
+' stroke: #22c55e;',
+' stroke-opacity: 0.9;',
+' stroke-width: 2;',
+'}',
+].join('\n');
+
+const container = document.getElementById('viz');
+if (container) builder.mount(container, { css });
+`}>
+
+  <VizMount
+    builder={viz()
+      .view(520, 220)
+      .node('a')
+      .at(160, 110)
+      .circle(18)
+      .label('A')
+      .node('b')
+      .at(360, 110)
+      .circle(18)
+      .label('B')
+      .overlay((o) =>
+        o
+          .text(
+            { x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 },
+            { key: 'label' }
+          )
+          .rect(
+            { x: 110, y: 70, w: 300, h: 80, rx: 10 },
+            { key: 'sel', className: 'viz-selection' }
+          )
+      )}
+    css={`
+.viz-selection {
+  fill: #22c55e;
+  fill-opacity: 0.12;
+  stroke: #22c55e;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`}
+  />
 </CodePreview>
 
 ---
@@ -339,6 +469,106 @@ builder.play();
 
 ---
 
+## Animating a grouped overlay (move many things as one)
+
+If you have multiple overlay elements that should move together, add them inside a **group overlay** and animate the group.
+
+This avoids having to target 5 overlays separately — you animate one key.
+
+And because the group overlay supports `from/to + progress + magnitude`, you can animate it with the **same pattern** as the `signal` overlay.
+
+export const groupSwarmBuilder = viz().view(520, 200);
+export const groupSwarmScene = groupSwarmBuilder
+  .node('a')
+  .at(120, 100)
+  .rect(110, 78, 14)
+  .label('A', { dy: -52, fontWeight: 700 })
+  .node('b')
+  .at(400, 100)
+  .rect(110, 78, 14)
+  .label('B', { dy: -52, fontWeight: 700 })
+  .overlay((o) => {
+    const r = 5;
+    const gap = 4;
+    const step = r * 2 + gap;
+    const yOffsets = [-2 * step, -1 * step, 0, 1 * step, 2 * step];
+
+    o.group(
+      { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+      (g) => {
+        yOffsets.forEach((dy) => {
+          g.circle({
+            x: 0,
+            y: dy,
+            r,
+            fill: '#93c5fd',
+            stroke: '#1d4ed8',
+            strokeWidth: 2,
+          });
+        });
+      },
+      { key: 'swarm' }
+    );
+
+});
+
+export const groupSwarmAnim = groupSwarmBuilder.animate((aBuilder) => {
+  // progress 0 -> 1 -> 0
+  aBuilder.overlay('swarm');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+});
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+
+builder
+.node('a').at(120, 100).rect(110, 78, 14).label('A', { dy: -52, fontWeight: 700 })
+.node('b').at(400, 100).rect(110, 78, 14).label('B', { dy: -52, fontWeight: 700 })
+.overlay((o) => {
+const r = 5;
+const gap = 4;
+const step = r _ 2 + gap;
+const yOffsets = [-2 _ step, -1 _ step, 0, 1 _ step, 2 \* step];
+
+o.group(
+{ from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+(g) => {
+yOffsets.forEach((dy) => {
+g.circle({ x: 0, y: dy, r, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+});
+},
+{ key: 'swarm' }
+);
+});
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('swarm');
+aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+aBuilder.wait(250);
+aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+aBuilder.at(0).overlay('swarm');
+aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+
+const container = document.getElementById('viz-group-swarm');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={groupSwarmScene} autoPlay={true} />
+</CodePreview>
+
+---
+
 ## Animating the primitive overlay (quick start continued)
 
 Because primitive overlay params are numeric (`x`, `y`, `w`, `h`, `rx`, `opacity`), you can animate them via the same data-only timeline system.
@@ -380,8 +610,10 @@ aBuilder.to({ x: 110, w: 300, opacity: 1 }, { duration: 900, easing: 'easeInOut'
 
 const css = [
 '.viz-selection {',
-' fill: rgba(59, 130, 246, 0.12);',
-' stroke: rgba(59, 130, 246, 0.9);',
+' fill: #3b82f6;',
+' fill-opacity: 0.12;',
+' stroke: #3b82f6;',
+' stroke-opacity: 0.9;',
 ' stroke-width: 2;',
 '}',
 ].join('\n');

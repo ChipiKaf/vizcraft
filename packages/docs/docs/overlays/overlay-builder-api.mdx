@@ -161,11 +161,61 @@ builder.overlay('selection', { x: 10, y: 10, w: 120, h: 80 }, 'sel');
 
 VizCraft includes a few generic overlay kinds in the default registry, which lets you create “new” overlays without writing a renderer:
 
-- `rect`: `{ x, y, w, h, rx?, ry?, opacity? }`
-- `circle`: `{ x, y, r, opacity? }`
-- `text`: `{ x, y, text, opacity?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }`
+- `rect`: `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }`
+- `circle`: `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }`
+- `text`: `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }`
+
+And one composite kind:
+
+- `group`: `{ x?, y?, scale?, rotation?, opacity?, children: VizOverlaySpec[] }`
 
 These primitives are especially useful for quick annotations and selection UI.
+
+### Styling (colors, stroke widths)
+
+You can style primitives in two ways:
+
+1. **Inline via params** (quick and self-contained)
+
+```ts
+builder.overlay((o) =>
+  o.rect(
+    {
+      x: 110,
+      y: 70,
+      w: 300,
+      h: 80,
+      rx: 10,
+      fill: '#dcfce7',
+      stroke: '#22c55e',
+      strokeWidth: 2,
+    },
+    { key: 'sel' }
+  )
+);
+```
+
+2. **Via CSS** (recommended for theming)
+
+```ts
+builder.overlay((o) =>
+  o.rect(
+    { x: 110, y: 70, w: 300, h: 80, rx: 10 },
+    { key: 'sel', className: 'viz-selection' }
+  )
+);
+
+// Then define CSS (global stylesheet, or pass `css` to `builder.mount(container, { css })`):
+const css = `
+.viz-selection {
+  fill: #ef4444;
+  fill-opacity: 0.12;
+  stroke: #ef4444;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`;
+```
 
 ### Convenience methods
 
@@ -176,3 +226,58 @@ When using the callback form (`builder.overlay((o) => ...)`), you can use:
 - `o.text(params, options?)`
 
 They compile to `.add('rect' | 'circle' | 'text', ...)`.
+
+### Grouping overlays (animate as one)
+
+Use `o.group(...)` when you want to create multiple overlay elements and then animate them together by targeting a single overlay key.
+
+```ts
+builder.overlay((o) => {
+  o.group(
+    { x: 120, y: 100 },
+    (g) => {
+      g.circle({ x: 0, y: -12, r: 5 });
+      g.circle({ x: 0, y: 0, r: 5 });
+      g.circle({ x: 0, y: 12, r: 5 });
+    },
+    { key: 'swarm' }
+  );
+});
+
+builder.animate((a) => {
+  a.overlay('swarm');
+  a.to({ x: 400 }, { duration: 1000, easing: 'easeInOut' });
+});
+```
+
+Notes:
+
+- Child coordinates are **group-local** (the group applies a `translate/scale/rotate`).
+- Animatable group params: `x`, `y`, `scale`, `rotation`, `opacity`.
+
+If you set `from` and `to`, you can also animate the group like `signal`:
+
+```ts
+builder.overlay((o) =>
+  o.group(
+    { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+    (g) => {
+      g.circle({ x: 0, y: -12, r: 5 });
+      g.circle({ x: 0, y: 0, r: 5 });
+      g.circle({ x: 0, y: 12, r: 5 });
+    },
+    { key: 'swarm' }
+  )
+);
+
+builder.animate((a) => {
+  a.overlay('swarm');
+  a.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  a.wait(250);
+  a.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+  a.at(0).overlay('swarm');
+  a.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+  a.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+```

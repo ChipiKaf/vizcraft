@@ -1,6 +1,7 @@
 import type { OverlayId, OverlayParams, VizOverlaySpec } from './types';
 import type {
   CircleOverlayParams,
+  GroupOverlayParams,
   RectOverlayParams,
   TextOverlayParams,
 } from './overlays';
@@ -98,6 +99,23 @@ export class OverlayBuilder {
   /** Add a generic text overlay (built-in, no custom registry needed). */
   text(params: TextOverlayParams, options?: OverlayAddOptions): this {
     return this.add('text', params, options);
+  }
+
+  /**
+   * Add a composite group overlay (built-in).
+   *
+   * Children are authored via the callback and rendered inside a single SVG <g>.
+   * You can animate the group by targeting its key and tweening `x`, `y`, `scale`, `rotation`, `opacity`.
+   */
+  group(
+    params: Omit<GroupOverlayParams, 'children'>,
+    buildChildren: (overlay: OverlayBuilder) => unknown,
+    options?: OverlayAddOptions
+  ): this {
+    const childOverlay = new OverlayBuilder();
+    buildChildren(childOverlay);
+    const children = childOverlay.build();
+    return this.add('group', { ...params, children }, options);
   }
 }
 
