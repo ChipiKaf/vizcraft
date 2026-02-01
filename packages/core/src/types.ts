@@ -89,6 +89,42 @@ export interface VizEdge {
   animations?: VizAnimSpec[];
 }
 
+/**
+ * Overlay kind -> params mapping.
+ *
+ * This interface is intentionally empty in core and is meant to be augmented by:
+ * - core overlays (in this repo)
+ * - downstream libraries/apps (via TS module augmentation)
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface OverlayKindRegistry {}
+
+/** Internal runtime flag used to mark overlays as needing a DOM update. */
+export const OVERLAY_RUNTIME_DIRTY = Symbol('vizcraft.overlay.runtimeDirty');
+
+/** String overlay ids that are known/typed via `OverlayKindRegistry`. */
+export type KnownOverlayId = Extract<keyof OverlayKindRegistry, string>;
+
+/** Any overlay id (typed known ids + arbitrary custom ids). */
+export type OverlayId = KnownOverlayId | (string & {});
+
+/**
+ * Params type for a given overlay id.
+ * - Known ids resolve to their registered params type.
+ * - Unknown/custom ids fall back to `unknown` (escape hatch).
+ */
+export type OverlayParams<K extends string> = K extends KnownOverlayId
+  ? OverlayKindRegistry[K]
+  : unknown;
+
+/** A type-safe overlay spec keyed by overlay id. */
+export type TypedVizOverlaySpec<K extends OverlayId = OverlayId> = {
+  id: K;
+  key?: string;
+  params: OverlayParams<K>;
+  className?: string;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type VizOverlaySpec<T = any> = {
   id: string; // overlay kind, e.g. "signal"

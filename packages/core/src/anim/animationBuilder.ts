@@ -39,7 +39,10 @@ function isNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
-function toTarget(kind: 'node' | 'edge', id: string): AnimationTarget {
+function toTarget(
+  kind: 'node' | 'edge' | 'overlay',
+  id: string
+): AnimationTarget {
   return `${kind}:${id}` as AnimationTarget;
 }
 
@@ -68,6 +71,12 @@ export class AnimationBuilder {
   /** Select a node by id (compiles to target `node:<id>`). */
   node(id: string): this {
     this.currentTarget = toTarget('node', id);
+    return this;
+  }
+
+  /** Select an overlay by key (compiles to target `overlay:<key>`). */
+  overlay(key: string): this {
+    this.currentTarget = toTarget('overlay', key);
     return this;
   }
 
@@ -110,7 +119,7 @@ export class AnimationBuilder {
   to(props: AnimatableProps, opts: TweenOptions): this {
     if (!this.currentTarget) {
       throw new Error(
-        'AnimationBuilder.to(): no target selected (call node(...) or edge(...))'
+        'AnimationBuilder.to(): no target selected (call node(...), edge(...), or overlay(...))'
       );
     }
 
