@@ -1,5 +1,12 @@
 # @vizcraft/docs
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [[`c5ffe75`](https://github.com/ChipiKaf/vizcraft/commit/c5ffe7546a2e2148618db057c24aea01ecf097e0)]:
+  - vizcraft@0.3.0
+
 ## 0.0.4
 
 ### Patch Changes
