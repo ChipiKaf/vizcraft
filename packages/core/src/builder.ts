@@ -589,13 +589,15 @@ class VizBuilderImpl implements VizBuilder {
         if (!group) {
           group = document.createElementNS(svgNS, 'g');
           group.setAttribute('data-overlay-id', uniqueKey);
-          group.setAttribute(
-            'class',
-            `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
-          );
           group.setAttribute('data-viz-role', 'overlay-group');
           overlayLayer.appendChild(group);
         }
+
+        // Keep wrapper class in sync even when reusing an existing group.
+        group.setAttribute(
+          'class',
+          `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+        );
 
         const overlayCtx = {
           spec,
@@ -1052,13 +1054,15 @@ class VizBuilderImpl implements VizBuilder {
           if (!group) {
             group = document.createElementNS(svgNS, 'g');
             group.setAttribute('data-overlay-id', uniqueKey);
-            group.setAttribute(
-              'class',
-              `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
-            );
             group.setAttribute('data-viz-role', 'overlay-group');
             overlayLayer.appendChild(group);
           }
+
+          // Keep wrapper class in sync even when reusing an existing group.
+          group.setAttribute(
+            'class',
+            `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+          );
 
           const ctx = {
             spec,
