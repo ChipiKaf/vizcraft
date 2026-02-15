@@ -1,5 +1,11 @@
 # vizcraft
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c5ffe75`](https://github.com/ChipiKaf/vizcraft/commit/c5ffe7546a2e2148618db057c24aea01ecf097e0) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add improved overlay api
+
 ## 0.2.2
 
 ### Patch Changes
