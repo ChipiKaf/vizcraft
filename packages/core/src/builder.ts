@@ -594,10 +594,13 @@ class VizBuilderImpl implements VizBuilder {
         }
 
         // Keep wrapper class in sync even when reusing an existing group.
-        group.setAttribute(
-          'class',
-          `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
-        );
+        const expectedClass = `viz-overlay-${spec.id}${
+          spec.className ? ` ${spec.className}` : ''
+        }`;
+        const currentClass = group.getAttribute('class');
+        if (currentClass !== expectedClass) {
+          group.setAttribute('class', expectedClass);
+        }
 
         const overlayCtx = {
           spec,
