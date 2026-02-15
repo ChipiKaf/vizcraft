@@ -1,0 +1,283 @@
+---
+sidebar_position: 2
+title: Overlay Builder API
+---
+
+This page documents the overlay authoring APIs:
+
+- `builder.overlay(...)`
+- `OverlayBuilder` (callback form)
+
+Overlays are **data-only specs** (`VizOverlaySpec`) rendered by the overlay registry.
+
+---
+
+## `builder.overlay(...)`
+
+There are two recommended ways to add overlays:
+
+### 1) Direct form: `builder.overlay(id, params, key?)`
+
+```ts
+builder.overlay('signal', { from: 'a', to: 'b', progress: 0.5 }, 'sig');
+```
+
+- `id: string` — overlay kind
+- `params: unknown` — overlay parameters
+- `key?: string` — stable key (recommended)
+
+**Typing**
+
+Built-in overlay ids are type-safe (via `OverlayKindRegistry`), so you’ll get autocomplete and param type-checking for ids like:
+
+- `"signal"`
+- `"grid-labels"`
+- `"data-points"`
+
+Unknown/custom ids are allowed (backwards compatible), but their params are `unknown`.
+
+### 2) Callback form: `builder.overlay((o) => ...)`
+
+Use this when you want to add multiple overlays at once (and optionally remove/clear within the callback).
+
+```ts
+builder.overlay((o) =>
+  o
+    .add('grid-labels', { colLabels: { 0: '0' } }, { key: 'labels' })
+    .add('signal', { from: 'a', to: 'b', progress: 0 }, { key: 'sig' })
+);
+```
+
+Under the hood, VizCraft creates an `OverlayBuilder`, passes it to your callback, then appends the resulting `VizOverlaySpec[]` to the builder’s scene overlays.
+
+---
+
+## `OverlayBuilder`
+
+You can import it as:
+
+```ts
+import { OverlayBuilder } from 'vizcraft';
+```
+
+…but in typical usage you’ll receive it as the `o` argument in `builder.overlay((o) => ...)`.
+
+### `o.add(id, params, options?)`
+
+Adds an overlay spec.
+
+- `id: string` — overlay kind
+- `params` — overlay params
+- `options?: { key?: string; className?: string }`
+
+**Keys and collisions**
+
+Overlays reconcile by `key || id`. If you add multiple overlays with the same `id` and no keys, they would collide.
+
+To keep things ergonomic, `OverlayBuilder.add(...)` will auto-generate keys when it detects multiple unkeyed overlays of the same `id`:
+
+- first unkeyed: `key` stays `undefined`
+- second unkeyed of same id: gets `"<id>#1"`
+- third unkeyed: gets `"<id>#2"`
+
+If you want to animate an overlay later, you should still provide an explicit `key` so you can target it deterministically.
+
+### `o.remove(keyOrId)`
+
+Removes overlays by:
+
+- key (always), or
+- id only for unkeyed overlays
+
+```ts
+builder.overlay((o) => {
+  o.add('signal', { from: 'a', to: 'b', progress: 0.2 }, { key: 'sig' });
+  o.remove('sig');
+});
+```
+
+### `o.clear()`
+
+Removes all overlay specs accumulated in the `OverlayBuilder`.
+
+### `o.build()`
+
+Returns a shallow copy of the accumulated `VizOverlaySpec[]`.
+
+---
+
+## Animating overlays
+
+Overlays integrate with the **data-only timeline** animation system.
+
+### Target selection: `aBuilder.overlay(key)`
+
+This targets an overlay instance by key:
+
+- target form: `overlay:<key>`
+
+Example:
+
+```ts
+builder.overlay('signal', { from: 'a', to: 'b', progress: 0 }, 'sig');
+
+builder.animate((aBuilder) => {
+  aBuilder.overlay('sig');
+  aBuilder.to({ progress: 1 }, { duration: 900, easing: 'easeInOut' });
+});
+```
+
+### What properties are animatable?
+
+Any numeric property in `spec.params` can be tweened.
+
+- If a value is not numeric (or is `NaN`), it’s ignored.
+- During playback, VizCraft updates `spec.params[prop]` each frame and patches the mounted overlay DOM.
+
+---
+
+## Extending overlay typing (advanced)
+
+If you create a custom overlay kind and want it to be type-safe, augment the `OverlayKindRegistry`.
+
+```ts
+// Somewhere in your app/library
+declare module 'vizcraft' {
+  interface OverlayKindRegistry {
+    selection: { x: number; y: number; w: number; h: number };
+  }
+}
+```
+
+Now TypeScript will type-check:
+
+```ts
+builder.overlay('selection', { x: 10, y: 10, w: 120, h: 80 }, 'sel');
+```
+
+---
+
+## Built-in primitive overlays (no custom registry needed)
+
+VizCraft includes a few generic overlay kinds in the default registry, which lets you create “new” overlays without writing a renderer:
+
+- `rect`: `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }`
+- `circle`: `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }`
+- `text`: `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }`
+
+And one composite kind:
+
+- `group`: `{ x?, y?, scale?, rotation?, opacity?, children: VizOverlaySpec[] }`
+
+These primitives are especially useful for quick annotations and selection UI.
+
+### Styling (colors, stroke widths)
+
+You can style primitives in two ways:
+
+1. **Inline via params** (quick and self-contained)
+
+```ts
+builder.overlay((o) =>
+  o.rect(
+    {
+      x: 110,
+      y: 70,
+      w: 300,
+      h: 80,
+      rx: 10,
+      fill: '#dcfce7',
+      stroke: '#22c55e',
+      strokeWidth: 2,
+    },
+    { key: 'sel' }
+  )
+);
+```
+
+2. **Via CSS** (recommended for theming)
+
+```ts
+builder.overlay((o) =>
+  o.rect(
+    { x: 110, y: 70, w: 300, h: 80, rx: 10 },
+    { key: 'sel', className: 'viz-selection' }
+  )
+);
+
+// Then define CSS (global stylesheet, or pass `css` to `builder.mount(container, { css })`):
+const css = `
+.viz-selection {
+  fill: #ef4444;
+  fill-opacity: 0.12;
+  stroke: #ef4444;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`;
+```
+
+### Convenience methods
+
+When using the callback form (`builder.overlay((o) => ...)`), you can use:
+
+- `o.rect(params, options?)`
+- `o.circle(params, options?)`
+- `o.text(params, options?)`
+
+They compile to `.add('rect' | 'circle' | 'text', ...)`.
+
+### Grouping overlays (animate as one)
+
+Use `o.group(...)` when you want to create multiple overlay elements and then animate them together by targeting a single overlay key.
+
+```ts
+builder.overlay((o) => {
+  o.group(
+    { x: 120, y: 100 },
+    (g) => {
+      g.circle({ x: 0, y: -12, r: 5 });
+      g.circle({ x: 0, y: 0, r: 5 });
+      g.circle({ x: 0, y: 12, r: 5 });
+    },
+    { key: 'swarm' }
+  );
+});
+
+builder.animate((a) => {
+  a.overlay('swarm');
+  a.to({ x: 400 }, { duration: 1000, easing: 'easeInOut' });
+});
+```
+
+Notes:
+
+- Child coordinates are **group-local** (the group applies a `translate/scale/rotate`).
+- Animatable group params: `x`, `y`, `scale`, `rotation`, `opacity`.
+
+If you set `from` and `to`, you can also animate the group like `signal`:
+
+```ts
+builder.overlay((o) =>
+  o.group(
+    { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+    (g) => {
+      g.circle({ x: 0, y: -12, r: 5 });
+      g.circle({ x: 0, y: 0, r: 5 });
+      g.circle({ x: 0, y: 12, r: 5 });
+    },
+    { key: 'swarm' }
+  )
+);
+
+builder.animate((a) => {
+  a.overlay('swarm');
+  a.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  a.wait(250);
+  a.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+  a.at(0).overlay('swarm');
+  a.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+  a.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+```

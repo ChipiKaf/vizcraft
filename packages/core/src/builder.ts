@@ -6,11 +6,15 @@ import type {
   EdgeLabel,
   AnimationConfig,
   VizOverlaySpec,
+  OverlayId,
+  OverlayParams,
   VizGridConfig,
 } from './types';
+import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
+import { OverlayBuilder } from './overlayBuilder';
 import {
   createRuntimePatchCtx,
   patchRuntime,
@@ -102,6 +106,15 @@ interface VizBuilder {
    */
   animate(cb: (anim: AnimationBuilder) => unknown): AnimationSpec;
 
+  /** Fluent overlay authoring (compiles to overlay specs and stores on the built scene). */
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
+  // Back-compat escape hatch (also covers non-augmented custom overlay ids)
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
@@ -165,6 +178,12 @@ interface NodeBuilder {
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
   svg(): string;
@@ -189,6 +208,12 @@ interface EdgeBuilder {
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
   svg(): string;
@@ -239,7 +264,28 @@ class VizBuilderImpl implements VizBuilder {
    * @param key The key of the overlay
    * @returns The builder
    */
-  overlay<T>(id: string, params: T, key?: string): VizBuilder {
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
+  overlay(
+    arg1: string | ((overlay: OverlayBuilder) => unknown),
+    arg2?: unknown,
+    arg3?: string
+  ): VizBuilder {
+    if (typeof arg1 === 'function') {
+      const overlay = new OverlayBuilder();
+      arg1(overlay);
+      this._overlays.push(...overlay.build());
+      return this;
+    }
+
+    const id = arg1;
+    const params = arg2;
+    const key = arg3;
     this._overlays.push({ id, params, key });
     return this;
   }
@@ -476,6 +522,111 @@ class VizBuilderImpl implements VizBuilder {
     }
 
     patchRuntime(scene, ctx);
+
+    // Keep overlays in sync during animation playback.
+    //
+    // Animations flush via `patchRuntime()` (to avoid full re-mounts). Nodes/edges
+    // are patched via `runtimePatcher`, but overlays are registry-rendered and
+    // need an explicit reconcile pass to reflect animated `spec.params` changes.
+    const overlayLayer =
+      (svg.querySelector(
+        '[data-viz-layer="overlays"]'
+      ) as SVGGElement | null) ||
+      (svg.querySelector('.viz-layer-overlays') as SVGGElement | null);
+
+    if (overlayLayer) {
+      const overlays = scene.overlays ?? [];
+      const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
+      const edgesById = new Map(scene.edges.map((e) => [e.id, e]));
+
+      const svgNS = 'http://www.w3.org/2000/svg';
+
+      // 1) Map existing overlay groups
+      const existingOverlayGroups = Array.from(overlayLayer.children).filter(
+        (el) => el.tagName === 'g'
+      ) as SVGGElement[];
+      const existingOverlaysMap = new Map<string, SVGGElement>();
+      existingOverlayGroups.forEach((el) => {
+        const id = el.getAttribute('data-overlay-id');
+        if (id) existingOverlaysMap.set(id, el);
+      });
+
+      // Fast decision: if nothing is dirty and keys match, skip overlay work.
+      const overlayKeyCountMatches =
+        overlays.length === existingOverlaysMap.size;
+      let needsOverlayPass = !overlayKeyCountMatches;
+      const dirtyOverlays: VizOverlaySpec[] = [];
+      if (!needsOverlayPass) {
+        for (const spec of overlays) {
+          const uniqueKey = spec.key || spec.id;
+          if (!existingOverlaysMap.has(uniqueKey)) {
+            needsOverlayPass = true;
+            break;
+          }
+          if (
+            (spec as unknown as Record<symbol, unknown>)[OVERLAY_RUNTIME_DIRTY]
+          ) {
+            dirtyOverlays.push(spec);
+          }
+        }
+      }
+
+      if (!needsOverlayPass && dirtyOverlays.length === 0) return;
+
+      const processedOverlayIds = new Set<string>();
+
+      // 2) Render/update overlays
+      const toUpdate = needsOverlayPass ? overlays : dirtyOverlays;
+
+      toUpdate.forEach((spec) => {
+        const renderer = defaultCoreOverlayRegistry.get(spec.id);
+        if (!renderer) return;
+
+        const uniqueKey = spec.key || spec.id;
+        processedOverlayIds.add(uniqueKey);
+
+        let group = existingOverlaysMap.get(uniqueKey);
+        if (!group) {
+          group = document.createElementNS(svgNS, 'g');
+          group.setAttribute('data-overlay-id', uniqueKey);
+          group.setAttribute(
+            'class',
+            `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+          );
+          group.setAttribute('data-viz-role', 'overlay-group');
+          overlayLayer.appendChild(group);
+        }
+
+        const overlayCtx = {
+          spec,
+          nodesById,
+          edgesById,
+          scene,
+          registry: defaultCoreOverlayRegistry,
+        };
+
+        if (renderer.update) {
+          renderer.update(overlayCtx, group);
+        } else {
+          group.innerHTML = renderer.render(overlayCtx);
+        }
+
+        // Clear dirty flag after successful update.
+        delete (spec as unknown as Record<symbol, unknown>)[
+          OVERLAY_RUNTIME_DIRTY
+        ];
+      });
+
+      // 3) Remove stale overlays only if keys may have changed.
+      if (!overlayKeyCountMatches) {
+        existingOverlayGroups.forEach((el) => {
+          const id = el.getAttribute('data-overlay-id');
+          if (id && !processedOverlayIds.has(id)) {
+            el.remove();
+          }
+        });
+      }
+    }
   }
 
   /**
@@ -901,7 +1052,10 @@ class VizBuilderImpl implements VizBuilder {
           if (!group) {
             group = document.createElementNS(svgNS, 'g');
             group.setAttribute('data-overlay-id', uniqueKey);
-            group.setAttribute('class', `viz-overlay-${spec.id}`);
+            group.setAttribute(
+              'class',
+              `viz-overlay-${spec.id}${spec.className ? ` ${spec.className}` : ''}`
+            );
             group.setAttribute('data-viz-role', 'overlay-group');
             overlayLayer.appendChild(group);
           }
@@ -911,6 +1065,7 @@ class VizBuilderImpl implements VizBuilder {
             nodesById,
             edgesById: new Map(edges.map((e) => [e.id, e])),
             scene,
+            registry: defaultCoreOverlayRegistry,
           };
 
           if (renderer.update) {
@@ -1108,7 +1263,13 @@ class VizBuilderImpl implements VizBuilder {
       overlays.forEach((spec) => {
         const renderer = defaultCoreOverlayRegistry.get(spec.id);
         if (renderer) {
-          svgContent += renderer.render({ spec, nodesById, edgesById, scene });
+          svgContent += renderer.render({
+            spec,
+            nodesById,
+            edgesById,
+            scene,
+            registry: defaultCoreOverlayRegistry,
+          });
         }
       });
       svgContent += '</g>';
@@ -1278,8 +1439,24 @@ class NodeBuilderImpl implements NodeBuilder {
   edge(from: string, to: string, id?: string): EdgeBuilder {
     return this.parent.edge(from, to, id);
   }
-  overlay<T>(id: string, params: T, key?: string): VizBuilder {
-    return this.parent.overlay(id, params, key);
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
+  overlay(
+    arg1: string | ((overlay: OverlayBuilder) => unknown),
+    arg2?: unknown,
+    arg3?: string
+  ): VizBuilder {
+    if (typeof arg1 === 'function') return this.parent.overlay(arg1);
+    return this.parent.overlay(
+      arg1 as string,
+      arg2,
+      arg3 as string | undefined
+    );
   }
   build(): VizScene {
     return this.parent.build();
@@ -1393,8 +1570,24 @@ class EdgeBuilderImpl implements EdgeBuilder {
   edge(from: string, to: string, id?: string): EdgeBuilder {
     return this.parent.edge(from, to, id || `${from}->${to}`); // Default ID to from->to
   }
-  overlay<T>(id: string, params: T, key?: string): VizBuilder {
-    return this.parent.overlay(id, params, key);
+  overlay<K extends OverlayId>(
+    id: K,
+    params: OverlayParams<K>,
+    key?: string
+  ): VizBuilder;
+  overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
+  overlay(
+    arg1: string | ((overlay: OverlayBuilder) => unknown),
+    arg2?: unknown,
+    arg3?: string
+  ): VizBuilder {
+    if (typeof arg1 === 'function') return this.parent.overlay(arg1);
+    return this.parent.overlay(
+      arg1 as string,
+      arg2,
+      arg3 as string | undefined
+    );
   }
   build(): VizScene {
     return this.parent.build();

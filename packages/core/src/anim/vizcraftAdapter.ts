@@ -1,4 +1,5 @@
-import type { VizScene, VizNode, VizEdge } from '../types';
+import { OVERLAY_RUNTIME_DIRTY } from '../types';
+import type { VizScene, VizNode, VizEdge, VizOverlaySpec } from '../types';
 import type { AnimationHostAdapter, RegistrableAdapter } from './adapter';
 import { createRegistryAdapter, KindHandle } from './registryAdapter';
 
@@ -22,6 +23,12 @@ export function createVizCraftAdapter(
 ): AnimationHostAdapter & RegistrableAdapter {
   const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
   const edgesById = new Map(scene.edges.map((e) => [e.id, e]));
+  const overlays = scene.overlays ?? [];
+  const overlaysByKey = new Map<string, VizOverlaySpec>();
+  for (const spec of overlays) {
+    const key = spec.key ?? spec.id;
+    overlaysByKey.set(key, spec);
+  }
 
   const adapter = createRegistryAdapter({
     flush: requestRender,
@@ -44,6 +51,7 @@ export function createVizCraftAdapter(
   // register node/edge target resolvers and props using ergonomic handles
   const node = adapter.kind('node', (id) => nodesById.get(id));
   const edge = adapter.kind('edge', (id) => edgesById.get(id));
+  const overlay = adapter.kind('overlay', (key) => overlaysByKey.get(key));
 
   node
     .prop('x', {
@@ -114,5 +122,77 @@ export function createVizCraftAdapter(
       },
     });
 
-  return adapter;
+  // Overlay params: allow animating arbitrary numeric fields on `spec.params`.
+  //
+  // This intentionally uses a generic reader/writer so users can animate
+  // custom overlays without needing adapter extensions.
+  const overlayParamReader = (
+    el: unknown,
+    prop: string
+  ): number | undefined => {
+    const spec = el as VizOverlaySpec<Record<string, unknown>>;
+    const params = spec.params;
+    const v = params?.[prop];
+    return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+  };
+
+  const overlayParamWriter = (
+    el: unknown,
+    prop: string,
+    value: number
+  ): void => {
+    const spec = el as VizOverlaySpec<unknown>;
+    const existing = spec.params;
+    const params: Record<string, unknown> =
+      existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? (existing as Record<string, unknown>)
+        : {};
+    params[prop] = value;
+
+    // Ensure we keep reference stable in case params was undefined or non-object.
+    (spec as VizOverlaySpec<Record<string, unknown>>).params = params;
+
+    // Mark dirty so patchRuntime can avoid re-rendering unaffected overlays.
+    (spec as unknown as Record<symbol, unknown>)[OVERLAY_RUNTIME_DIRTY] = true;
+  };
+
+  const resolveOverlayFromTarget = (
+    target: unknown
+  ): VizOverlaySpec<unknown> | undefined => {
+    const t = String(target);
+    if (!t.startsWith('overlay:')) return undefined;
+    const key = t.slice('overlay:'.length);
+    return overlaysByKey.get(key);
+  };
+
+  // Register core overlay props we know are numeric today.
+  // Users can still register more via adapter extensions if they prefer explicitness.
+  overlay.prop('progress', {
+    get: (el) => overlayParamReader(el, 'progress'),
+    set: (el, v) => overlayParamWriter(el, 'progress', v),
+  });
+
+  // Make overlays fully generic: any numeric `spec.params[prop]` is animatable.
+  //
+  // `createRegistryAdapter` requires per-prop registration; for overlays we provide
+  // a fallback so custom overlays don't need adapter extensions.
+  const baseGet = adapter.get;
+  const baseSet = adapter.set;
+
+  return {
+    ...adapter,
+    get(target, prop) {
+      const v = baseGet(target, prop);
+      if (v !== undefined) return v;
+      const spec = resolveOverlayFromTarget(target);
+      if (!spec) return undefined;
+      return overlayParamReader(spec, String(prop));
+    },
+    set(target, prop, value) {
+      baseSet(target, prop, value);
+      const spec = resolveOverlayFromTarget(target);
+      if (!spec) return;
+      overlayParamWriter(spec, String(prop), value);
+    },
+  };
 }

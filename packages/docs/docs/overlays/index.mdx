@@ -1,0 +1,879 @@
+---
+slug: /overlays
+sidebar_position: 1
+title: Overlays
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import VizPlaybackControls from '@site/src/components/VizPlaybackControls';
+import { viz, defaultCoreOverlayRegistry } from 'vizcraft';
+
+Overlays are an **optional, registry-rendered SVG layer** that sits above nodes and edges.
+
+They’re designed for things like:
+
+- signals/moving markers
+- grid labels and annotations
+- heatmaps, guides, selection rectangles
+- transient data visualizations that are easier to render as a separate layer
+
+VizCraft overlays are intentionally **render-driven**:
+VizCraft overlays have two halves:
+
+- **Authoring (recommended):** use the **overlay builder** (`builder.overlay((o) => ...)`) to produce portable `VizOverlaySpec[]`.
+- **Rendering:** the **overlay registry** turns each spec into SVG (built-ins are already registered; custom visuals require you to register a renderer).
+
+For the full authoring reference, see [Overlay Builder API](/docs/overlays/overlay-builder-api).
+
+---
+
+## Mental model
+
+A `VizOverlaySpec` is the portable description of an overlay instance:
+
+- `id` — overlay kind (e.g. `"signal"`)
+- `params` — overlay data (your overlay renderer decides what it means)
+- `key?` — optional stable key (highly recommended)
+- `className?` — optional CSS class the overlay renderer may apply
+
+During rendering, VizCraft creates an overlay `<g>` group per overlay instance and calls:
+
+- `renderer.update(ctx, group)` if provided
+- otherwise, replaces `group.innerHTML` using `renderer.render(ctx)`
+
+The key distinction:
+
+- `OverlayBuilder` answers “**what overlays should exist, and with what params?**”
+- The registry answers “**how does overlay kind `id` render/update from those params?**”
+
+---
+
+## Quick start (recommended): use the overlay builder
+
+The callback form is the recommended way to author overlays:
+
+- it scales naturally from 1 overlay to 20 overlays
+- it keeps keys/classes next to the spec
+- it enables the convenience helpers (`o.rect`, `o.circle`, `o.text`)
+
+### Example: selection rectangle (built-in primitive)
+
+This creates a “new overlay” without writing a renderer, because `rect` is a built-in overlay kind.
+
+export const primitiveCss = `
+.viz-selection {
+  fill: #3b82f6;
+  fill-opacity: 0.12;
+  stroke: #3b82f6;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`;
+
+export const primitiveOverlayBuilder = viz().view(520, 220);
+export const primitiveOverlayScene = primitiveOverlayBuilder
+  .node('a')
+  .at(160, 110)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(360, 110)
+  .circle(18)
+  .label('B')
+  .overlay((o) =>
+    o
+      .text(
+        { x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 },
+        { key: 'label' }
+      )
+      .rect(
+        { x: 110, y: 70, w: 300, h: 80, rx: 10 },
+        { key: 'sel', className: 'viz-selection' }
+      )
+  );
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder
+.node('a').at(160, 110).circle(18).label('A')
+.node('b').at(360, 110).circle(18).label('B')
+.overlay((o) =>
+o
+.text(
+{ x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 },
+{ key: 'label' }
+)
+.rect(
+{ x: 110, y: 70, w: 300, h: 80, rx: 10 },
+{ key: 'sel', className: 'viz-selection' }
+)
+);
+
+const css = [
+'.viz-selection {',
+' fill: #3b82f6;',
+' fill-opacity: 0.12;',
+' stroke: #3b82f6;',
+' stroke-opacity: 0.9;',
+' stroke-width: 2;',
+'}',
+].join('\n');
+
+const container = document.getElementById('viz-primitive-overlay');
+if (container) builder.mount(container, { css });
+`}>
+
+  <VizMount builder={primitiveOverlayScene} css={primitiveCss} />
+</CodePreview>
+
+### Styling the rectangle (change color)
+
+You have two good options:
+
+**Why two options?**
+
+- **Params** are great when you want the overlay to be totally self-contained (copy/paste-able, portable, no external CSS).
+- **`className` + CSS** is better when you want theming (dark mode), reuse across multiple overlays, or consistent styling controlled by your app.
+
+1. **Set colors on the overlay params** (simple and portable)
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder.overlay((o) =>
+o.rect(
+{
+x: 110,
+y: 70,
+w: 300,
+h: 80,
+rx: 10,
+fill: 'rgba(239, 68, 68, 0.12)',
+stroke: '#ef4444',
+fill: '#fee2e2',
+strokeWidth: 2,
+},
+{ key: 'sel' }
+)
+);
+`}>
+
+  <VizMount
+    builder={viz()
+      .view(520, 220)
+      .node('a')
+      .at(160, 110)
+      .circle(18)
+      .label('A')
+      .node('b')
+      .at(360, 110)
+      .circle(18)
+      .label('B')
+      .overlay((o) =>
+        o.rect(
+          {
+            x: 110,
+            y: 70,
+            w: 300,
+            h: 80,
+            rx: 10,
+            fill: '#fee2e2',
+            stroke: '#ef4444',
+            strokeWidth: 2,
+          },
+          { key: 'sel' }
+        )
+      )}
+  />
+</CodePreview>
+
+2. **Use `className` + CSS** (recommended for theming)
+
+This is the same approach as the demo above: give the overlay a `className`, then style it via your own CSS.
+
+In plain JS you can also inject CSS at mount time:
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder.overlay((o) =>
+o.rect({ x: 110, y: 70, w: 300, h: 80, rx: 10 }, { key: 'sel', className: 'viz-selection' })
+);
+
+const css = [
+'.viz-selection {',
+' fill: #22c55e;',
+' fill-opacity: 0.12;',
+' stroke: #22c55e;',
+' stroke-opacity: 0.9;',
+' stroke-width: 2;',
+'}',
+].join('\n');
+
+const container = document.getElementById('viz');
+if (container) builder.mount(container, { css });
+`}>
+
+  <VizMount
+    builder={viz()
+      .view(520, 220)
+      .node('a')
+      .at(160, 110)
+      .circle(18)
+      .label('A')
+      .node('b')
+      .at(360, 110)
+      .circle(18)
+      .label('B')
+      .overlay((o) =>
+        o
+          .text(
+            { x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 },
+            { key: 'label' }
+          )
+          .rect(
+            { x: 110, y: 70, w: 300, h: 80, rx: 10 },
+            { key: 'sel', className: 'viz-selection' }
+          )
+      )}
+    css={`
+.viz-selection {
+  fill: #22c55e;
+  fill-opacity: 0.12;
+  stroke: #22c55e;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`}
+  />
+</CodePreview>
+
+---
+
+## Shortcut: `builder.overlay(id, params, key?)`
+
+If you’re adding exactly one overlay instance, the direct form is a convenient shorthand.
+
+It’s equivalent to “adding one spec” through the overlay builder.
+
+This uses a built-in overlay (`signal`) that draws a moving marker between two nodes.
+
+export const basicSignalBuilder = viz().view(520, 200);
+export const basicSignalScene = basicSignalBuilder
+  .node('a')
+  .at(120, 100)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(400, 100)
+  .circle(18)
+  .label('B')
+  .overlay((o) =>
+    o.add(
+      'signal',
+      { from: 'a', to: 'b', progress: 0.5, magnitude: 0.7 },
+      { key: 'sig' }
+    )
+  );
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+
+builder
+.node('a').at(120, 100).circle(18).label('A')
+.node('b').at(400, 100).circle(18).label('B')
+.overlay('signal', { from: 'a', to: 'b', progress: 0.5, magnitude: 0.7 }, 'sig');
+
+const container = document.getElementById('viz-signal');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount builder={basicSignalScene} />
+</CodePreview>
+
+---
+
+## Keys: when and why
+
+Overlays reconcile by a **unique key** per instance:
+
+- if `spec.key` is present, that’s used
+- otherwise, `spec.id` is used
+
+That means:
+
+- If you render **one** overlay per `id`, omitting `key` is usually fine.
+- If you render **multiple** overlays with the same `id`, you should provide `key`.
+
+If you use the callback overlay builder (`builder.overlay((o) => ...)`), `OverlayBuilder.add(...)` will auto-generate stable-ish keys when you add multiple unkeyed overlays of the same `id`.
+
+---
+
+## Build multiple overlays at once (overlay builder)
+
+Use the callback form when you want to add/remove/clear overlays in one place.
+
+export const multiOverlayBuilder = viz().view(520, 240);
+export const multiOverlayScene = multiOverlayBuilder
+  .grid(5, 3, { x: 30, y: 30 })
+  .node('a')
+  .at(120, 140)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(400, 140)
+  .circle(18)
+  .label('B')
+  .overlay((o) =>
+    o
+      .add(
+        'grid-labels',
+        {
+          colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+          rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+          yOffset: 18,
+          xOffset: 18,
+        },
+        { key: 'labels' }
+      )
+      .add(
+        'signal',
+        { from: 'a', to: 'b', progress: 0.25, magnitude: 0.5 },
+        { key: 'sig', className: 'viz-signal' }
+      )
+  );
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+
+builder
+.grid(5, 3, { x: 30, y: 30 })
+.node('a').at(120, 140).circle(18).label('A')
+.node('b').at(400, 140).circle(18).label('B')
+.overlay((o) =>
+o
+.add('grid-labels', {
+colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+yOffset: 18,
+xOffset: 18,
+}, { key: 'labels' })
+.add('signal', { from: 'a', to: 'b', progress: 0.25, magnitude: 0.5 }, { key: 'sig' })
+);
+
+const container = document.getElementById('viz-overlays');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount builder={multiOverlayScene} />
+</CodePreview>
+
+---
+
+## Built-in overlay kinds (already registered)
+
+These are shipped in the default registry, so you can use them immediately:
+
+- `signal` — moving marker between nodes
+- `grid-labels` — simple axis/grid labels
+- `data-points` — example “points attached to nodes” overlay
+
+You still author them via the overlay builder (recommended) or the direct form.
+
+---
+
+## Animating overlays (data-only timeline)
+
+Overlays can be targeted by the **data-only timeline animation system**.
+
+- You give the overlay instance a stable key (e.g. `"sig"`).
+- You target it in animations with `aBuilder.overlay('sig')`.
+- Any numeric field in `spec.params` can be tweened.
+
+export const overlayAnimBuilder = viz().view(520, 200);
+export const overlayAnimScene = overlayAnimBuilder
+  .node('a')
+  .at(120, 100)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(400, 100)
+  .circle(18)
+  .label('B')
+  .overlay((o) =>
+    o.add(
+      'signal',
+      { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+      { key: 'sig' }
+    )
+  );
+
+export const overlayAnim = overlayAnimBuilder.animate((aBuilder) => {
+  // progress 0 -> 1 -> 0
+  aBuilder.overlay('sig');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+// pulse magnitude in parallel
+aBuilder.at(0);
+aBuilder.overlay('sig');
+aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+
+builder
+.node('a').at(120, 100).circle(18).label('A')
+.node('b').at(400, 100).circle(18).label('B')
+.overlay('signal', { from: 'a', to: 'b', progress: 0, magnitude: 0.2 }, 'sig');
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('sig');
+aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+aBuilder.wait(250);
+aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+aBuilder.at(0).overlay('sig');
+aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+
+const container = document.getElementById('viz-overlay-anim');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={overlayAnimScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## Animating a grouped overlay (move many things as one)
+
+If you have multiple overlay elements that should move together, add them inside a **group overlay** and animate the group.
+
+This avoids having to target 5 overlays separately — you animate one key.
+
+And because the group overlay supports `from/to + progress + magnitude`, you can animate it with the **same pattern** as the `signal` overlay.
+
+export const groupSwarmBuilder = viz().view(520, 200);
+export const groupSwarmScene = groupSwarmBuilder
+  .node('a')
+  .at(120, 100)
+  .rect(110, 78, 14)
+  .label('A', { dy: -52, fontWeight: 700 })
+  .node('b')
+  .at(400, 100)
+  .rect(110, 78, 14)
+  .label('B', { dy: -52, fontWeight: 700 })
+  .overlay((o) => {
+    const r = 5;
+    const gap = 4;
+    const step = r * 2 + gap;
+    const yOffsets = [-2 * step, -1 * step, 0, 1 * step, 2 * step];
+
+    o.group(
+      { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+      (g) => {
+        yOffsets.forEach((dy) => {
+          g.circle({
+            x: 0,
+            y: dy,
+            r,
+            fill: '#93c5fd',
+            stroke: '#1d4ed8',
+            strokeWidth: 2,
+          });
+        });
+      },
+      { key: 'swarm' }
+    );
+
+});
+
+export const groupSwarmAnim = groupSwarmBuilder.animate((aBuilder) => {
+  // progress 0 -> 1 -> 0
+  aBuilder.overlay('swarm');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+});
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+
+builder
+.node('a').at(120, 100).rect(110, 78, 14).label('A', { dy: -52, fontWeight: 700 })
+.node('b').at(400, 100).rect(110, 78, 14).label('B', { dy: -52, fontWeight: 700 })
+.overlay((o) => {
+const r = 5;
+const gap = 4;
+const step = r _ 2 + gap;
+const yOffsets = [-2 _ step, -1 _ step, 0, 1 _ step, 2 \* step];
+
+o.group(
+{ from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+(g) => {
+yOffsets.forEach((dy) => {
+g.circle({ x: 0, y: dy, r, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+});
+},
+{ key: 'swarm' }
+);
+});
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('swarm');
+aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+aBuilder.wait(250);
+aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+
+aBuilder.at(0).overlay('swarm');
+aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+
+const container = document.getElementById('viz-group-swarm');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={groupSwarmScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## Animating the primitive overlay (quick start continued)
+
+Because primitive overlay params are numeric (`x`, `y`, `w`, `h`, `rx`, `opacity`), you can animate them via the same data-only timeline system.
+
+export const primitiveOverlayAnim = primitiveOverlayBuilder.animate(
+  (aBuilder) => {
+    aBuilder.overlay('sel');
+    aBuilder.to(
+      { x: 150, w: 220, opacity: 0.5 },
+      { duration: 900, easing: 'easeInOut' }
+    );
+    aBuilder.to(
+      { x: 110, w: 300, opacity: 1 },
+      { duration: 900, easing: 'easeInOut' }
+    );
+  }
+);
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+
+builder
+.node('a').at(160, 110).circle(18).label('A')
+.node('b').at(360, 110).circle(18).label('B')
+.overlay((o) =>
+o.rect(
+{ x: 110, y: 70, w: 300, h: 80, rx: 10 },
+{ key: 'sel', className: 'viz-selection' }
+)
+);
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('sel');
+aBuilder.to({ x: 150, w: 220, opacity: 0.5 }, { duration: 900, easing: 'easeInOut' });
+aBuilder.to({ x: 110, w: 300, opacity: 1 }, { duration: 900, easing: 'easeInOut' });
+});
+
+const css = [
+'.viz-selection {',
+' fill: #3b82f6;',
+' fill-opacity: 0.12;',
+' stroke: #3b82f6;',
+' stroke-opacity: 0.9;',
+' stroke-width: 2;',
+'}',
+].join('\n');
+
+const container = document.getElementById('viz-primitive-overlay-anim');
+if (container) {
+builder.mount(container, { css });
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={primitiveOverlayScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## Animating a grid overlay (another example)
+
+The built-in `grid-labels` overlay supports numeric `xOffset` and `yOffset`, which makes it a good demo for overlay timeline tweens.
+
+export const gridAnimBuilder = viz().view(520, 240);
+export const gridAnimScene = gridAnimBuilder
+  .grid(6, 3, { x: 30, y: 30 })
+  .overlay((o) =>
+    o.add(
+      'grid-labels',
+      {
+        colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5' },
+        rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+        xOffset: 18,
+        yOffset: 18,
+      },
+      { key: 'labels' }
+    )
+  );
+
+export const gridAnim = gridAnimBuilder.animate((aBuilder) => {
+  aBuilder.overlay('labels');
+  aBuilder.to({ yOffset: 42 }, { duration: 900, easing: 'easeInOut' });
+  aBuilder.to({ yOffset: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+
+builder
+.grid(6, 3, { x: 30, y: 30 })
+.overlay((o) =>
+o.add(
+'grid-labels',
+{
+colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5' },
+rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+xOffset: 18,
+yOffset: 18,
+},
+{ key: 'labels' }
+)
+);
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('labels');
+aBuilder.to({ yOffset: 42 }, { duration: 900, easing: 'easeInOut' });
+aBuilder.to({ yOffset: 18 }, { duration: 900, easing: 'easeInOut' });
+});
+
+const container = document.getElementById('viz-grid-overlay-anim');
+if (container) {
+builder.mount(container);
+builder.play();
+}
+`}>
+
+  <VizPlaybackControls builder={gridAnimScene} autoPlay={true} />
+</CodePreview>
+
+---
+
+## When you need the registry (custom overlay kinds)
+
+You only need to touch the registry when you want a **new overlay kind** (a new `id`) with custom rendering logic.
+
+Examples of “registry-worthy” overlays:
+
+- a brush/selection overlay that needs pointer hit-testing and complex DOM structure
+- a heatmap overlay that draws many cells efficiently
+- an overlay that renders HTML via `<foreignObject>`
+
+If you can express what you need with the built-in overlay kinds (including primitives), prefer the overlay builder only.
+
+### Register a custom overlay kind
+
+To create a new overlay kind (e.g. `"selection"`), register a renderer with the overlay registry.
+
+:::note
+The default registry is a singleton (`defaultCoreOverlayRegistry`). Registering custom overlays is global.
+If you are building a library, consider exposing a helper that registers once (idempotently).
+:::
+
+```ts
+import { defaultCoreOverlayRegistry } from 'vizcraft';
+
+defaultCoreOverlayRegistry.register('selection', {
+  render: ({ spec }) => {
+    const { x, y, w, h } = spec.params;
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" class="viz-selection" />`;
+  },
+  update: ({ spec }, g) => {
+    const rect =
+      g.querySelector('rect') ??
+      document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', String(spec.params.x));
+    rect.setAttribute('y', String(spec.params.y));
+    rect.setAttribute('width', String(spec.params.w));
+    rect.setAttribute('height', String(spec.params.h));
+    rect.setAttribute('rx', '8');
+    rect.setAttribute('class', 'viz-selection');
+    if (!rect.parentNode) g.appendChild(rect);
+  },
+});
+```
+
+Once registered, you can render it with:
+
+```ts
+builder.overlay('selection', { x: 10, y: 10, w: 200, h: 120 }, 'sel');
+```
+
+### Live example: register + use via the callback builder
+
+This example registers a `selection` overlay **only if it’s not already present**, then adds it via `builder.overlay((o) => o.add(...))`.
+
+export const selectionCss = `
+.viz-selection {
+  fill: rgba(59, 130, 246, 0.12);
+  stroke: rgba(59, 130, 246, 0.9);
+  stroke-width: 2;
+}
+`;
+
+export const selectionOverlayRegistered = (() => {
+  if (!defaultCoreOverlayRegistry.get('selection')) {
+    defaultCoreOverlayRegistry.register('selection', {
+      render: ({ spec }) => {
+        const { x, y, w, h } = spec.params;
+        const cls = spec.className ?? 'viz-selection';
+        return (
+          '<rect x="' +
+          x +
+          '" y="' +
+          y +
+          '" width="' +
+          w +
+          '" height="' +
+          h +
+          '" rx="10" class="' +
+          cls +
+          '" />'
+        );
+      },
+      update: ({ spec }, g) => {
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const { x, y, w, h } = spec.params;
+        const cls = spec.className ?? 'viz-selection';
+
+        let rect = g.querySelector('rect');
+        if (!rect) {
+          rect = document.createElementNS(svgNS, 'rect');
+          g.appendChild(rect);
+        }
+
+        rect.setAttribute('x', String(x));
+        rect.setAttribute('y', String(y));
+        rect.setAttribute('width', String(w));
+        rect.setAttribute('height', String(h));
+        rect.setAttribute('rx', '10');
+        rect.setAttribute('class', cls);
+      },
+    });
+
+}
+
+return true;
+})();
+
+export const customRegistryOverlayBuilder = viz().view(520, 220);
+export const customRegistryOverlayScene = customRegistryOverlayBuilder
+  .node('a')
+  .at(160, 110)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(360, 110)
+  .circle(18)
+  .label('B')
+  .overlay((o) =>
+    o.add(
+      'selection',
+      { x: 110, y: 70, w: 300, h: 80 },
+      { key: 'sel', className: 'viz-selection' }
+    )
+  );
+
+<CodePreview code={`
+import { viz, defaultCoreOverlayRegistry } from 'vizcraft';
+
+// Register once (idempotent)
+if (!defaultCoreOverlayRegistry.get('selection')) {
+defaultCoreOverlayRegistry.register('selection', {
+render: ({ spec }) => {
+const { x, y, w, h } = spec.params;
+const cls = spec.className ?? 'viz-selection';
+return (
+'<rect x="' +
+        x +
+        '" y="' +
+        y +
+        '" width="' +
+        w +
+        '" height="' +
+        h +
+        '" rx="10" class="' +
+        cls +
+        '" />'
+);
+},
+});
+}
+
+const builder = viz().view(520, 220);
+
+builder
+.node('a').at(160, 110).circle(18).label('A')
+.node('b').at(360, 110).circle(18).label('B')
+.overlay((o) =>
+o.add('selection', { x: 110, y: 70, w: 300, h: 80 }, { key: 'sel', className: 'viz-selection' })
+);
+
+const css = [
+'.viz-selection {',
+' fill: rgba(59, 130, 246, 0.12);',
+' stroke: rgba(59, 130, 246, 0.9);',
+' stroke-width: 2;',
+'}',
+].join('\n');
+
+const container = document.getElementById('viz-selection');
+if (container) builder.mount(container, { css });
+`}>
+
+  <VizMount builder={customRegistryOverlayScene} css={selectionCss} />
+</CodePreview>
+
+If you want that overlay to be type-safe, you can add TS module augmentation for `OverlayKindRegistry`.
+
+---
+
+## Next
+
+- [Overlay Builder API](/docs/overlays/overlay-builder-api)
+- [Animations](/docs/animations) (including `aBuilder.overlay(key)` targeting)

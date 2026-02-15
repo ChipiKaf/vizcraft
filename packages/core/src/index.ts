@@ -3,6 +3,7 @@ export * from './builder';
 export * from './styles';
 export * from './animations';
 export * from './overlays';
+export * from './overlayBuilder';
 export * from './anim/spec';
 export * from './anim/animationBuilder';
 export * from './anim/playback';

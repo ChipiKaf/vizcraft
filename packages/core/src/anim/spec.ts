@@ -1,5 +1,5 @@
 export type AnimationTarget =
-  | (`node:${string}` | `edge:${string}`)
+  | (`node:${string}` | `edge:${string}` | `overlay:${string}`)
   | (string & {});
 
 export type CoreAnimProperty =
