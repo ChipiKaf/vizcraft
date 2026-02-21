@@ -122,6 +122,27 @@ export function VizCanvas(props: VizCanvasProps) {
     [scene.edges]
   );
 
+  // Build parent→children map and root nodes for container grouping
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, VizNode[]>();
+    animatedNodes.forEach((n) => {
+      if (n.parentId) {
+        let arr = map.get(n.parentId);
+        if (!arr) {
+          arr = [];
+          map.set(n.parentId, arr);
+        }
+        arr.push(n);
+      }
+    });
+    return map;
+  }, [animatedNodes]);
+
+  const rootNodes = useMemo(
+    () => animatedNodes.filter((n) => !n.parentId),
+    [animatedNodes]
+  );
+
   return (
     <div className={`viz-canvas ${className || ''}`}>
       <svg
@@ -235,37 +256,12 @@ export function VizCanvas(props: VizCanvasProps) {
 
         {/* 2. Nodes (Shape + Labels) */}
         <g className="viz-layer-nodes">
-          {animatedNodes.map((node) => (
-            <g
+          {rootNodes.map((node) => (
+            <RenderNodeGroup
               key={node.id}
-              className={`viz-node-group ${node.className || ''}`}
-              // Use transform for consistent positioning logic if we moved to pure CSS,
-              // but since we are interpolating 'pos', we can just use RenderShape with updated pos.
-              // However, let's keep the group for containment.
-              onClick={(e) => {
-                if (node.onClick) {
-                  e.stopPropagation();
-                  node.onClick(node.id, node);
-                }
-              }}
-              style={{ cursor: node.onClick ? 'pointer' : undefined }}
-            >
-              <RenderShape node={node} />
-
-              {/* Node Label */}
-              {node.label && (
-                <text
-                  x={node.pos.x + (node.label.dx || 0)}
-                  y={node.pos.y + (node.label.dy || 0)}
-                  className={`viz-node-label ${node.label.className || ''}`}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  style={{ pointerEvents: 'none' }}
-                >
-                  {node.label.text}
-                </text>
-              )}
-            </g>
+              node={node}
+              childrenByParent={childrenByParent}
+            />
           ))}
         </g>
 
@@ -298,6 +294,95 @@ export function VizCanvas(props: VizCanvasProps) {
         {children}
       </svg>
     </div>
+  );
+}
+
+function RenderNodeGroup({
+  node,
+  childrenByParent,
+}: {
+  node: VizNode;
+  childrenByParent: Map<string, VizNode[]>;
+}) {
+  const { pos, shape, container } = node;
+  const isContainer = !!container;
+  const children = childrenByParent.get(node.id);
+
+  // Compute label position (header-aware)
+  let lx = pos.x + (node.label?.dx || 0);
+  let ly = pos.y + (node.label?.dy || 0);
+  if (
+    isContainer &&
+    container!.headerHeight &&
+    'h' in shape &&
+    node.label &&
+    !node.label.dy
+  ) {
+    const sh = (shape as { h: number }).h;
+    ly = pos.y - sh / 2 + container!.headerHeight / 2;
+    lx = pos.x + (node.label.dx || 0);
+  }
+
+  return (
+    <g
+      key={node.id}
+      className={`viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''}`}
+      onClick={(e) => {
+        if (node.onClick) {
+          e.stopPropagation();
+          node.onClick(node.id, node);
+        }
+      }}
+      style={{ cursor: node.onClick ? 'pointer' : undefined }}
+    >
+      <RenderShape node={node} />
+
+      {/* Container header line */}
+      {isContainer &&
+        container!.headerHeight &&
+        'w' in shape &&
+        'h' in shape && (
+          <line
+            x1={pos.x - (shape as { w: number }).w / 2}
+            y1={
+              pos.y - (shape as { h: number }).h / 2 + container!.headerHeight
+            }
+            x2={pos.x + (shape as { w: number }).w / 2}
+            y2={
+              pos.y - (shape as { h: number }).h / 2 + container!.headerHeight
+            }
+            stroke="currentColor"
+            className="viz-container-header"
+          />
+        )}
+
+      {/* Node Label */}
+      {node.label && (
+        <text
+          x={lx}
+          y={ly}
+          className={`viz-node-label ${node.label.className || ''}`}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          style={{ pointerEvents: 'none' }}
+        >
+          {node.label.text}
+        </text>
+      )}
+
+      {/* Container children */}
+      {children && children.length > 0 && (
+        <g className="viz-container-children">
+          {children.map((child) => (
+            <RenderNodeGroup
+              key={child.id}
+              node={child}
+              childrenByParent={childrenByParent}
+            />
+          ))}
+        </g>
+      )}
+    </g>
   );
 }
 

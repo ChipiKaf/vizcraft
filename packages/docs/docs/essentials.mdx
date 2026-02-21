@@ -309,3 +309,90 @@ if (container) builder.mount(container);
 For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:
 
 - [Animations](./animations)
+
+---
+
+## Container / Group Nodes
+
+Container nodes let you group children visually — think swimlanes, sub-processes,
+or architectural boxes. Mark any node as a container with `.container()`, then
+attach children with `.parent(containerId)`.
+
+export const containerBuilder = viz().view(500, 340);
+export const containerScene = containerBuilder
+  .node('swim')
+  .at(250, 170)
+  .rect(460, 300)
+  .label('Swimlane')
+  .fill('#f0f4ff')
+  .stroke('#4a6fa5', 2)
+  .container({ headerHeight: 36 })
+  .node('step1')
+  .at(150, 220)
+  .rect(100, 50)
+  .label('Step 1')
+  .parent('swim')
+  .node('step2')
+  .at(350, 220)
+  .rect(100, 50)
+  .label('Step 2')
+  .parent('swim')
+  .edge('step1', 'step2')
+  .arrow()
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 340);
+
+builder
+.node('swim')
+.at(250, 170)
+.rect(460, 300)
+.label('Swimlane')
+.fill('#f0f4ff')
+.stroke('#4a6fa5', 2)
+.container({ headerHeight: 36 })
+.node('step1')
+.at(150, 220)
+.rect(100, 50)
+.label('Step 1')
+.parent('swim')
+.node('step2')
+.at(350, 220)
+.rect(100, 50)
+.label('Step 2')
+.parent('swim')
+.edge('step1', 'step2')
+.arrow()
+.done();
+
+const el = document.getElementById('viz-container');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={containerScene} style={{ height: '340px', width: '100%' }} />
+</CodePreview>
+
+### How it works
+
+| Builder method        | Effect                                                                        |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `.container(config?)` | Marks the current node as a container. Accepts an optional `ContainerConfig`. |
+| `.parent(id)`         | Makes the current node a child of the container with the given id.            |
+
+**`ContainerConfig` options:**
+
+- `layout` — `'free'` (default), `'vertical'`, or `'horizontal'`.
+- `padding` — `{ top, right, bottom, left }` interior padding.
+- `autoSize` — whether the container auto-resizes to fit children.
+- `headerHeight` — height of the header band; renders a separator line and centres the container label in the header area.
+
+Children's positions are specified in **absolute** scene coordinates. When a container moves at runtime (via `patchRuntime`), all its children are automatically offset by the same delta.
+
+In the rendered SVG:
+
+- Container nodes receive the `viz-container` CSS class.
+- Children are nested inside a `<g class="viz-container-children">` group.
+- The header line has the class `viz-container-header`.

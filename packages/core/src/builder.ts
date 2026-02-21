@@ -9,6 +9,7 @@ import type {
   OverlayId,
   OverlayParams,
   VizGridConfig,
+  ContainerConfig,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { DEFAULT_VIZ_CSS } from './styles';
@@ -214,6 +215,8 @@ interface NodeBuilder {
   animateTo(props: AnimatableProps, opts: TweenOptions): NodeBuilder;
   data(payload: unknown): NodeBuilder;
   onClick(handler: (id: string, node: VizNode) => void): NodeBuilder;
+  container(config?: ContainerConfig): NodeBuilder;
+  parent(parentId: string): NodeBuilder;
   done(): VizBuilder;
 
   // Seamless chaining extensions
@@ -922,8 +925,26 @@ class VizBuilderImpl implements VizBuilder {
     });
 
     // --- 2. Reconcile Nodes ---
-    const existingNodeGroups = Array.from(nodeLayer.children).filter(
-      (el) => el.tagName === 'g'
+
+    // Build parent→children map for container grouping
+    const childrenByParentDOM = new Map<string, VizNode[]>();
+    const rootNodesDOM: VizNode[] = [];
+    nodes.forEach((n) => {
+      if (n.parentId) {
+        let arr = childrenByParentDOM.get(n.parentId);
+        if (!arr) {
+          arr = [];
+          childrenByParentDOM.set(n.parentId, arr);
+        }
+        arr.push(n);
+      } else {
+        rootNodesDOM.push(n);
+      }
+    });
+
+    // Collect ALL existing node groups (including nested inside containers)
+    const existingNodeGroups = Array.from(
+      nodeLayer.querySelectorAll('g[data-viz-role="node-group"]')
     ) as SVGGElement[];
     const existingNodesMap = new Map<string, SVGGElement>();
     existingNodeGroups.forEach((el) => {
@@ -933,7 +954,7 @@ class VizBuilderImpl implements VizBuilder {
 
     const processedNodeIds = new Set<string>();
 
-    nodes.forEach((node) => {
+    const reconcileNodeDOM = (node: VizNode, parentGroup: Element): void => {
       processedNodeIds.add(node.id);
 
       let group = existingNodesMap.get(node.id);
@@ -942,11 +963,16 @@ class VizBuilderImpl implements VizBuilder {
         group = document.createElementNS(svgNS, 'g');
         group.setAttribute('data-id', node.id);
         group.setAttribute('data-viz-role', 'node-group');
-        nodeLayer.appendChild(group);
+        parentGroup.appendChild(group);
+      } else if (group.parentElement !== parentGroup) {
+        // Re-parent if the node moved to/from a container
+        parentGroup.appendChild(group);
       }
 
+      const isContainer = !!node.container;
+
       // Calculate Anim Classes
-      let classes = `viz-node-group ${node.className || ''}`;
+      let classes = `viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''}`;
       group.removeAttribute('style');
 
       if (node.animations) {
@@ -995,8 +1021,6 @@ class VizBuilderImpl implements VizBuilder {
       // Shape (Update geometry)
       const { x, y } = effectivePos(node);
 
-      // Ideally we reuse the shape element if the kind hasn't changed.
-      // Assuming kind rarely changes for same ID.
       let shape =
         (group.querySelector(
           '[data-viz-role="node-shape"]'
@@ -1011,10 +1035,9 @@ class VizBuilderImpl implements VizBuilder {
         shape = document.createElementNS(svgNS, expectedTag);
         shape!.setAttribute('class', 'viz-node-shape');
         shape!.setAttribute('data-viz-role', 'node-shape');
-        group.prepend(shape!); // Shape always at bottom
+        group.prepend(shape!);
       }
 
-      // Update Shape Attributes
       applyShapeGeometry(shape!, node.shape, { x, y });
 
       setSvgAttributes(shape!, {
@@ -1024,7 +1047,44 @@ class VizBuilderImpl implements VizBuilder {
         opacity: node.runtime?.opacity ?? node.style?.opacity,
       });
 
-      // Label (Recreate for simplicity as usually just text/pos changes)
+      // Container header line
+      if (
+        isContainer &&
+        node.container!.headerHeight &&
+        'w' in node.shape &&
+        'h' in node.shape
+      ) {
+        const sw = (node.shape as { w: number }).w;
+        const sh = (node.shape as { h: number }).h;
+        const headerY = y - sh / 2 + node.container!.headerHeight;
+
+        let headerLine = group.querySelector(
+          '[data-viz-role="container-header"]'
+        ) as SVGLineElement | null;
+        if (!headerLine) {
+          headerLine = document.createElementNS(svgNS, 'line');
+          headerLine.setAttribute('class', 'viz-container-header');
+          headerLine.setAttribute('data-viz-role', 'container-header');
+          group.appendChild(headerLine);
+        }
+        headerLine.setAttribute('x1', String(x - sw / 2));
+        headerLine.setAttribute('y1', String(headerY));
+        headerLine.setAttribute('x2', String(x + sw / 2));
+        headerLine.setAttribute('y2', String(headerY));
+        headerLine.setAttribute('stroke', node.style?.stroke ?? '#111');
+        headerLine.setAttribute(
+          'stroke-width',
+          String(node.style?.strokeWidth ?? 2)
+        );
+      } else {
+        // Remove stale header line if no longer a container with headerHeight
+        const staleHeader = group.querySelector(
+          '[data-viz-role="container-header"]'
+        );
+        if (staleHeader) staleHeader.remove();
+      }
+
+      // Label
       let label =
         (group.querySelector(
           '[data-viz-role="node-label"]'
@@ -1038,8 +1098,21 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       if (node.label) {
-        const lx = x + (node.label.dx || 0);
-        const ly = y + (node.label.dy || 0);
+        let lx = x + (node.label.dx || 0);
+        let ly = y + (node.label.dy || 0);
+
+        // If container with headerHeight, center label in header area
+        if (
+          isContainer &&
+          node.container!.headerHeight &&
+          'h' in node.shape &&
+          !node.label.dy
+        ) {
+          const sh = (node.shape as { h: number }).h;
+          ly = y - sh / 2 + node.container!.headerHeight / 2;
+          lx = x + (node.label.dx || 0);
+        }
+
         label!.setAttribute('x', String(lx));
         label!.setAttribute('y', String(ly));
         label!.setAttribute('text-anchor', node.label.textAnchor || 'middle');
@@ -1047,8 +1120,6 @@ class VizBuilderImpl implements VizBuilder {
           'dominant-baseline',
           node.label.dominantBaseline || 'middle'
         );
-
-        // Update class carefully to preserve 'viz-node-label'
         label!.setAttribute(
           'class',
           `viz-node-label ${node.label.className || ''}`
@@ -1063,9 +1134,33 @@ class VizBuilderImpl implements VizBuilder {
       } else if (label) {
         label.remove();
       }
-    });
 
-    // Remove stale nodes
+      // Container children
+      const children = childrenByParentDOM.get(node.id);
+      if (children && children.length > 0) {
+        let childrenGroup = group.querySelector(
+          ':scope > [data-viz-role="container-children"]'
+        ) as SVGGElement | null;
+        if (!childrenGroup) {
+          childrenGroup = document.createElementNS(svgNS, 'g');
+          childrenGroup.setAttribute('class', 'viz-container-children');
+          childrenGroup.setAttribute('data-viz-role', 'container-children');
+          group.appendChild(childrenGroup);
+        }
+        children.forEach((child) => reconcileNodeDOM(child, childrenGroup!));
+      } else {
+        // Remove stale children group
+        const staleChildren = group.querySelector(
+          ':scope > [data-viz-role="container-children"]'
+        );
+        if (staleChildren) staleChildren.remove();
+      }
+    };
+
+    // Reconcile root nodes only; children are reconciled recursively
+    rootNodesDOM.forEach((node) => reconcileNodeDOM(node, nodeLayer));
+
+    // Remove stale nodes (from anywhere in the tree)
     existingNodeGroups.forEach((el) => {
       const id = el.getAttribute('data-id');
       if (id && !processedNodeIds.has(id)) {
@@ -1232,9 +1327,22 @@ class VizBuilderImpl implements VizBuilder {
     });
     svgContent += '</g>';
 
-    // Render Nodes
-    svgContent += '<g class="viz-layer-nodes" data-viz-layer="nodes">';
-    nodes.forEach((node) => {
+    // Build parent→children map for container grouping
+    const childrenByParent = new Map<string, VizNode[]>();
+    nodes.forEach((n) => {
+      if (n.parentId) {
+        let arr = childrenByParent.get(n.parentId);
+        if (!arr) {
+          arr = [];
+          childrenByParent.set(n.parentId, arr);
+        }
+        arr.push(n);
+      }
+    });
+
+    // Recursive node renderer
+    const renderNodeToSvg = (node: VizNode): string => {
+      let content = '';
       const { x, y } = effectivePos(node);
       const { shape } = node;
 
@@ -1272,9 +1380,10 @@ class VizBuilderImpl implements VizBuilder {
         });
       }
 
-      const className = `viz-node-group ${node.className || ''} ${animClasses}`;
+      const isContainer = !!node.container;
+      const className = `viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''} ${animClasses}`;
 
-      svgContent += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}">`;
+      content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}">`;
 
       const shapeStyleAttrs = svgAttributeString({
         fill: node.style?.fill ?? 'none',
@@ -1284,12 +1393,38 @@ class VizBuilderImpl implements VizBuilder {
       });
 
       // Shape
-      svgContent += shapeSvgMarkup(shape, { x, y }, shapeStyleAttrs);
+      content += shapeSvgMarkup(shape, { x, y }, shapeStyleAttrs);
+
+      // Container header line
+      if (
+        isContainer &&
+        node.container!.headerHeight &&
+        'w' in shape &&
+        'h' in shape
+      ) {
+        const sw = (shape as { w: number }).w;
+        const sh = (shape as { h: number }).h;
+        const headerY = y - sh / 2 + node.container!.headerHeight;
+        content += `<line x1="${x - sw / 2}" y1="${headerY}" x2="${x + sw / 2}" y2="${headerY}" stroke="${node.style?.stroke ?? '#111'}" stroke-width="${node.style?.strokeWidth ?? 2}" class="viz-container-header" data-viz-role="container-header" />`;
+      }
 
       // Label
       if (node.label) {
-        const lx = x + (node.label.dx || 0);
-        const ly = y + (node.label.dy || 0);
+        let lx = x + (node.label.dx || 0);
+        let ly = y + (node.label.dy || 0);
+
+        // If container with headerHeight, center label in header area
+        if (
+          isContainer &&
+          node.container!.headerHeight &&
+          'h' in shape &&
+          !node.label.dy
+        ) {
+          const sh = (shape as { h: number }).h;
+          ly = y - sh / 2 + node.container!.headerHeight / 2;
+          lx = x + (node.label.dx || 0);
+        }
+
         const labelClass = `viz-node-label ${node.label.className || ''}`;
         const labelAttrs = svgAttributeString({
           fill: node.label.fill,
@@ -1298,10 +1433,30 @@ class VizBuilderImpl implements VizBuilder {
           'text-anchor': node.label.textAnchor || 'middle',
           'dominant-baseline': node.label.dominantBaseline || 'middle',
         });
-        svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" data-viz-role="node-label"${labelAttrs}>${node.label.text}</text>`;
+        content += `<text x="${lx}" y="${ly}" class="${labelClass}" data-viz-role="node-label"${labelAttrs}>${node.label.text}</text>`;
       }
 
-      svgContent += '</g>';
+      // Container children
+      const children = childrenByParent.get(node.id);
+      if (children && children.length > 0) {
+        content +=
+          '<g class="viz-container-children" data-viz-role="container-children">';
+        children.forEach((child) => {
+          content += renderNodeToSvg(child);
+        });
+        content += '</g>';
+      }
+
+      content += '</g>';
+      return content;
+    };
+
+    // Render Nodes (only root nodes; children are rendered inside their containers)
+    svgContent += '<g class="viz-layer-nodes" data-viz-layer="nodes">';
+    nodes.forEach((node) => {
+      if (!node.parentId) {
+        svgContent += renderNodeToSvg(node);
+      }
     });
     svgContent += '</g>';
 
@@ -1329,11 +1484,11 @@ class VizBuilderImpl implements VizBuilder {
 }
 
 class NodeBuilderImpl implements NodeBuilder {
-  private parent: VizBuilder;
+  private _builder: VizBuilder;
   private nodeDef: Partial<VizNode>;
 
   constructor(parent: VizBuilder, nodeDef: Partial<VizNode>) {
-    this.parent = parent;
+    this._builder = parent;
     this.nodeDef = nodeDef;
   }
 
@@ -1347,7 +1502,7 @@ class NodeBuilderImpl implements NodeBuilder {
     row: number,
     align: 'center' | 'start' | 'end' = 'center'
   ): NodeBuilder {
-    const grid = this.parent._getGridConfig();
+    const grid = this._builder._getGridConfig();
     if (!grid) {
       console.warn(
         'VizBuilder: .cell() called but no grid configured. Use .grid() first.'
@@ -1355,7 +1510,7 @@ class NodeBuilderImpl implements NodeBuilder {
       return this;
     }
 
-    const view = this.parent._getViewBox();
+    const view = this._builder._getViewBox();
     const availableW = view.w - grid.padding.x * 2;
     const availableH = view.h - grid.padding.y * 2;
 
@@ -1573,7 +1728,7 @@ class NodeBuilderImpl implements NodeBuilder {
     }
 
     // Compile to a portable AnimationSpec and store on the scene via the parent builder.
-    this.parent.animate((anim) => {
+    this._builder.animate((anim) => {
       anim.node(id);
       typeOrCb(anim);
     });
@@ -1597,16 +1752,26 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  container(config?: ContainerConfig): NodeBuilder {
+    this.nodeDef.container = config ?? { layout: 'free' };
+    return this;
+  }
+
+  parent(parentId: string): NodeBuilder {
+    this.nodeDef.parentId = parentId;
+    return this;
+  }
+
   done(): VizBuilder {
-    return this.parent;
+    return this._builder;
   }
 
   // Chaining
   node(id: string): NodeBuilder {
-    return this.parent.node(id);
+    return this._builder.node(id);
   }
   edge(from: string, to: string, id?: string): EdgeBuilder {
-    return this.parent.edge(from, to, id);
+    return this._builder.edge(from, to, id);
   }
   overlay<K extends OverlayId>(
     id: K,
@@ -1620,18 +1785,18 @@ class NodeBuilderImpl implements NodeBuilder {
     arg2?: unknown,
     arg3?: string
   ): VizBuilder {
-    if (typeof arg1 === 'function') return this.parent.overlay(arg1);
-    return this.parent.overlay(
+    if (typeof arg1 === 'function') return this._builder.overlay(arg1);
+    return this._builder.overlay(
       arg1 as string,
       arg2,
       arg3 as string | undefined
     );
   }
   build(): VizScene {
-    return this.parent.build();
+    return this._builder.build();
   }
   svg(): string {
-    return this.parent.svg();
+    return this._builder.svg();
   }
 }
 

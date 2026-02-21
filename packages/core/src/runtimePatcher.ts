@@ -102,22 +102,72 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
 export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
   const nodesById = new Map(scene.nodes.map((n) => [n.id, n] as const));
 
+  // Pre-compute parent position deltas for container propagation.
+  // When a container node moves via runtime, children should follow.
+  const parentDeltas = new Map<string, { dx: number; dy: number }>();
+  for (const node of scene.nodes) {
+    if (node.container) {
+      const dx = (node.runtime?.x ?? node.pos.x) - node.pos.x;
+      const dy = (node.runtime?.y ?? node.pos.y) - node.pos.y;
+      if (dx !== 0 || dy !== 0) {
+        parentDeltas.set(node.id, { dx, dy });
+      }
+    }
+  }
+
   // Nodes: patch geometry + label position + runtime transforms/opacity.
   for (const node of scene.nodes) {
     const group = ctx.nodeGroupsById.get(node.id);
     const shape = ctx.nodeShapesById.get(node.id);
     if (!group || !shape) continue;
 
-    const { x, y } = effectivePos(node);
+    let { x, y } = effectivePos(node);
+
+    // Apply parent container offset so children follow the container
+    if (node.parentId) {
+      const delta = parentDeltas.get(node.parentId);
+      if (delta) {
+        x += delta.dx;
+        y += delta.dy;
+      }
+    }
 
     // Geometry
     applyShapeGeometry(shape, node.shape, { x, y });
 
+    // Container header line (update position if present)
+    if (
+      node.container?.headerHeight &&
+      'w' in node.shape &&
+      'h' in node.shape
+    ) {
+      const headerLine = group.querySelector<SVGLineElement>(
+        '[data-viz-role="container-header"]'
+      );
+      if (headerLine) {
+        const sw = (node.shape as { w: number }).w;
+        const sh = (node.shape as { h: number }).h;
+        const headerY = y - sh / 2 + node.container.headerHeight;
+        headerLine.setAttribute('x1', String(x - sw / 2));
+        headerLine.setAttribute('y1', String(headerY));
+        headerLine.setAttribute('x2', String(x + sw / 2));
+        headerLine.setAttribute('y2', String(headerY));
+      }
+    }
+
     // Label position
     const label = ctx.nodeLabelsById.get(node.id);
     if (label && node.label) {
-      const lx = x + (node.label.dx || 0);
-      const ly = y + (node.label.dy || 0);
+      let lx = x + (node.label.dx || 0);
+      let ly = y + (node.label.dy || 0);
+
+      // Container header label centering
+      if (node.container?.headerHeight && 'h' in node.shape && !node.label.dy) {
+        const sh = (node.shape as { h: number }).h;
+        ly = y - sh / 2 + node.container.headerHeight / 2;
+        lx = x + (node.label.dx || 0);
+      }
+
       label.setAttribute('x', String(lx));
       label.setAttribute('y', String(ly));
     }
