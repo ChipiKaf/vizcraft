@@ -162,6 +162,7 @@ interface NodeBuilder {
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
   cylinder(w: number, h: number, arcHeight?: number): NodeBuilder;
+  hexagon(r: number, orientation?: 'pointy' | 'flat'): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1355,6 +1356,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   cylinder(w: number, h: number, arcHeight?: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'cylinder', w, h, arcHeight };
+    return this;
+  }
+
+  hexagon(r: number, orientation?: 'pointy' | 'flat'): NodeBuilder {
+    this.nodeDef.shape = { kind: 'hexagon', r, orientation };
     return this;
   }
 

@@ -191,6 +191,50 @@ const cylinderBehavior: ShapeBehavior<'cylinder'> = {
   },
 };
 
+function hexagonPoints(
+  pos: Vec2,
+  r: number,
+  orientation: 'pointy' | 'flat'
+): string {
+  const pts: string[] = [];
+  // pointy-top: first vertex at top (angle offset -90°)
+  // flat-top: first vertex at right (angle offset 0°)
+  const angleOffset = orientation === 'pointy' ? -Math.PI / 2 : 0;
+  for (let i = 0; i < 6; i++) {
+    const angle = angleOffset + (Math.PI / 3) * i;
+    const px = pos.x + r * Math.cos(angle);
+    const py = pos.y + r * Math.sin(angle);
+    pts.push(`${px},${py}`);
+  }
+  return pts.join(' ');
+}
+
+const hexagonBehavior: ShapeBehavior<'hexagon'> = {
+  kind: 'hexagon',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    const orientation = shape.orientation ?? 'pointy';
+    el.setAttribute('points', hexagonPoints(pos, shape.r, orientation));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const orientation = shape.orientation ?? 'pointy';
+    const pts = hexagonPoints(pos, shape.r, orientation);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    // Use the circumscribed circle as the boundary approximation
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const dist = Math.hypot(dx, dy) || 1;
+    const scale = shape.r / dist;
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -198,6 +242,7 @@ const shapeBehaviorRegistry: {
   rect: rectBehavior,
   diamond: diamondBehavior,
   cylinder: cylinderBehavior,
+  hexagon: hexagonBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

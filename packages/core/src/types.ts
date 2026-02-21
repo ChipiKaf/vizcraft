@@ -6,7 +6,8 @@ export type NodeShape =
   | { kind: 'circle'; r: number }
   | { kind: 'rect'; w: number; h: number; rx?: number }
   | { kind: 'diamond'; w: number; h: number }
-  | { kind: 'cylinder'; w: number; h: number; arcHeight?: number };
+  | { kind: 'cylinder'; w: number; h: number; arcHeight?: number }
+  | { kind: 'hexagon'; r: number; orientation?: 'pointy' | 'flat' };
 
 export type NodeLabel = {
   text: string;

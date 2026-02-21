@@ -330,6 +330,30 @@ function RenderShape({ node }: { node: VizNode }) {
                 ${x - halfW},${y}
             `;
       return <polygon points={points} className="viz-node-shape" />;
+    case 'cylinder': {
+      const cylRx = shape.w / 2;
+      const cylRy = shape.arcHeight ?? Math.round(shape.h * 0.15);
+      const topY = y - shape.h / 2;
+      const bottomY = y + shape.h / 2;
+      const x0 = x - cylRx;
+      const x1 = x + cylRx;
+      const bodyD = `M ${x0} ${topY} A ${cylRx} ${cylRy} 0 0 1 ${x1} ${topY} V ${bottomY} A ${cylRx} ${cylRy} 0 0 1 ${x0} ${bottomY} V ${topY} Z`;
+      return (
+        <g className="viz-node-shape">
+          <path d={bodyD} data-viz-cyl="body" />
+          <ellipse cx={x} cy={topY} rx={cylRx} ry={cylRy} data-viz-cyl="cap" />
+        </g>
+      );
+    }
+    case 'hexagon': {
+      const orientation = shape.orientation ?? 'pointy';
+      const angleOffset = orientation === 'pointy' ? -Math.PI / 2 : 0;
+      const hexPts = Array.from({ length: 6 }, (_, i) => {
+        const angle = angleOffset + (Math.PI / 3) * i;
+        return `${x + shape.r * Math.cos(angle)},${y + shape.r * Math.sin(angle)}`;
+      }).join(' ');
+      return <polygon points={hexPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

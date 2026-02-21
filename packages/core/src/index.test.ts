@@ -148,4 +148,59 @@ describe('vizcraft core', () => {
       expect(svg).toContain('ry="12"');
     });
   });
+
+  describe('hexagon shape', () => {
+    it('creates a node with hexagon shape via .hexagon(r)', () => {
+      const scene = viz()
+        .node('state')
+        .at(200, 100)
+        .hexagon(50)
+        .fill('#cba6f7')
+        .label('Idle')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('state');
+      expect(node.shape).toEqual({
+        kind: 'hexagon',
+        r: 50,
+        orientation: undefined,
+      });
+      expect(node.style?.fill).toBe('#cba6f7');
+      expect(node.label?.text).toBe('Idle');
+    });
+
+    it('creates a hexagon with flat orientation', () => {
+      const scene = viz().node('h').at(0, 0).hexagon(40, 'flat').build();
+
+      const node = scene.nodes[0]!;
+      expect(node.shape).toEqual({
+        kind: 'hexagon',
+        r: 40,
+        orientation: 'flat',
+      });
+    });
+
+    it('generates SVG markup for hexagon shape', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('state')
+        .at(200, 150)
+        .hexagon(50)
+        .fill('#cba6f7')
+        .label('Idle')
+        .svg();
+
+      // Hexagon should produce a <polygon> element
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('viz-node-shape');
+    });
+
+    it('defaults to pointy orientation', () => {
+      const svg = viz().view(400, 300).node('h').at(200, 150).hexagon(50).svg();
+
+      // Pointy-top: first vertex is directly above centre (x=200, y=100)
+      expect(svg).toContain('200,100');
+    });
+  });
 });
