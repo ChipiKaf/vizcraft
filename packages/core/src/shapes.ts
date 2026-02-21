@@ -486,6 +486,76 @@ const calloutBehavior: ShapeBehavior<'callout'> = {
   },
 };
 
+/**
+ * Compute the SVG path for a cloud shape that fits within a w×h bounding box
+ * centered at `pos`. The outline is built from 6 cubic Bézier bumps.
+ */
+function cloudPathD(
+  shape: Extract<NodeShape, { kind: 'cloud' }>,
+  pos: Vec2
+): string {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const cx = pos.x;
+  const cy = pos.y;
+
+  // 6 control-point "bumps" expressed as fractions of half-width / half-height.
+  // Each bump: [startX, startY, cp1x, cp1y, cp2x, cp2y, endX, endY]
+  const bumps: [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ][] = [
+    [-0.35, -0.85, -0.75, -1.2, -1.1, -0.5, -0.95, -0.2],
+    [-0.95, -0.2, -1.2, 0.3, -0.9, 0.9, -0.45, 0.85],
+    [-0.45, 0.85, -0.15, 1.15, 0.35, 1.15, 0.55, 0.8],
+    [0.55, 0.8, 0.85, 0.95, 1.15, 0.45, 1.0, 0.05],
+    [1.0, 0.05, 1.2, -0.45, 0.85, -0.95, 0.4, -0.85],
+    [0.4, -0.85, 0.05, -1.2, -0.45, -1.1, -0.35, -0.85],
+  ];
+
+  const parts: string[] = [
+    `M ${cx + bumps[0]![0] * hw} ${cy + bumps[0]![1] * hh}`,
+  ];
+  for (const [, , c1x, c1y, c2x, c2y, ex, ey] of bumps) {
+    parts.push(
+      `C ${cx + c1x * hw} ${cy + c1y * hh} ${cx + c2x * hw} ${cy + c2y * hh} ${cx + ex * hw} ${cy + ey * hh}`
+    );
+  }
+  parts.push('Z');
+  return parts.join(' ');
+}
+
+const cloudBehavior: ShapeBehavior<'cloud'> = {
+  kind: 'cloud',
+  tagName: 'path',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('d', cloudPathD(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const d = cloudPathD(shape, pos);
+    return `<path d="${d}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    // Bounding-ellipse approximation
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const a = shape.w / 2;
+    const b = shape.h / 2;
+    const denom = Math.sqrt(a * a * dy * dy + b * b * dx * dx) || 1;
+    return {
+      x: pos.x + (a * b * dx) / denom,
+      y: pos.y + (a * b * dy) / denom,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -498,6 +568,7 @@ const shapeBehaviorRegistry: {
   arc: arcBehavior,
   blockArrow: blockArrowBehavior,
   callout: calloutBehavior,
+  cloud: cloudBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

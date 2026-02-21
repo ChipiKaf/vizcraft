@@ -110,6 +110,7 @@ b.node('n1')
  .arc(r, start, end, [closed]) // Arc / pie slice
  .blockArrow(len, bodyW, headW, headLen, [dir]) // Block arrow
  .callout(w, h, [opts])   // Speech bubble / callout
+ .cloud(w, h)             // Cloud / thought bubble
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

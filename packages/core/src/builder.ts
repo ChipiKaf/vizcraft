@@ -188,6 +188,7 @@ interface NodeBuilder {
       pointerPosition?: number;
     }
   ): NodeBuilder;
+  cloud(w: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1443,6 +1444,11 @@ class NodeBuilderImpl implements NodeBuilder {
       pointerWidth: opts?.pointerWidth,
       pointerPosition: opts?.pointerPosition,
     };
+    return this;
+  }
+
+  cloud(w: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cloud', w, h };
     return this;
   }
 

@@ -33,7 +33,8 @@ export type NodeShape =
       pointerHeight?: number;
       pointerWidth?: number;
       pointerPosition?: number;
-    };
+    }
+  | { kind: 'cloud'; w: number; h: number };
 
 export type NodeLabel = {
   text: string;

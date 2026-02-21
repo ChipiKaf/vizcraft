@@ -478,6 +478,35 @@ function RenderShape({ node }: { node: VizNode }) {
       const calloutD = seg.filter(Boolean).join(' ');
       return <path d={calloutD} className="viz-node-shape" />;
     }
+    case 'cloud': {
+      const chw = shape.w / 2;
+      const chh = shape.h / 2;
+      const bumps: [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+      ][] = [
+        [-0.35, -0.85, -0.75, -1.2, -1.1, -0.5, -0.95, -0.2],
+        [-0.95, -0.2, -1.2, 0.3, -0.9, 0.9, -0.45, 0.85],
+        [-0.45, 0.85, -0.15, 1.15, 0.35, 1.15, 0.55, 0.8],
+        [0.55, 0.8, 0.85, 0.95, 1.15, 0.45, 1.0, 0.05],
+        [1.0, 0.05, 1.2, -0.45, 0.85, -0.95, 0.4, -0.85],
+        [0.4, -0.85, 0.05, -1.2, -0.45, -1.1, -0.35, -0.85],
+      ];
+      const cParts = [`M ${x + bumps[0]![0] * chw} ${y + bumps[0]![1] * chh}`];
+      for (const [, , c1x, c1y, c2x, c2y, ex, ey] of bumps) {
+        cParts.push(
+          `C ${x + c1x * chw} ${y + c1y * chh} ${x + c2x * chw} ${y + c2y * chh} ${x + ex * chw} ${y + ey * chh}`
+        );
+      }
+      cParts.push('Z');
+      return <path d={cParts.join(' ')} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

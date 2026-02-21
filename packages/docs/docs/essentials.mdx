@@ -107,6 +107,12 @@ export const shapesScene = viz()
   .callout(120, 60, { rx: 8, pointerSide: 'left' })
   .fill('#cba6f7')
   .label('callout (left)')
+  .node('cld')
+  .at(560, 460)
+  .cloud(120, 70)
+  .fill('#b4befe')
+  .stroke('#585b70', 2)
+  .label('cloud')
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -154,7 +160,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports nine built-in shapes:
+VizCraft supports ten built-in shapes:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -165,6 +171,7 @@ VizCraft supports nine built-in shapes:
 - `.arc(r, startAngle, endAngle, [closed])` — arc / pie slice. Angles in degrees (0 = right, 90 = bottom). Defaults to a closed pie; pass `false` for an open arc
 - `.blockArrow(length, bodyWidth, headWidth, headLength, [direction])` — thick directional arrow polygon. `direction` is `'right'` (default), `'left'`, `'up'`, or `'down'`
 - `.callout(w, h, [opts])` — speech bubble / callout. A rounded rectangle body with a triangular pointer. Options: `rx` (corner radius), `pointerSide` (`'bottom'` default, `'top'`, `'left'`, `'right'`), `pointerHeight`, `pointerWidth`, `pointerPosition` (0–1, default 0.3)
+- `.cloud(w, h)` — cloud / thought bubble. A bumpy outline built from cubic Bézier curves, sized to fit within the `w × h` bounding box. Commonly used for external systems, the internet, or cloud services
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
@@ -185,6 +192,7 @@ builder
 .node('ba').at(590, 210).blockArrow(90, 20, 40, 25).fill('#94e2d5').label('block arrow')
 .node('co').at(140, 460).callout(120, 60, { rx: 8 }).fill('#f9e2af').label('callout')
 .node('coL').at(350, 460).callout(120, 60, { rx: 8, pointerSide: 'left' }).fill('#cba6f7').label('callout (left)')
+.node('cld').at(560, 460).cloud(120, 70).fill('#b4befe').stroke('#585b70', 2).label('cloud')
 .done();
 
 const container = document.getElementById('viz-shapes');

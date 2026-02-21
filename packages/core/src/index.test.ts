@@ -449,4 +449,47 @@ describe('vizcraft core', () => {
       expect(svg).toContain('<path');
     });
   });
+
+  describe('cloud shape', () => {
+    it('creates a node with cloud shape via .cloud(w, h)', () => {
+      const scene = viz()
+        .node('inet')
+        .at(300, 200)
+        .cloud(160, 100)
+        .fill('#ffffff')
+        .stroke('#313244', 2)
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('inet');
+      expect(node.shape).toEqual({ kind: 'cloud', w: 160, h: 100 });
+      expect(node.style?.fill).toBe('#ffffff');
+      expect(node.style?.stroke).toBe('#313244');
+    });
+
+    it('renders a path with cubic Bézier curves in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('c')
+        .at(200, 150)
+        .cloud(140, 90)
+        .svg();
+
+      expect(svg).toContain('<path');
+      expect(svg).toContain(' C '); // cubic Bézier commands
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('scales to the given bounding box dimensions', () => {
+      const scene = viz().node('c').at(0, 0).cloud(200, 120).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'cloud';
+        w: number;
+        h: number;
+      };
+      expect(shape.w).toBe(200);
+      expect(shape.h).toBe(120);
+    });
+  });
 });
