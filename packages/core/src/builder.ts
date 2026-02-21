@@ -867,13 +867,18 @@ class VizBuilderImpl implements VizBuilder {
         line.removeAttribute('marker-end');
       }
 
-      // Per-edge style overrides (inline attrs override CSS defaults)
-      setSvgAttributes(line, {
-        stroke: edge.style?.stroke,
-        'stroke-width': edge.style?.strokeWidth,
-        fill: edge.style?.fill,
-        opacity: edge.style?.opacity,
-      });
+      // Per-edge style overrides (inline style wins over CSS class defaults)
+      if (edge.style?.stroke !== undefined)
+        line.style.stroke = edge.style.stroke;
+      else line.style.removeProperty('stroke');
+      if (edge.style?.strokeWidth !== undefined)
+        line.style.strokeWidth = String(edge.style.strokeWidth);
+      else line.style.removeProperty('stroke-width');
+      if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;
+      else line.style.removeProperty('fill');
+      if (edge.style?.opacity !== undefined)
+        line.style.opacity = String(edge.style.opacity);
+      else line.style.removeProperty('opacity');
 
       const oldHit =
         group.querySelector('[data-viz-role="edge-hit"]') ||
@@ -1324,13 +1329,16 @@ class VizBuilderImpl implements VizBuilder {
 
       svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
 
-      const edgeStyleAttrs = svgAttributeString({
-        stroke: edge.style?.stroke,
-        'stroke-width': edge.style?.strokeWidth,
-        fill: edge.style?.fill,
-        opacity: edge.style?.opacity,
-      });
-      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd}${edgeStyleAttrs} style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
+      let edgeInlineStyle = lineRuntimeStyle;
+      if (edge.style?.stroke !== undefined)
+        edgeInlineStyle += `stroke: ${edge.style.stroke}; `;
+      if (edge.style?.strokeWidth !== undefined)
+        edgeInlineStyle += `stroke-width: ${edge.style.strokeWidth}; `;
+      if (edge.style?.fill !== undefined)
+        edgeInlineStyle += `fill: ${edge.style.fill}; `;
+      if (edge.style?.opacity !== undefined)
+        edgeInlineStyle += `opacity: ${edge.style.opacity}; `;
+      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} style="${edgeInlineStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {

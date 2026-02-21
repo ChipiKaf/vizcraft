@@ -1403,7 +1403,7 @@ describe('vizcraft core', () => {
       expect(style.opacity).toBe(0.8);
     });
 
-    it('per-edge style renders as inline SVG attributes in svg()', () => {
+    it('per-edge style renders as inline styles in svg()', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1418,12 +1418,13 @@ describe('vizcraft core', () => {
 
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
-      expect(pathMatch![0]).toContain('stroke="#ff0000"');
-      expect(pathMatch![0]).toContain('stroke-width="3"');
-      expect(pathMatch![0]).toContain('fill="blue"');
+      // Per-edge styles are in the style attribute (inline wins over CSS class)
+      expect(pathMatch![0]).toContain('stroke: #ff0000');
+      expect(pathMatch![0]).toContain('stroke-width: 3');
+      expect(pathMatch![0]).toContain('fill: blue');
     });
 
-    it('edge without style does not add inline stroke/fill attributes', () => {
+    it('edge without style does not add inline stroke/fill styles', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1436,9 +1437,10 @@ describe('vizcraft core', () => {
 
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
-      // No inline stroke or fill when no style is set (CSS defaults apply)
-      expect(pathMatch![0]).not.toContain('stroke=');
-      expect(pathMatch![0]).not.toContain('fill=');
+      // style attribute should be empty when no per-edge style is set
+      const styleMatch = pathMatch![0].match(/style="([^"]*)"/);
+      expect(styleMatch).toBeTruthy();
+      expect(styleMatch![1]!.trim()).toBe('');
     });
   });
 });

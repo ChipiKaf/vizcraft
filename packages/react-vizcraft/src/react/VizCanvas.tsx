@@ -219,10 +219,12 @@ export function VizCanvas(props: VizCanvasProps) {
                   markerEnd={
                     edge.markerEnd === 'arrow' ? 'url(#viz-arrow)' : undefined
                   }
-                  stroke={edge.style?.stroke}
-                  strokeWidth={edge.style?.strokeWidth}
-                  fill={edge.style?.fill}
-                  opacity={edge.style?.opacity}
+                  style={{
+                    stroke: edge.style?.stroke,
+                    strokeWidth: edge.style?.strokeWidth,
+                    fill: edge.style?.fill,
+                    opacity: edge.style?.opacity,
+                  }}
                 />
 
                 {/* Hit Area */}

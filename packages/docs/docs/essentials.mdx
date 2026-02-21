@@ -474,11 +474,11 @@ if (el) builder.mount(el);
   <VizMount builder={edgeStyleScene} style={{ height: '220px', width: '100%' }} />
 </CodePreview>
 
-| Builder method           | Effect                                                              |
-| ------------------------ | ------------------------------------------------------------------- |
-| `.stroke(color, width?)` | Set stroke color and optional width (overrides CSS).                |
-| `.fill(color)`           | Set fill color (overrides CSS default of `none`).                   |
-| `.opacity(value)`        | Set opacity 0–1 (overrides CSS).                                    |
+| Builder method           | Effect                                               |
+| ------------------------ | ---------------------------------------------------- |
+| `.stroke(color, width?)` | Set stroke color and optional width (overrides CSS). |
+| `.fill(color)`           | Set fill color (overrides CSS default of `none`).    |
+| `.opacity(value)`        | Set opacity 0–1 (overrides CSS).                     |
 
 :::tip
 You can combine per-edge styling with CSS classes. Use `.class('my-edge')` for broad theming and `.stroke()` / `.fill()` / `.opacity()` for one-off overrides.
