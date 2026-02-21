@@ -7,7 +7,8 @@ export type NodeShape =
   | { kind: 'rect'; w: number; h: number; rx?: number }
   | { kind: 'diamond'; w: number; h: number }
   | { kind: 'cylinder'; w: number; h: number; arcHeight?: number }
-  | { kind: 'hexagon'; r: number; orientation?: 'pointy' | 'flat' };
+  | { kind: 'hexagon'; r: number; orientation?: 'pointy' | 'flat' }
+  | { kind: 'ellipse'; rx: number; ry: number };
 
 export type NodeLabel = {
   text: string;

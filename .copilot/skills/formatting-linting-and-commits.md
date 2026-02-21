@@ -6,10 +6,16 @@ license: Complete terms in LICENSE.txt
 
 # Formatting, Linting, and Commits
 
+## Docs are part of the feature
+
+- For every user-facing change, update `README.md`, `packages/core/README.md`, and/or `packages/docs/docs/**`.
+- Prefer comprehensive Docusaurus updates for anything beyond trivial tweaks.
+
 ## Format is not optional
 
 - Keep output compatible with Prettier settings (single quotes, semicolons).
 - Don’t hand-format large sections; run formatters instead.
+
 
 ## Follow ESLint guidance
 

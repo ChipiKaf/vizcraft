@@ -203,4 +203,56 @@ describe('vizcraft core', () => {
       expect(svg).toContain('200,100');
     });
   });
+
+  describe('ellipse shape', () => {
+    it('creates a node with ellipse shape via .ellipse(rx, ry)', () => {
+      const scene = viz()
+        .node('oval')
+        .at(100, 100)
+        .ellipse(70, 40)
+        .fill('#89b4fa')
+        .label('Oval')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('oval');
+      expect(node.shape).toEqual({ kind: 'ellipse', rx: 70, ry: 40 });
+      expect(node.style?.fill).toBe('#89b4fa');
+      expect(node.label?.text).toBe('Oval');
+    });
+
+    it('generates SVG markup for ellipse shape', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('oval')
+        .at(200, 150)
+        .ellipse(70, 40)
+        .fill('#89b4fa')
+        .svg();
+
+      expect(svg).toContain('<ellipse');
+      expect(svg).toContain('rx="70"');
+      expect(svg).toContain('ry="40"');
+      expect(svg).toContain('cx="200"');
+      expect(svg).toContain('cy="150"');
+    });
+
+    it('computes correct boundary anchor point', () => {
+      const scene = viz()
+        .node('e')
+        .at(0, 0)
+        .ellipse(60, 30)
+        .node('t')
+        .at(100, 0)
+        .circle(5)
+        .edge('e', 't')
+        .connect('boundary')
+        .build();
+
+      // For a target directly to the right (dx=100, dy=0), the boundary
+      // should land at (rx, 0) = (60, 0)
+      const edge = scene.edges[0]!;
+      expect(edge.anchor).toBe('boundary');
+    });
+  });
 });

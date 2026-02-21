@@ -4,7 +4,7 @@ export type AnchorMode = 'center' | 'boundary';
 
 export interface ShapeBehavior<K extends NodeShape['kind']> {
   kind: K;
-  tagName: 'circle' | 'rect' | 'polygon' | 'g';
+  tagName: 'circle' | 'rect' | 'polygon' | 'g' | 'ellipse';
   applyGeometry(
     el: SVGElement,
     shape: Extract<NodeShape, { kind: K }>,
@@ -235,6 +235,33 @@ const hexagonBehavior: ShapeBehavior<'hexagon'> = {
   },
 };
 
+const ellipseBehavior: ShapeBehavior<'ellipse'> = {
+  kind: 'ellipse',
+  tagName: 'ellipse',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('cx', String(pos.x));
+    el.setAttribute('cy', String(pos.y));
+    el.setAttribute('rx', String(shape.rx));
+    el.setAttribute('ry', String(shape.ry));
+  },
+  svgMarkup(shape, pos, attrs) {
+    return `<ellipse cx="${pos.x}" cy="${pos.y}" rx="${shape.rx}" ry="${shape.ry}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const denom =
+      Math.sqrt(
+        shape.rx * shape.rx * dy * dy + shape.ry * shape.ry * dx * dx
+      ) || 1;
+    return {
+      x: pos.x + (shape.rx * shape.ry * dx) / denom,
+      y: pos.y + (shape.rx * shape.ry * dy) / denom,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -243,6 +270,7 @@ const shapeBehaviorRegistry: {
   diamond: diamondBehavior,
   cylinder: cylinderBehavior,
   hexagon: hexagonBehavior,
+  ellipse: ellipseBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

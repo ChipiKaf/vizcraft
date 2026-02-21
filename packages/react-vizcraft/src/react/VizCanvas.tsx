@@ -354,6 +354,16 @@ function RenderShape({ node }: { node: VizNode }) {
       }).join(' ');
       return <polygon points={hexPts} className="viz-node-shape" />;
     }
+    case 'ellipse':
+      return (
+        <ellipse
+          cx={x}
+          cy={y}
+          rx={shape.rx}
+          ry={shape.ry}
+          className="viz-node-shape"
+        />
+      );
     default:
       return null;
   }
