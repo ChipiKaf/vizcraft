@@ -17,6 +17,10 @@ export interface EdgePathResult {
   d: string;
   /** Approximate label position along the path (exact for straight/quadratic, approximated for spline and orthogonal-with-waypoints paths). */
   mid: Vec2;
+  /** Position near the source end (~15% along the path). */
+  start: Vec2;
+  /** Position near the target end (~85% along the path). */
+  end: Vec2;
 }
 
 /**
@@ -76,9 +80,10 @@ function straightPath(
   const segments = pts.map((p, i) =>
     i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
   );
+  const positions = polylineLabelPositions(pts);
   return {
     d: segments.join(' '),
-    mid: polylineMidpoint(pts),
+    ...positions,
   };
 }
 
@@ -97,8 +102,10 @@ function curvedPath(
   // No waypoints: single quadratic bezier with auto-computed control point.
   const cp = autoControlPoint(start, end);
   const d = `M ${start.x} ${start.y} Q ${cp.x} ${cp.y} ${end.x} ${end.y}`;
-  const mid = quadraticMid(start, cp, end);
-  return { d, mid };
+  const mid = quadraticAt(start, cp, end, 0.5);
+  const startPos = quadraticAt(start, cp, end, LABEL_FRACTION_START);
+  const endPos = quadraticAt(start, cp, end, LABEL_FRACTION_END);
+  return { d, mid, start: startPos, end: endPos };
 }
 
 /**
@@ -119,11 +126,12 @@ function autoControlPoint(start: Vec2, end: Vec2): Vec2 {
   };
 }
 
-/** Midpoint of a quadratic bezier at t=0.5. */
-function quadraticMid(p0: Vec2, cp: Vec2, p1: Vec2): Vec2 {
+/** Point on a quadratic bezier at parameter t (0–1). */
+function quadraticAt(p0: Vec2, cp: Vec2, p1: Vec2, t: number): Vec2 {
+  const mt = 1 - t;
   return {
-    x: 0.25 * p0.x + 0.5 * cp.x + 0.25 * p1.x,
-    y: 0.25 * p0.y + 0.5 * cp.y + 0.25 * p1.y,
+    x: mt * mt * p0.x + 2 * mt * t * cp.x + t * t * p1.x,
+    y: mt * mt * p0.y + 2 * mt * t * cp.y + t * t * p1.y,
   };
 }
 
@@ -145,7 +153,9 @@ function curvedThroughPoints(
     const cp = autoControlPoint(start, end);
     return {
       d: `M ${start.x} ${start.y} Q ${cp.x} ${cp.y} ${end.x} ${end.y}`,
-      mid: quadraticMid(start, cp, end),
+      mid: quadraticAt(start, cp, end, 0.5),
+      start: quadraticAt(start, cp, end, LABEL_FRACTION_START),
+      end: quadraticAt(start, cp, end, LABEL_FRACTION_END),
     };
   }
 
@@ -167,14 +177,10 @@ function curvedThroughPoints(
     d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
   }
 
-  // Approximate midpoint: middle segment at t=0.5 (simple midpoint for label)
-  const midIdx = Math.floor(allPts.length / 2);
-  const mid: Vec2 = {
-    x: (allPts[midIdx - 1]!.x + allPts[midIdx]!.x) / 2,
-    y: (allPts[midIdx - 1]!.y + allPts[midIdx]!.y) / 2,
-  };
+  // Approximate label positions using the through-points polyline
+  const positions = polylineLabelPositions(allPts);
 
-  return { d, mid };
+  return { d, ...positions };
 }
 
 // ── Orthogonal routing ──────────────────────────────────────────────────────
@@ -203,20 +209,38 @@ function autoOrthogonal(start: Vec2, end: Vec2): EdgePathResult {
 
   let d: string;
   let mid: Vec2;
+  let startPos: Vec2;
+  let endPos: Vec2;
 
   if (dx >= dy) {
     // Horizontal-first elbow:  start → (midX, start.y) → (midX, end.y) → end
     const midX = (start.x + end.x) / 2;
     d = `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
-    mid = { x: midX, y: (start.y + end.y) / 2 };
+    const pts: Vec2[] = [
+      start,
+      { x: midX, y: start.y },
+      { x: midX, y: end.y },
+      end,
+    ];
+    mid = polylinePointAt(pts, 0.5);
+    startPos = polylinePointAt(pts, LABEL_FRACTION_START);
+    endPos = polylinePointAt(pts, LABEL_FRACTION_END);
   } else {
     // Vertical-first elbow:  start → (start.x, midY) → (end.x, midY) → end
     const midY = (start.y + end.y) / 2;
     d = `M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`;
-    mid = { x: (start.x + end.x) / 2, y: midY };
+    const pts: Vec2[] = [
+      start,
+      { x: start.x, y: midY },
+      { x: end.x, y: midY },
+      end,
+    ];
+    mid = polylinePointAt(pts, 0.5);
+    startPos = polylinePointAt(pts, LABEL_FRACTION_START);
+    endPos = polylinePointAt(pts, LABEL_FRACTION_END);
   }
 
-  return { d, mid };
+  return { d, mid, start: startPos, end: endPos };
 }
 
 /**
@@ -231,36 +255,35 @@ function orthogonalThroughWaypoints(
   const allPts = [start, ...waypoints, end];
   let d = `M ${allPts[0]!.x} ${allPts[0]!.y}`;
 
+  // Build the actual rendered points (including elbow intermediaries)
+  const renderedPts: Vec2[] = [allPts[0]!];
   for (let i = 1; i < allPts.length; i++) {
     const prev = allPts[i - 1]!;
     const cur = allPts[i]!;
     // Elbow: go horizontal first, then vertical
     d += ` L ${cur.x} ${prev.y} L ${cur.x} ${cur.y}`;
+    renderedPts.push({ x: cur.x, y: prev.y });
+    renderedPts.push(cur);
   }
 
-  const midIdx = Math.floor(allPts.length / 2);
-  const mid: Vec2 = {
-    x: (allPts[midIdx - 1]!.x + allPts[midIdx]!.x) / 2,
-    y: (allPts[midIdx - 1]!.y + allPts[midIdx]!.y) / 2,
-  };
-
-  return { d, mid };
+  const positions = polylineLabelPositions(renderedPts);
+  return { d, ...positions };
 }
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
-/** Midpoint along a polyline by arc length (point at half the total path length). */
-function polylineMidpoint(pts: Vec2[]): Vec2 {
+/** Fraction along the path for each label position. */
+const LABEL_FRACTION_START = 0.15;
+const LABEL_FRACTION_END = 0.85;
+
+/**
+ * Point along a polyline at a given fraction (0–1) of total arc length.
+ * Fraction 0 = first point, 1 = last point.
+ */
+function polylinePointAt(pts: Vec2[], fraction: number): Vec2 {
   if (pts.length === 0) return { x: 0, y: 0 };
   if (pts.length === 1) return pts[0]!;
-  if (pts.length === 2) {
-    return {
-      x: (pts[0]!.x + pts[1]!.x) / 2,
-      y: (pts[0]!.y + pts[1]!.y) / 2,
-    };
-  }
 
-  // Walk segments, find the point at half the total length.
   let totalLen = 0;
   for (let i = 1; i < pts.length; i++) {
     const dx = pts[i]!.x - pts[i - 1]!.x;
@@ -268,14 +291,14 @@ function polylineMidpoint(pts: Vec2[]): Vec2 {
     totalLen += Math.sqrt(dx * dx + dy * dy);
   }
 
-  const half = totalLen / 2;
+  const target = totalLen * fraction;
   let accumulated = 0;
   for (let i = 1; i < pts.length; i++) {
     const dx = pts[i]!.x - pts[i - 1]!.x;
     const dy = pts[i]!.y - pts[i - 1]!.y;
     const segLen = Math.sqrt(dx * dx + dy * dy);
-    if (accumulated + segLen >= half) {
-      const t = segLen === 0 ? 0 : (half - accumulated) / segLen;
+    if (accumulated + segLen >= target) {
+      const t = segLen === 0 ? 0 : (target - accumulated) / segLen;
       return {
         x: pts[i - 1]!.x + dx * t,
         y: pts[i - 1]!.y + dy * t,
@@ -285,4 +308,17 @@ function polylineMidpoint(pts: Vec2[]): Vec2 {
   }
 
   return pts[pts.length - 1]!;
+}
+
+/** Shorthand: compute start, mid, end label positions for a polyline. */
+function polylineLabelPositions(pts: Vec2[]): {
+  start: Vec2;
+  mid: Vec2;
+  end: Vec2;
+} {
+  return {
+    start: polylinePointAt(pts, LABEL_FRACTION_START),
+    mid: polylinePointAt(pts, 0.5),
+    end: polylinePointAt(pts, LABEL_FRACTION_END),
+  };
 }

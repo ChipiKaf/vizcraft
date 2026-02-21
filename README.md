@@ -171,6 +171,12 @@ b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow()
 
 // Per-edge styling (overrides CSS defaults)
 b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8)
+
+// Multi-position edge labels (start / mid / end)
+b.edge('a', 'b')
+ .label('1', { position: 'start' })
+ .label('*', { position: 'end' })
+ .arrow()
 ```
 
 | Method | Description |
@@ -180,6 +186,7 @@ b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8)
 | `.orthogonal()` | Right-angle elbows. |
 | `.routing(mode)` | Set mode programmatically. |
 | `.via(x, y)` | Add an intermediate waypoint (chainable). |
+| `.label(text, opts?)` | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`. |
 | `.stroke(color, width?)` | Set stroke color and optional width. |
 | `.fill(color)` | Set fill color. |
 | `.opacity(value)` | Set opacity (0–1). |

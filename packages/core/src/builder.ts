@@ -22,7 +22,11 @@ import {
   patchRuntime,
   type RuntimePatchCtx,
 } from './runtimePatcher';
-import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  type EdgePathResult,
+} from './edgePaths';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -35,6 +39,36 @@ function colorToMarkerSuffix(color: string): string {
 /** Return the marker id to use for an edge with an optional custom stroke. */
 function arrowMarkerIdFor(stroke: string | undefined): string {
   return stroke ? `viz-arrow-${colorToMarkerSuffix(stroke)}` : 'viz-arrow';
+}
+
+/**
+ * Resolve the (x, y) position of an edge label given an EdgePathResult.
+ * Falls back to `mid` for unknown positions.
+ */
+function resolveEdgeLabelPosition(
+  lbl: EdgeLabel,
+  path: EdgePathResult
+): { x: number; y: number } {
+  const base =
+    lbl.position === 'start'
+      ? path.start
+      : lbl.position === 'end'
+        ? path.end
+        : path.mid;
+  return {
+    x: base.x + (lbl.dx || 0),
+    y: base.y + (lbl.dy || 0),
+  };
+}
+
+/**
+ * Collect all labels for an edge, preferring `labels[]` when present
+ * and falling back to the legacy `label` field.
+ */
+function collectEdgeLabels(edge: VizEdge): EdgeLabel[] {
+  if (edge.labels && edge.labels.length > 0) return edge.labels;
+  if (edge.label) return [edge.label];
+  return [];
 }
 
 import type { AnimationSpec } from './anim/spec';
@@ -939,28 +973,26 @@ class VizBuilderImpl implements VizBuilder {
         group.appendChild(hit);
       }
 
-      // Label (Recreate vs Update)
-      const oldLabel =
-        group.querySelector('[data-viz-role="edge-label"]') ||
-        group.querySelector('.viz-edge-label');
-      if (oldLabel) oldLabel.remove();
+      // Labels (remove all old, re-create from labels[])
+      group
+        .querySelectorAll('[data-viz-role="edge-label"],.viz-edge-label')
+        .forEach((el) => el.remove());
 
-      if (edge.label) {
+      const allLabels = collectEdgeLabels(edge);
+      allLabels.forEach((lbl, idx) => {
+        const pos = resolveEdgeLabelPosition(lbl, edgePath);
         const text = document.createElementNS(svgNS, 'text');
-        const mx = edgePath.mid.x + (edge.label.dx || 0);
-        const my = edgePath.mid.y + (edge.label.dy || 0);
-        text.setAttribute('x', String(mx));
-        text.setAttribute('y', String(my));
-        text.setAttribute(
-          'class',
-          `viz-edge-label ${edge.label.className || ''}`
-        );
+        text.setAttribute('x', String(pos.x));
+        text.setAttribute('y', String(pos.y));
+        text.setAttribute('class', `viz-edge-label ${lbl.className || ''}`);
         text.setAttribute('data-viz-role', 'edge-label');
+        text.setAttribute('data-label-index', String(idx));
+        text.setAttribute('data-label-position', lbl.position);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
-        text.textContent = edge.label.text;
+        text.textContent = lbl.text;
         group.appendChild(text);
-      }
+      });
     });
 
     // Remove stale edges
@@ -1392,13 +1424,13 @@ class VizBuilderImpl implements VizBuilder {
         edgeInlineStyle += `opacity: ${edge.style.opacity}; `;
       svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} style="${edgeInlineStyle}"${lineRuntimeAttrs} />`;
 
-      // Edge Label
-      if (edge.label) {
-        const mx = edgePath.mid.x + (edge.label.dx || 0);
-        const my = edgePath.mid.y + (edge.label.dy || 0);
-        const labelClass = `viz-edge-label ${edge.label.className || ''}`;
-        svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" data-viz-role="edge-label" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
-      }
+      // Edge Labels (multi-position)
+      const allLabels = collectEdgeLabels(edge);
+      allLabels.forEach((lbl, idx) => {
+        const pos = resolveEdgeLabelPosition(lbl, edgePath);
+        const labelClass = `viz-edge-label ${lbl.className || ''}`;
+        svgContent += `<text x="${pos.x}" y="${pos.y}" class="${labelClass}" data-viz-role="edge-label" data-label-index="${idx}" data-label-position="${lbl.position}" text-anchor="middle" dominant-baseline="middle">${lbl.text}</text>`;
+      });
       svgContent += '</g>';
     });
     svgContent += '</g>';
@@ -1914,7 +1946,16 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder {
-    this.edgeDef.label = { position: 'mid', text, dy: -10, ...opts };
+    const lbl: EdgeLabel = { position: 'mid', text, dy: -10, ...opts };
+    // Accumulate into the labels array
+    if (!this.edgeDef.labels) {
+      this.edgeDef.labels = [];
+    }
+    this.edgeDef.labels.push(lbl);
+    // Backwards compat: keep the first mid label in `label`
+    if (lbl.position === 'mid' && !this.edgeDef.label) {
+      this.edgeDef.label = lbl;
+    }
     return this;
   }
 

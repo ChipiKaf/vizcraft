@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
-import type { VizScene, VizNode, VizEdge } from 'vizcraft';
-import { computeEdgePath, computeEdgeEndpoints } from 'vizcraft';
+import type { VizScene, VizNode, VizEdge, EdgeLabel } from 'vizcraft';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  type EdgePathResult,
+} from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -15,6 +19,27 @@ function arrowMarkerIdFor(stroke: string | undefined): string {
   return stroke
     ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
     : 'viz-arrow';
+}
+
+/** Resolve the (x, y) position of an edge label given an EdgePathResult. */
+function resolveEdgeLabelPosition(
+  lbl: EdgeLabel,
+  path: EdgePathResult
+): { x: number; y: number } {
+  const base =
+    lbl.position === 'start'
+      ? path.start
+      : lbl.position === 'end'
+        ? path.end
+        : path.mid;
+  return { x: base.x + (lbl.dx || 0), y: base.y + (lbl.dy || 0) };
+}
+
+/** Collect all labels, preferring labels[] over legacy label. */
+function collectEdgeLabels(edge: VizEdge): EdgeLabel[] {
+  if (edge.labels && edge.labels.length > 0) return edge.labels;
+  if (edge.label) return [edge.label];
+  return [];
 }
 
 export interface VizCanvasProps {
@@ -273,19 +298,25 @@ export function VizCanvas(props: VizCanvasProps) {
                   />
                 )}
 
-                {/* Edge Label */}
-                {edge.label && (
-                  <text
-                    x={edgePath.mid.x + (edge.label.dx || 0)}
-                    y={edgePath.mid.y + (edge.label.dy || 0)}
-                    className={`viz-edge-label ${edge.label.className || ''}`}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {edge.label.text}
-                  </text>
-                )}
+                {/* Edge Labels (multi-position) */}
+                {collectEdgeLabels(edge).map((lbl, idx) => {
+                  const pos = resolveEdgeLabelPosition(lbl, edgePath);
+                  return (
+                    <text
+                      key={`${edge.id}-label-${idx}`}
+                      x={pos.x}
+                      y={pos.y}
+                      className={`viz-edge-label ${lbl.className || ''}`}
+                      data-label-index={idx}
+                      data-label-position={lbl.position}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {lbl.text}
+                    </text>
+                  );
+                })}
               </g>
             );
           })}

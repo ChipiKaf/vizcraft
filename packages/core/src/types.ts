@@ -140,7 +140,10 @@ export interface VizEdge {
   id: string;
   from: string;
   to: string;
+  /** @deprecated Use `labels` for multi-position support. Kept for backwards compatibility. */
   label?: EdgeLabel;
+  /** Multiple labels at different positions along the edge. */
+  labels?: EdgeLabel[];
   runtime?: VizRuntimeEdgeProps;
   markerEnd?: 'arrow' | 'none';
   anchor?: 'center' | 'boundary';

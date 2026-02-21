@@ -1,6 +1,10 @@
-import type { VizScene } from './types';
+import type { VizScene, VizEdge, EdgeLabel } from './types';
 import { applyShapeGeometry, effectivePos } from './shapes';
-import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  type EdgePathResult,
+} from './edgePaths';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -37,6 +41,27 @@ function ensureColoredMarker(svg: SVGSVGElement, color: string): string {
   return mid;
 }
 
+/** Resolve the (x, y) position of an edge label given an EdgePathResult. */
+function resolveEdgeLabelPosition(
+  lbl: EdgeLabel,
+  path: EdgePathResult
+): { x: number; y: number } {
+  const base =
+    lbl.position === 'start'
+      ? path.start
+      : lbl.position === 'end'
+        ? path.end
+        : path.mid;
+  return { x: base.x + (lbl.dx || 0), y: base.y + (lbl.dy || 0) };
+}
+
+/** Collect all labels, preferring labels[] over legacy label. */
+function collectEdgeLabels(edge: VizEdge): EdgeLabel[] {
+  if (edge.labels && edge.labels.length > 0) return edge.labels;
+  if (edge.label) return [edge.label];
+  return [];
+}
+
 export interface RuntimePatchCtx {
   svg: SVGSVGElement;
 
@@ -47,7 +72,7 @@ export interface RuntimePatchCtx {
   edgeGroupsById: Map<string, SVGGElement>;
   edgeLinesById: Map<string, SVGPathElement>;
   edgeHitsById: Map<string, SVGPathElement>;
-  edgeLabelsById: Map<string, SVGTextElement>;
+  edgeLabelsById: Map<string, SVGTextElement[]>;
 }
 
 export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
@@ -58,7 +83,7 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
   const edgeGroupsById = new Map<string, SVGGElement>();
   const edgeLinesById = new Map<string, SVGPathElement>();
   const edgeHitsById = new Map<string, SVGPathElement>();
-  const edgeLabelsById = new Map<string, SVGTextElement>();
+  const edgeLabelsById = new Map<string, SVGTextElement[]>();
 
   const nodeLayer =
     svg.querySelector('[data-viz-layer="nodes"]') ||
@@ -106,10 +131,12 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
         group.querySelector<SVGPathElement>('.viz-edge-hit');
       if (hit) edgeHitsById.set(id, hit);
 
-      const label =
-        group.querySelector<SVGTextElement>('[data-viz-role="edge-label"]') ||
-        group.querySelector<SVGTextElement>('.viz-edge-label');
-      if (label) edgeLabelsById.set(id, label);
+      const labels = Array.from(
+        group.querySelectorAll<SVGTextElement>(
+          '[data-viz-role="edge-label"],.viz-edge-label'
+        )
+      );
+      if (labels.length > 0) edgeLabelsById.set(id, labels);
     }
   }
 
@@ -270,12 +297,16 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       hit.setAttribute('d', edgePath.d);
     }
 
-    const label = ctx.edgeLabelsById.get(edge.id);
-    if (label && edge.label) {
-      const mx = edgePath.mid.x + (edge.label.dx || 0);
-      const my = edgePath.mid.y + (edge.label.dy || 0);
-      label.setAttribute('x', String(mx));
-      label.setAttribute('y', String(my));
+    const labelEls = ctx.edgeLabelsById.get(edge.id);
+    if (labelEls) {
+      const allLabels = collectEdgeLabels(edge);
+      labelEls.forEach((el, idx) => {
+        const lbl = allLabels[idx];
+        if (!lbl) return;
+        const pos = resolveEdgeLabelPosition(lbl, edgePath);
+        el.setAttribute('x', String(pos.x));
+        el.setAttribute('y', String(pos.y));
+      });
     }
 
     // Runtime overrides
