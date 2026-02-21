@@ -680,4 +680,51 @@ describe('vizcraft core', () => {
       expect(shape.waveHeight).toBe(15);
     });
   });
+
+  describe('note', () => {
+    it('creates a note node with default foldSize', () => {
+      const scene = viz()
+        .node('ann')
+        .at(100, 200)
+        .note(140, 80)
+        .fill('#f9e2af')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('ann');
+      expect(node.shape).toEqual({
+        kind: 'note',
+        w: 140,
+        h: 80,
+        foldSize: undefined,
+      });
+      expect(node.style?.fill).toBe('#f9e2af');
+    });
+
+    it('renders a <g> with body and fold polygons in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('n')
+        .at(200, 150)
+        .note(120, 80, 20)
+        .svg();
+
+      expect(svg).toContain('data-viz-note="body"');
+      expect(svg).toContain('data-viz-note="fold"');
+    });
+
+    it('supports custom foldSize', () => {
+      const scene = viz().node('n').at(0, 0).note(100, 60, 25).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'note';
+        w: number;
+        h: number;
+        foldSize: number;
+      };
+      expect(shape.w).toBe(100);
+      expect(shape.h).toBe(60);
+      expect(shape.foldSize).toBe(25);
+    });
+  });
 });

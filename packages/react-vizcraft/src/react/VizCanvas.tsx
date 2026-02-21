@@ -583,6 +583,27 @@ function RenderShape({ node }: { node: VizNode }) {
         ' Z';
       return <path d={docD} className="viz-node-shape" />;
     }
+    case 'note': {
+      const nhw = shape.w / 2;
+      const nhh = shape.h / 2;
+      const nf = shape.foldSize ?? 15;
+      const nx0 = x - nhw;
+      const nx1 = x + nhw;
+      const ny0 = y - nhh;
+      const ny1 = y + nhh;
+      const bodyPts = `${nx0},${ny0} ${nx1 - nf},${ny0} ${nx1},${ny0 + nf} ${nx1},${ny1} ${nx0},${ny1}`;
+      const foldPts = `${nx1 - nf},${ny0} ${nx1 - nf},${ny0 + nf} ${nx1},${ny0 + nf}`;
+      return (
+        <g className="viz-node-shape">
+          <polygon points={bodyPts} data-viz-note="body" />
+          <polygon
+            points={foldPts}
+            data-viz-note="fold"
+            style={{ filter: 'brightness(0.8)' }}
+          />
+        </g>
+      );
+    }
     default:
       return null;
   }

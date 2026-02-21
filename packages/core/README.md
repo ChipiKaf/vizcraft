@@ -115,6 +115,7 @@ b.node('n1')
  .cube(w, h, [depth])      // 3D isometric cube
  .path(d, w, h)            // Custom SVG path
  .document(w, h, [wave])   // Document (wavy bottom)
+ .note(w, h, [foldSize])   // Note (folded corner)
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

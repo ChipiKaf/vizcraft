@@ -773,6 +773,79 @@ const documentBehavior: ShapeBehavior<'document'> = {
   },
 };
 
+function noteVertices(shape: Extract<NodeShape, { kind: 'note' }>, pos: Vec2) {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const f = shape.foldSize ?? 15;
+  const x0 = pos.x - hw;
+  const x1 = pos.x + hw;
+  const y0 = pos.y - hh;
+  const y1 = pos.y + hh;
+  return { x0, x1, y0, y1, f };
+}
+
+const noteBehavior: ShapeBehavior<'note'> = {
+  kind: 'note',
+  tagName: 'g',
+  applyGeometry(el, shape, pos) {
+    const { x0, x1, y0, y1, f } = noteVertices(shape, pos);
+
+    let body = el.querySelector(
+      '[data-viz-note="body"]'
+    ) as SVGPolygonElement | null;
+    if (!body) {
+      body = document.createElementNS(SVG_NS, 'polygon');
+      body.setAttribute('data-viz-note', 'body');
+      el.appendChild(body);
+    }
+    body.setAttribute(
+      'points',
+      `${x0},${y0} ${x1 - f},${y0} ${x1},${y0 + f} ${x1},${y1} ${x0},${y1}`
+    );
+
+    let fold = el.querySelector(
+      '[data-viz-note="fold"]'
+    ) as SVGPolygonElement | null;
+    if (!fold) {
+      fold = document.createElementNS(SVG_NS, 'polygon');
+      fold.setAttribute('data-viz-note', 'fold');
+      el.appendChild(fold);
+    }
+    fold.setAttribute(
+      'points',
+      `${x1 - f},${y0} ${x1 - f},${y0 + f} ${x1},${y0 + f}`
+    );
+    fold.style.filter = 'brightness(0.8)';
+  },
+  svgMarkup(shape, pos, attrs) {
+    const { x0, x1, y0, y1, f } = noteVertices(shape, pos);
+    const bodyPts = `${x0},${y0} ${x1 - f},${y0} ${x1},${y0 + f} ${x1},${y1} ${x0},${y1}`;
+    const foldPts = `${x1 - f},${y0} ${x1 - f},${y0 + f} ${x1},${y0 + f}`;
+    const end = '</g>';
+    return (
+      `<g class="viz-node-shape" data-viz-role="node-shape"${attrs}>` +
+      `<polygon points="${bodyPts}" data-viz-note="body"/>` +
+      `<polygon points="${foldPts}" data-viz-note="fold" style="filter:brightness(0.8)"/>` +
+      end
+    );
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -790,6 +863,7 @@ const shapeBehaviorRegistry: {
   cube: cubeBehavior,
   path: pathBehavior,
   document: documentBehavior,
+  note: noteBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {
