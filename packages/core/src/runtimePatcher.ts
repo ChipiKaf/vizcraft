@@ -1,4 +1,4 @@
-import type { VizScene } from './types';
+import type { VizScene, EdgeMarkerType } from './types';
 import { applyShapeGeometry, effectivePos } from './shapes';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
@@ -6,32 +6,135 @@ import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 const svgNS = 'http://www.w3.org/2000/svg';
 
 /** Sanitise a CSS color for use as a marker ID suffix. */
-function arrowMarkerIdFor(stroke: string | undefined): string {
-  return stroke
-    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
-    : 'viz-arrow';
+function colorToMarkerSuffix(color: string): string {
+  return color.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+/** Return the marker id to use for a marker type with an optional custom stroke. */
+function markerIdFor(
+  markerType: EdgeMarkerType,
+  stroke: string | undefined
+): string {
+  if (markerType === 'none') return '';
+  const base = `viz-${markerType}`;
+  return stroke ? `${base}-${colorToMarkerSuffix(stroke)}` : base;
 }
 
 /**
- * Ensure a `<marker>` for the given color exists inside `<defs>`.
- * Creates one on the fly when the RuntimePatcher encounters a new stroke color.
+ * Create the SVG content element(s) for a marker type.
  */
-function ensureColoredMarker(svg: SVGSVGElement, color: string): string {
-  const mid = arrowMarkerIdFor(color);
+function createMarkerContent(
+  markerType: EdgeMarkerType,
+  color: string
+): SVGElement | null {
+  switch (markerType) {
+    case 'arrow': {
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0,2 10,5 0,8');
+      p.setAttribute('fill', color);
+      return p;
+    }
+    case 'arrowOpen': {
+      const p = document.createElementNS(svgNS, 'polyline');
+      p.setAttribute('points', '0,2 10,5 0,8');
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', color);
+      p.setAttribute('stroke-width', '1.5');
+      p.setAttribute('stroke-linejoin', 'miter');
+      return p;
+    }
+    case 'diamond': {
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0,5 5,2 10,5 5,8');
+      p.setAttribute('fill', color);
+      return p;
+    }
+    case 'diamondOpen': {
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0,5 5,2 10,5 5,8');
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', color);
+      p.setAttribute('stroke-width', '1.5');
+      return p;
+    }
+    case 'circle': {
+      const c = document.createElementNS(svgNS, 'circle');
+      c.setAttribute('cx', '5');
+      c.setAttribute('cy', '5');
+      c.setAttribute('r', '3');
+      c.setAttribute('fill', color);
+      return c;
+    }
+    case 'circleOpen': {
+      const c = document.createElementNS(svgNS, 'circle');
+      c.setAttribute('cx', '5');
+      c.setAttribute('cy', '5');
+      c.setAttribute('r', '3');
+      c.setAttribute('fill', 'none');
+      c.setAttribute('stroke', color);
+      c.setAttribute('stroke-width', '1.5');
+      return c;
+    }
+    case 'square': {
+      const r = document.createElementNS(svgNS, 'rect');
+      r.setAttribute('x', '2');
+      r.setAttribute('y', '2');
+      r.setAttribute('width', '6');
+      r.setAttribute('height', '6');
+      r.setAttribute('fill', color);
+      return r;
+    }
+    case 'bar': {
+      const l = document.createElementNS(svgNS, 'line');
+      l.setAttribute('x1', '5');
+      l.setAttribute('y1', '1');
+      l.setAttribute('x2', '5');
+      l.setAttribute('y2', '9');
+      l.setAttribute('stroke', color);
+      l.setAttribute('stroke-width', '2');
+      l.setAttribute('stroke-linecap', 'round');
+      return l;
+    }
+    case 'halfArrow': {
+      const p = document.createElementNS(svgNS, 'polyline');
+      p.setAttribute('points', '0,5 10,2');
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', color);
+      p.setAttribute('stroke-width', '1.5');
+      p.setAttribute('stroke-linecap', 'round');
+      return p;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Ensure a `<marker>` for the given color and type exists inside `<defs>`.
+ * Creates one on the fly when the RuntimePatcher encounters a new stroke color or marker type.
+ */
+function ensureColoredMarker(
+  svg: SVGSVGElement,
+  color: string,
+  markerType: EdgeMarkerType = 'arrow'
+): string {
+  const mid = markerIdFor(markerType, color);
+  if (!mid) return '';
   if (!svg.querySelector(`#${CSS.escape(mid)}`)) {
     const defs = svg.querySelector('defs');
     if (defs) {
       const m = document.createElementNS(svgNS, 'marker');
       m.setAttribute('id', mid);
+      m.setAttribute('viewBox', '0 0 10 10');
       m.setAttribute('markerWidth', '10');
-      m.setAttribute('markerHeight', '7');
+      m.setAttribute('markerHeight', '10');
       m.setAttribute('refX', '9');
-      m.setAttribute('refY', '3.5');
+      m.setAttribute('refY', '5');
       m.setAttribute('orient', 'auto');
-      const p = document.createElementNS(svgNS, 'polygon');
-      p.setAttribute('points', '0 0, 10 3.5, 0 7');
-      p.setAttribute('fill', color);
-      m.appendChild(p);
+      const content = createMarkerContent(markerType, color);
+      if (content) {
+        m.appendChild(content);
+      }
       defs.appendChild(m);
     }
   }
@@ -260,12 +363,23 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     if (edge.style?.opacity !== undefined)
       line.style.opacity = String(edge.style.opacity);
 
-    // Update marker-end to match edge stroke color
-    if (edge.markerEnd === 'arrow') {
+    // Update marker-end and marker-start to match edge stroke color
+    if (edge.markerEnd && edge.markerEnd !== 'none') {
       const mid = edge.style?.stroke
-        ? ensureColoredMarker(ctx.svg, edge.style.stroke)
-        : 'viz-arrow';
+        ? ensureColoredMarker(ctx.svg, edge.style.stroke, edge.markerEnd)
+        : markerIdFor(edge.markerEnd, undefined);
       line.setAttribute('marker-end', `url(#${mid})`);
+    } else {
+      line.removeAttribute('marker-end');
+    }
+
+    if (edge.markerStart && edge.markerStart !== 'none') {
+      const mid = edge.style?.stroke
+        ? ensureColoredMarker(ctx.svg, edge.style.stroke, edge.markerStart)
+        : markerIdFor(edge.markerStart, undefined);
+      line.setAttribute('marker-start', `url(#${mid})`);
+    } else {
+      line.removeAttribute('marker-start');
     }
 
     const hit = ctx.edgeHitsById.get(edge.id);

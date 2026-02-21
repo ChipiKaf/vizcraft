@@ -1081,7 +1081,12 @@ describe('vizcraft core', () => {
 
       expect(svgStr).toContain('<path');
       expect(svgStr).toContain('data-viz-role="edge-line"');
-      expect(svgStr).not.toContain('<line');
+      // No <line> elements used for edges (they may exist inside <defs> for marker definitions)
+      const edgeLayerMatch = svgStr.match(
+        /<g[^>]*data-viz-layer="edges"[^>]*>[\s\S]*?<\/g>/
+      );
+      expect(edgeLayerMatch).toBeTruthy();
+      expect(edgeLayerMatch![0]).not.toContain('<line');
     });
 
     it('defaults to straight routing', () => {
@@ -1468,6 +1473,297 @@ describe('vizcraft core', () => {
       const styleMatch = pathMatch![0].match(/style="([^"]*)"/);
       expect(styleMatch).toBeTruthy();
       expect(styleMatch![1]!.trim()).toBe('');
+    });
+  });
+
+  describe('edge marker types and markerStart', () => {
+    it('.markerEnd() sets custom marker type on the edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .markerEnd('arrowOpen')
+        .build();
+      expect(scene.edges[0]!.markerEnd).toBe('arrowOpen');
+    });
+
+    it('.markerStart() sets custom marker at start of edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('diamond')
+        .build();
+      expect(scene.edges[0]!.markerStart).toBe('diamond');
+    });
+
+    it('.markerStart() and .markerEnd() chain together', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('diamond')
+        .markerEnd('arrow')
+        .build();
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBe('diamond');
+      expect(edge.markerEnd).toBe('arrow');
+    });
+
+    it('.arrow("both") sets markerStart and markerEnd to "arrow"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow('both')
+        .build();
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBe('arrow');
+      expect(edge.markerEnd).toBe('arrow');
+    });
+
+    it('.arrow("start") sets only markerStart to "arrow"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow('start')
+        .build();
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBe('arrow');
+      expect(edge.markerEnd).toBeUndefined();
+    });
+
+    it('.arrow("end") sets only markerEnd to "arrow"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow('end')
+        .build();
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBeUndefined();
+      expect(edge.markerEnd).toBe('arrow');
+    });
+
+    it('backward compatibility: .arrow(true) still sets markerEnd to "arrow"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow(true)
+        .build();
+      expect(scene.edges[0]!.markerEnd).toBe('arrow');
+    });
+
+    it('backward compatibility: .arrow(false) sets markerEnd to "none"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow(false)
+        .build();
+      expect(scene.edges[0]!.markerEnd).toBe('none');
+    });
+
+    it('svg() generates marker definitions for all marker types', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .markerEnd('diamond')
+        .svg();
+
+      // Should contain marker defs for all types
+      expect(svgStr).toContain('id="viz-arrow"');
+      expect(svgStr).toContain('id="viz-arrowOpen"');
+      expect(svgStr).toContain('id="viz-diamond"');
+      expect(svgStr).toContain('id="viz-diamondOpen"');
+      expect(svgStr).toContain('id="viz-circle"');
+      expect(svgStr).toContain('id="viz-circleOpen"');
+      expect(svgStr).toContain('id="viz-square"');
+      expect(svgStr).toContain('id="viz-bar"');
+      expect(svgStr).toContain('id="viz-halfArrow"');
+    });
+
+    it('markerEnd renders in the SVG path for non-arrow types', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .markerEnd('diamond')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('url(#viz-diamond)');
+    });
+
+    it('markerStart renders in the SVG path', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('circleOpen')
+        .markerEnd('arrow')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('marker-start="url(#viz-circleOpen)"');
+      expect(pathMatch![0]).toContain('marker-end="url(#viz-arrow)"');
+    });
+
+    it('per-color marker defs are generated for custom stroke', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('diamond')
+        .markerEnd('arrowOpen')
+        .stroke('#e74c3c')
+        .svg();
+
+      // Colored markers should exist
+      expect(svgStr).toContain('id="viz-diamond-_e74c3c"');
+      expect(svgStr).toContain('id="viz-arrowOpen-_e74c3c"');
+
+      // The path should reference the colored markers
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('url(#viz-diamond-_e74c3c)');
+      expect(pathMatch![0]).toContain('url(#viz-arrowOpen-_e74c3c)');
+    });
+
+    it('all marker types produce valid SVG content in defs', () => {
+      const markerTypes = [
+        'arrow',
+        'arrowOpen',
+        'diamond',
+        'diamondOpen',
+        'circle',
+        'circleOpen',
+        'square',
+        'bar',
+        'halfArrow',
+      ] as const;
+
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow()
+        .svg();
+
+      markerTypes.forEach((type) => {
+        const markerId = `viz-${type}`;
+        expect(svgStr).toContain(`id="${markerId}"`);
+      });
+    });
+
+    it('markerEnd "none" does not render marker-end attribute', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .markerEnd('none')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).not.toContain('marker-end="url(');
+    });
+
+    it('UML composition: diamond start + arrow end', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('diamond')
+        .markerEnd('arrow')
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBe('diamond');
+      expect(edge.markerEnd).toBe('arrow');
+    });
+
+    it('UML aggregation: diamondOpen start + arrow end', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .markerStart('diamondOpen')
+        .markerEnd('arrow')
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.markerStart).toBe('diamondOpen');
+      expect(edge.markerEnd).toBe('arrow');
     });
   });
 

@@ -177,6 +177,14 @@ b.edge('a', 'b')
  .label('1', { position: 'start' })
  .label('*', { position: 'end' })
  .arrow()
+
+// Edge markers / arrowhead types
+b.edge('a', 'b').markerEnd('arrowOpen')                    // Open arrow (inheritance)
+b.edge('a', 'b').markerStart('diamond').markerEnd('arrow')  // UML composition
+b.edge('a', 'b').markerStart('diamondOpen').markerEnd('arrow')  // UML aggregation
+b.edge('a', 'b').arrow('both')                              // Bidirectional arrows
+b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow')   // Association
+b.edge('a', 'b').markerEnd('bar')                           // ER cardinality
 ```
 
 | Method | Description |
@@ -187,9 +195,14 @@ b.edge('a', 'b')
 | `.routing(mode)` | Set mode programmatically. |
 | `.via(x, y)` | Add an intermediate waypoint (chainable). |
 | `.label(text, opts?)` | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`. |
+| `.arrow([enabled])` | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
+| `.markerEnd(type)` | Set marker type at the target end (see `EdgeMarkerType`). |
+| `.markerStart(type)` | Set marker type at the source end (see `EdgeMarkerType`). |
 | `.stroke(color, width?)` | Set stroke color and optional width. |
 | `.fill(color)` | Set fill color. |
 | `.opacity(value)` | Set opacity (0–1). |
+
+**`EdgeMarkerType`** values: `'none'`, `'arrow'`, `'arrowOpen'`, `'diamond'`, `'diamondOpen'`, `'circle'`, `'circleOpen'`, `'square'`, `'bar'`, `'halfArrow'`.
 
 ### Animations
 

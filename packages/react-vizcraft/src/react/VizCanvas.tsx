@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { VizScene, VizNode, VizEdge } from 'vizcraft';
+import type { VizScene, VizNode, VizEdge, EdgeMarkerType } from 'vizcraft';
 import {
   computeEdgePath,
   computeEdgeEndpoints,
@@ -15,12 +15,33 @@ import {
   defaultOverlayRegistry,
 } from './registries/OverlayRegistry';
 
-/** Return the marker id to use for an edge with an optional custom stroke. */
-function arrowMarkerIdFor(stroke: string | undefined): string {
-  return stroke
-    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
-    : 'viz-arrow';
+/** Sanitise a CSS color for use as a marker ID suffix. */
+function colorToMarkerSuffix(color: string): string {
+  return color.replace(/[^a-zA-Z0-9]/g, '_');
 }
+
+/** Return the marker id to use for a marker type with an optional custom stroke. */
+function markerIdFor(
+  markerType: EdgeMarkerType,
+  stroke: string | undefined
+): string {
+  if (markerType === 'none') return '';
+  const base = `viz-${markerType}`;
+  return stroke ? `${base}-${colorToMarkerSuffix(stroke)}` : base;
+}
+
+/** All possible marker types (excluding 'none'). */
+const ALL_MARKER_TYPES: Exclude<EdgeMarkerType, 'none'>[] = [
+  'arrow',
+  'arrowOpen',
+  'diamond',
+  'diamondOpen',
+  'circle',
+  'circleOpen',
+  'square',
+  'bar',
+  'halfArrow',
+];
 
 export interface VizCanvasProps {
   scene: VizScene;
@@ -115,6 +136,114 @@ function useAnimatedNodes(targetNodes: VizNode[]) {
   return displayNodes;
 }
 
+/**
+ * Renders SVG `<marker>` definitions for all marker types with a given color.
+ */
+function MarkerDefs({ color }: { color: string }) {
+  const isDefault = color === 'currentColor';
+  return (
+    <>
+      {ALL_MARKER_TYPES.map((markerType) => {
+        const id = isDefault
+          ? `viz-${markerType}`
+          : `viz-${markerType}-${colorToMarkerSuffix(color)}`;
+        return (
+          <MarkerDef key={id} id={id} markerType={markerType} color={color} />
+        );
+      })}
+    </>
+  );
+}
+
+function MarkerDef({
+  id,
+  markerType,
+  color,
+}: {
+  id: string;
+  markerType: Exclude<EdgeMarkerType, 'none'>;
+  color: string;
+}) {
+  const content = useMemo(() => {
+    switch (markerType) {
+      case 'arrow':
+        return <polygon points="0,2 10,5 0,8" fill={color} />;
+      case 'arrowOpen':
+        return (
+          <polyline
+            points="0,2 10,5 0,8"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinejoin="miter"
+          />
+        );
+      case 'diamond':
+        return <polygon points="0,5 5,2 10,5 5,8" fill={color} />;
+      case 'diamondOpen':
+        return (
+          <polygon
+            points="0,5 5,2 10,5 5,8"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+          />
+        );
+      case 'circle':
+        return <circle cx="5" cy="5" r="3" fill={color} />;
+      case 'circleOpen':
+        return (
+          <circle
+            cx="5"
+            cy="5"
+            r="3"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+          />
+        );
+      case 'square':
+        return <rect x="2" y="2" width="6" height="6" fill={color} />;
+      case 'bar':
+        return (
+          <line
+            x1="5"
+            y1="1"
+            x2="5"
+            y2="9"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        );
+      case 'halfArrow':
+        return (
+          <polyline
+            points="0,5 10,2"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        );
+    }
+  }, [markerType, color]);
+
+  return (
+    <marker
+      id={id}
+      viewBox="0 0 10 10"
+      markerWidth="10"
+      markerHeight="10"
+      refX="9"
+      refY="5"
+      orient="auto"
+    >
+      {content}
+    </marker>
+  );
+}
+
 export function VizCanvas(props: VizCanvasProps) {
   const { scene, className, children } = props;
   const { viewBox, nodes, edges } = scene;
@@ -163,17 +292,9 @@ export function VizCanvas(props: VizCanvasProps) {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <marker
-            id="viz-arrow"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
-          </marker>
-          {/* Per-color arrow markers for edges with custom stroke */}
+          {/* Default markers (currentColor) for all marker types */}
+          <MarkerDefs color="currentColor" />
+          {/* Per-color markers for edges with custom stroke */}
           {Array.from(
             new Set(
               edges
@@ -181,17 +302,7 @@ export function VizCanvas(props: VizCanvasProps) {
                 .filter((s): s is string => !!s)
             )
           ).map((color) => (
-            <marker
-              key={arrowMarkerIdFor(color)}
-              id={arrowMarkerIdFor(color)}
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill={color} />
-            </marker>
+            <MarkerDefs key={color} color={color} />
           ))}
         </defs>
 
@@ -249,8 +360,13 @@ export function VizCanvas(props: VizCanvasProps) {
                   d={edgePath.d}
                   className="viz-edge"
                   markerEnd={
-                    edge.markerEnd === 'arrow'
-                      ? `url(#${arrowMarkerIdFor(edge.style?.stroke)})`
+                    edge.markerEnd && edge.markerEnd !== 'none'
+                      ? `url(#${markerIdFor(edge.markerEnd, edge.style?.stroke)})`
+                      : undefined
+                  }
+                  markerStart={
+                    edge.markerStart && edge.markerStart !== 'none'
+                      ? `url(#${markerIdFor(edge.markerStart, edge.style?.stroke)})`
                       : undefined
                   }
                   style={{
