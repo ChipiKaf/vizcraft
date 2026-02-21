@@ -30,8 +30,15 @@ For new pages, aim for:
 
 ## Use interactive MDX patterns when useful
 
+- For anything screen-visible (rendering, overlays, animations, shapes, interactions), interactive MDX is required.
 - Use `CodePreview` + `VizMount` (and `VizPlaybackControls` for timelines) like existing docs.
 - Keep demo builders/scenes declared near the top of the MDX file.
+
+## Add a concrete interactive example for new visuals
+
+- New shape/overlay/animation/rendering change must have a live example.
+- Prefer updating an existing page/section if it already covers the topic.
+- Otherwise add a new section with a minimal example + a realistic example.
 
 ## Link to types
 

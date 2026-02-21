@@ -63,9 +63,12 @@ An edge connecting two nodes.
 
 Supported node geometry.
 
-- `{ kind: 'circle'; r: number }`
-- `{ kind: 'rect'; w: number; h: number; rx?: number }`
-- `{ kind: 'diamond'; w: number; h: number }`
+- `{ kind: 'circle'; r: number }` — circle with radius `r`.
+- `{ kind: 'rect'; w: number; h: number; rx?: number }` — rectangle with optional corner radius.
+- `{ kind: 'diamond'; w: number; h: number }` — diamond / rhombus.
+- `{ kind: 'cylinder'; w: number; h: number; arcHeight?: number }` — cylinder (database symbol). Two elliptical caps connected by vertical sides. `arcHeight` defaults to ~15 % of `h`.
+- `{ kind: 'hexagon'; r: number; orientation?: 'pointy' | 'flat' }` — regular hexagon. `r` is the outer (centre-to-vertex) radius. Default orientation is `'pointy'` (vertex at top).
+- `{ kind: 'ellipse'; rx: number; ry: number }` — ellipse with independent horizontal (`rx`) and vertical (`ry`) radii.
 
 ---
 

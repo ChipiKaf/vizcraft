@@ -10,11 +10,6 @@ license: Complete terms in LICENSE.txt
 
 - Every **user-facing change** must update documentation in the same PR.
 
-## Interactive example requirement
-
-- If a change is visible on screen (rendering, shapes, overlays, animations, CSS hooks, interaction), add/update an interactive Docusaurus example in `packages/docs/docs/**`.
-- Prefer MDX using `CodePreview` + `VizMount` (and `VizPlaybackControls` when motion is involved).
-
 User-facing includes:
 
 - public APIs (builder methods, types, exports)
@@ -33,7 +28,6 @@ User-facing includes:
 
 - Add a short “why” and a clear mental model.
 - Provide copy/paste-able examples.
-- Provide a live interactive example when the behavior is visual.
 - Call out edge cases, back-compat, and migration notes.
 - Link to type anchors in `types.mdx` when you introduce new concepts.
 

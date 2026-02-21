@@ -101,7 +101,12 @@ b.node('n1')
  .at(x, y)               // Absolute position
  // OR
  .cell(col, row)         // Grid position
- .circle(radius)         // Shape definition
+ .circle(radius)         // Circle shape
+ .rect(w, h, [rx])       // Rectangle (optional corner radius)
+ .diamond(w, h)          // Diamond shape
+ .cylinder(w, h, [arcHeight]) // Cylinder (database symbol)
+ .hexagon(r, [orientation])   // Hexagon ('pointy' or 'flat')
+ .ellipse(rx, ry)        // Ellipse / oval
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

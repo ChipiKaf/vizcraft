@@ -1,0 +1,10 @@
+# Docusaurus generated output (do not format)
+packages/docs/.docusaurus/
+packages/docs/build/
+
+# Dependencies
+**/node_modules/
+**/dist/
+
+# Coverage output
+coverage/
