@@ -890,6 +890,45 @@ const parallelogramBehavior: ShapeBehavior<'parallelogram'> = {
   },
 };
 
+function starPoints(
+  shape: Extract<NodeShape, { kind: 'star' }>,
+  pos: Vec2
+): string {
+  const n = shape.points;
+  const outer = shape.outerR;
+  const inner = shape.innerR ?? Math.round(outer * 0.4);
+  const verts: string[] = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const angle = (Math.PI * i) / n - Math.PI / 2;
+    verts.push(`${pos.x + r * Math.cos(angle)},${pos.y + r * Math.sin(angle)}`);
+  }
+  return verts.join(' ');
+}
+
+const starBehavior: ShapeBehavior<'star'> = {
+  kind: 'star',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', starPoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = starPoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const r = shape.outerR;
+    const scale = r / Math.sqrt(dx * dx + dy * dy);
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -909,6 +948,7 @@ const shapeBehaviorRegistry: {
   document: documentBehavior,
   note: noteBehavior,
   parallelogram: parallelogramBehavior,
+  star: starBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

@@ -617,6 +617,20 @@ function RenderShape({ node }: { node: VizNode }) {
       ].join(' ');
       return <polygon points={parPts} className="viz-node-shape" />;
     }
+    case 'star': {
+      const sn = shape.points;
+      const sOuter = shape.outerR;
+      const sInner = shape.innerR ?? Math.round(sOuter * 0.4);
+      const sVerts: string[] = [];
+      for (let i = 0; i < sn * 2; i++) {
+        const sr = i % 2 === 0 ? sOuter : sInner;
+        const sAngle = (Math.PI * i) / sn - Math.PI / 2;
+        sVerts.push(
+          `${x + sr * Math.cos(sAngle)},${y + sr * Math.sin(sAngle)}`
+        );
+      }
+      return <polygon points={sVerts.join(' ')} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

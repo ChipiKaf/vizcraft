@@ -195,6 +195,7 @@ interface NodeBuilder {
   document(w: number, h: number, waveHeight?: number): NodeBuilder;
   note(w: number, h: number, foldSize?: number): NodeBuilder;
   parallelogram(w: number, h: number, skew?: number): NodeBuilder;
+  star(points: number, outerR: number, innerR?: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1485,6 +1486,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   parallelogram(w: number, h: number, skew?: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'parallelogram', w, h, skew };
+    return this;
+  }
+
+  star(points: number, outerR: number, innerR?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'star', points, outerR, innerR };
     return this;
   }
 

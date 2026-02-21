@@ -122,6 +122,7 @@ b.node('n1')
  .document(w, h, [wave])   // Document (wavy bottom)
  .note(w, h, [foldSize])   // Note (folded corner)
  .parallelogram(w, h, [skew]) // Parallelogram (I/O)
+ .star(points, outerR, [innerR]) // Star / badge
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

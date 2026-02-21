@@ -774,4 +774,46 @@ describe('vizcraft core', () => {
       expect(shape.skew).toBe(25);
     });
   });
+
+  describe('star', () => {
+    it('creates a star node with default innerR', () => {
+      const scene = viz()
+        .node('rating')
+        .at(100, 100)
+        .star(5, 40)
+        .fill('#f9e2af')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('rating');
+      expect(node.shape).toEqual({
+        kind: 'star',
+        points: 5,
+        outerR: 40,
+        innerR: undefined,
+      });
+      expect(node.style?.fill).toBe('#f9e2af');
+    });
+
+    it('renders a polygon with 2×points vertices in SVG output', () => {
+      const svg = viz().view(400, 300).node('s').at(200, 150).star(5, 40).svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports custom innerR', () => {
+      const scene = viz().node('s').at(0, 0).star(6, 50, 25).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'star';
+        points: number;
+        outerR: number;
+        innerR: number;
+      };
+      expect(shape.points).toBe(6);
+      expect(shape.outerR).toBe(50);
+      expect(shape.innerR).toBe(25);
+    });
+  });
 });

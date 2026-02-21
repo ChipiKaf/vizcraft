@@ -143,6 +143,11 @@ export const shapesScene = viz()
   .parallelogram(120, 55)
   .fill('#cba6f7')
   .label('parallelogram')
+  .node('str')
+  .at(350, 790)
+  .star(5, 40)
+  .fill('#f9e2af')
+  .label('star')
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -190,7 +195,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports fifteen built-in shapes plus a generic custom-path escape hatch:
+VizCraft supports sixteen built-in shapes plus a generic custom-path escape hatch:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -207,6 +212,7 @@ VizCraft supports fifteen built-in shapes plus a generic custom-path escape hatc
 - `.document(w, h, [waveHeight])` — document (wavy bottom). The standard flowchart document symbol — a rectangle with a sine-wave-like curved bottom edge. `waveHeight` (the wave amplitude) defaults to ~10 % of `h`
 - `.note(w, h, [foldSize])` — note (folded corner). The standard UML note / annotation symbol — a rectangle with a dog-eared top-right corner. The fold triangle is rendered with a slightly darker shade. `foldSize` defaults to `15`
 - `.parallelogram(w, h, [skew])` — parallelogram (skewed rectangle). The standard ISO 5807 Input/Output symbol. The top edge is shifted right by `skew` (defaults to ~20 % of `w`)
+- `.star(points, outerR, [innerR])` — multi-pointed star. `points` is the number of tips, `outerR` the tip radius, `innerR` the valley radius (defaults to ~40 % of `outerR`). Great for ratings, badges, or decorative markers
 - `.path(d, w, h)` — **custom SVG path** (escape hatch). Supply any SVG path data string as `d`; `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center aligns with the node position
 
 <CodePreview code={`
@@ -235,6 +241,7 @@ builder
 .node('nt').at(350, 680).note(110, 70).fill('#94e2d5').label('note')
 .node('pth').at(560, 680).path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100).fill('#f5c2e7').label('path (pentagon)')
 .node('par').at(140, 790).parallelogram(120, 55).fill('#cba6f7').label('parallelogram')
+.node('str').at(350, 790).star(5, 40).fill('#f9e2af').label('star')
 .done();
 
 const container = document.getElementById('viz-shapes');

@@ -40,7 +40,8 @@ export type NodeShape =
   | { kind: 'path'; d: string; w: number; h: number }
   | { kind: 'document'; w: number; h: number; waveHeight?: number }
   | { kind: 'note'; w: number; h: number; foldSize?: number }
-  | { kind: 'parallelogram'; w: number; h: number; skew?: number };
+  | { kind: 'parallelogram'; w: number; h: number; skew?: number }
+  | { kind: 'star'; points: number; outerR: number; innerR?: number };
 
 export type NodeLabel = {
   text: string;
