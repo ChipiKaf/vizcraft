@@ -71,6 +71,7 @@ Supported node geometry.
 - `{ kind: 'ellipse'; rx: number; ry: number }` — ellipse with independent horizontal (`rx`) and vertical (`ry`) radii.
 - `{ kind: 'arc'; r: number; startAngle: number; endAngle: number; closed?: boolean }` — arc / pie slice. Angles in degrees (0 = right, 90 = bottom). When `closed` is `true` (default) the path closes back to the centre forming a pie; when `false` it renders an open arc stroke.
 - `{ kind: 'blockArrow'; length: number; bodyWidth: number; headWidth: number; headLength: number; direction?: 'right' | 'left' | 'up' | 'down' }` — thick directional arrow polygon. `length` is tip-to-tail, `bodyWidth` is the shaft thickness, `headWidth` is the arrowhead wingspan, `headLength` is the arrowhead depth. `direction` defaults to `'right'`.
+- `{ kind: 'callout'; w: number; h: number; rx?: number; pointerSide?: 'bottom' | 'top' | 'left' | 'right'; pointerHeight?: number; pointerWidth?: number; pointerPosition?: number }` — speech bubble / callout. A rounded rectangle body with a triangular pointer extending from one side. `pointerSide` defaults to `'bottom'`, `pointerPosition` (0–1) defaults to `0.3`, `pointerHeight` defaults to ~25 % of `h`, `pointerWidth` defaults to ~20 % of `w`.
 
 ---
 

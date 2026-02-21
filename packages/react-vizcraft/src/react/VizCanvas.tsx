@@ -415,6 +415,69 @@ function RenderShape({ node }: { node: VizNode }) {
         .join(' ');
       return <polygon points={blockPts} className="viz-node-shape" />;
     }
+    case 'callout': {
+      const hw = shape.w / 2;
+      const hh = shape.h / 2;
+      const cr = Math.min(shape.rx ?? 0, hw, hh);
+      const side = shape.pointerSide ?? 'bottom';
+      const pH = shape.pointerHeight ?? Math.round(shape.h * 0.25);
+      const pW = shape.pointerWidth ?? Math.round(shape.w * 0.2);
+      const pp = shape.pointerPosition ?? 0.3;
+      const left = x - hw;
+      const right = x + hw;
+      const top = y - hh;
+      const bottom = y + hh;
+      const arcSeg = (cx: number, cy: number, sa: number) => {
+        if (cr === 0) return '';
+        const ea = sa + Math.PI / 2;
+        return `A ${cr} ${cr} 0 0 1 ${cx + cr * Math.cos(ea)} ${cy + cr * Math.sin(ea)}`;
+      };
+      const seg: string[] = [];
+      seg.push(`M ${left + cr} ${top}`);
+      if (side === 'top') {
+        const sL = shape.w - 2 * cr;
+        const b1 = left + cr + sL * pp;
+        const b2 = b1 + pW;
+        seg.push(
+          `L ${b1} ${top} L ${(b1 + b2) / 2} ${top - pH} L ${Math.min(b2, right - cr)} ${top}`
+        );
+      }
+      seg.push(`L ${right - cr} ${top}`);
+      seg.push(arcSeg(right - cr, top + cr, -Math.PI / 2));
+      if (side === 'right') {
+        const sL = shape.h - 2 * cr;
+        const b1 = top + cr + sL * pp;
+        const b2 = b1 + pW;
+        seg.push(
+          `L ${right} ${b1} L ${right + pH} ${(b1 + b2) / 2} L ${right} ${Math.min(b2, bottom - cr)}`
+        );
+      }
+      seg.push(`L ${right} ${bottom - cr}`);
+      seg.push(arcSeg(right - cr, bottom - cr, 0));
+      if (side === 'bottom') {
+        const sL = shape.w - 2 * cr;
+        const b2 = right - cr - sL * pp;
+        const b1 = b2 - pW;
+        seg.push(
+          `L ${b2} ${bottom} L ${(b1 + b2) / 2} ${bottom + pH} L ${Math.max(b1, left + cr)} ${bottom}`
+        );
+      }
+      seg.push(`L ${left + cr} ${bottom}`);
+      seg.push(arcSeg(left + cr, bottom - cr, Math.PI / 2));
+      if (side === 'left') {
+        const sL = shape.h - 2 * cr;
+        const b2 = bottom - cr - sL * pp;
+        const b1 = b2 - pW;
+        seg.push(
+          `L ${left} ${b2} L ${left - pH} ${(b1 + b2) / 2} L ${left} ${Math.max(b1, top + cr)}`
+        );
+      }
+      seg.push(`L ${left} ${top + cr}`);
+      seg.push(arcSeg(left + cr, top + cr, Math.PI));
+      seg.push('Z');
+      const calloutD = seg.filter(Boolean).join(' ');
+      return <path d={calloutD} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

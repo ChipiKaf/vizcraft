@@ -177,6 +177,17 @@ interface NodeBuilder {
     headLength: number,
     direction?: 'right' | 'left' | 'up' | 'down'
   ): NodeBuilder;
+  callout(
+    w: number,
+    h: number,
+    opts?: {
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
+    }
+  ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1407,6 +1418,30 @@ class NodeBuilderImpl implements NodeBuilder {
       headWidth,
       headLength,
       direction,
+    };
+    return this;
+  }
+
+  callout(
+    w: number,
+    h: number,
+    opts?: {
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
+    }
+  ): NodeBuilder {
+    this.nodeDef.shape = {
+      kind: 'callout',
+      w,
+      h,
+      rx: opts?.rx,
+      pointerSide: opts?.pointerSide,
+      pointerHeight: opts?.pointerHeight,
+      pointerWidth: opts?.pointerWidth,
+      pointerPosition: opts?.pointerPosition,
     };
     return this;
   }

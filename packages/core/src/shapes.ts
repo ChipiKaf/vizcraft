@@ -375,6 +375,117 @@ const blockArrowBehavior: ShapeBehavior<'blockArrow'> = {
   },
 };
 
+function calloutPathD(
+  shape: Extract<NodeShape, { kind: 'callout' }>,
+  pos: Vec2
+): string {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const r = Math.min(shape.rx ?? 0, hw, hh);
+  const side = shape.pointerSide ?? 'bottom';
+  const pH = shape.pointerHeight ?? Math.round(shape.h * 0.25);
+  const pW = shape.pointerWidth ?? Math.round(shape.w * 0.2);
+  const pp = shape.pointerPosition ?? 0.3;
+
+  const left = pos.x - hw;
+  const right = pos.x + hw;
+  const top = pos.y - hh;
+  const bottom = pos.y + hh;
+
+  // pointer base coords along the side (0..sideLen)
+  const segments: string[] = [];
+  const arc = (cx: number, cy: number, startAngle: number) => {
+    if (r === 0) return '';
+    const s = startAngle;
+    const e = s + Math.PI / 2;
+    const ex = cx + r * Math.cos(e);
+    const ey = cy + r * Math.sin(e);
+    return `A ${r} ${r} 0 0 1 ${ex} ${ey}`;
+  };
+
+  // build CW from top-left
+  // top-left corner
+  segments.push(`M ${left + r} ${top}`);
+  // top edge
+  if (side === 'top') {
+    const sideLen = shape.w - 2 * r;
+    const b1 = left + r + sideLen * pp;
+    const b2 = b1 + pW;
+    segments.push(`L ${b1} ${top}`);
+    segments.push(`L ${(b1 + b2) / 2} ${top - pH}`);
+    segments.push(`L ${Math.min(b2, right - r)} ${top}`);
+  }
+  segments.push(`L ${right - r} ${top}`);
+  // top-right corner
+  segments.push(arc(right - r, top + r, -Math.PI / 2));
+  // right edge
+  if (side === 'right') {
+    const sideLen = shape.h - 2 * r;
+    const b1 = top + r + sideLen * pp;
+    const b2 = b1 + pW;
+    segments.push(`L ${right} ${b1}`);
+    segments.push(`L ${right + pH} ${(b1 + b2) / 2}`);
+    segments.push(`L ${right} ${Math.min(b2, bottom - r)}`);
+  }
+  segments.push(`L ${right} ${bottom - r}`);
+  // bottom-right corner
+  segments.push(arc(right - r, bottom - r, 0));
+  // bottom edge
+  if (side === 'bottom') {
+    const sideLen = shape.w - 2 * r;
+    const b2 = right - r - sideLen * pp;
+    const b1 = b2 - pW;
+    segments.push(`L ${b2} ${bottom}`);
+    segments.push(`L ${(b1 + b2) / 2} ${bottom + pH}`);
+    segments.push(`L ${Math.max(b1, left + r)} ${bottom}`);
+  }
+  segments.push(`L ${left + r} ${bottom}`);
+  // bottom-left corner
+  segments.push(arc(left + r, bottom - r, Math.PI / 2));
+  // left edge
+  if (side === 'left') {
+    const sideLen = shape.h - 2 * r;
+    const b2 = bottom - r - sideLen * pp;
+    const b1 = b2 - pW;
+    segments.push(`L ${left} ${b2}`);
+    segments.push(`L ${left - pH} ${(b1 + b2) / 2}`);
+    segments.push(`L ${left} ${Math.max(b1, top + r)}`);
+  }
+  segments.push(`L ${left} ${top + r}`);
+  // close back to top-left (arc for last corner)
+  segments.push(arc(left + r, top + r, Math.PI));
+  segments.push('Z');
+
+  return segments.filter(Boolean).join(' ');
+}
+
+const calloutBehavior: ShapeBehavior<'callout'> = {
+  kind: 'callout',
+  tagName: 'path',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('d', calloutPathD(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const d = calloutPathD(shape, pos);
+    return `<path d="${d}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -386,6 +497,7 @@ const shapeBehaviorRegistry: {
   ellipse: ellipseBehavior,
   arc: arcBehavior,
   blockArrow: blockArrowBehavior,
+  callout: calloutBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

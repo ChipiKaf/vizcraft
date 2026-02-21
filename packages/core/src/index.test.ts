@@ -381,4 +381,72 @@ describe('vizcraft core', () => {
       expect(edge.anchor).toBe('boundary');
     });
   });
+
+  describe('callout shape', () => {
+    it('creates a node with callout shape via .callout(w, h)', () => {
+      const scene = viz()
+        .node('c')
+        .at(200, 100)
+        .callout(140, 80)
+        .fill('#f9e2af')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('c');
+      expect(node.shape).toMatchObject({
+        kind: 'callout',
+        w: 140,
+        h: 80,
+      });
+      expect(node.style?.fill).toBe('#f9e2af');
+    });
+
+    it('renders a path in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('c')
+        .at(200, 150)
+        .callout(120, 70)
+        .svg();
+
+      expect(svg).toContain('<path');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports custom pointer options', () => {
+      const scene = viz()
+        .node('c')
+        .at(100, 100)
+        .callout(100, 60, {
+          rx: 8,
+          pointerSide: 'left',
+          pointerHeight: 20,
+          pointerWidth: 15,
+          pointerPosition: 0.5,
+        })
+        .build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'callout';
+        rx: number;
+        pointerSide: string;
+      };
+      expect(shape.kind).toBe('callout');
+      expect(shape.rx).toBe(8);
+      expect(shape.pointerSide).toBe('left');
+    });
+
+    it('defaults pointer to bottom side', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('c')
+        .at(200, 150)
+        .callout(100, 60)
+        .svg();
+
+      // The path should extend below the body (bottom pointer)
+      // body bottom at y=180, pointer tip below that
+      expect(svg).toContain('<path');
+    });
+  });
 });

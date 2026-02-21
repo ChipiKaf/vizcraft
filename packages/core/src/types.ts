@@ -23,6 +23,16 @@ export type NodeShape =
       headWidth: number;
       headLength: number;
       direction?: 'right' | 'left' | 'up' | 'down';
+    }
+  | {
+      kind: 'callout';
+      w: number;
+      h: number;
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
     };
 
 export type NodeLabel = {
