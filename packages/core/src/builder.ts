@@ -24,6 +24,19 @@ import {
 } from './runtimePatcher';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 
+/**
+ * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
+ * Non-alphanumeric characters are replaced with underscores.
+ */
+function colorToMarkerSuffix(color: string): string {
+  return color.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+/** Return the marker id to use for an edge with an optional custom stroke. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke ? `viz-arrow-${colorToMarkerSuffix(stroke)}` : 'viz-arrow';
+}
+
 import type { AnimationSpec } from './anim/spec';
 import {
   buildAnimationSpec,
@@ -717,6 +730,27 @@ class VizBuilderImpl implements VizBuilder {
       poly.setAttribute('fill', 'currentColor');
       marker.appendChild(poly);
       defs.appendChild(marker);
+
+      // Per-color arrow markers for edges with custom stroke
+      const uniqueEdgeStrokeColors = new Set<string>();
+      edges.forEach((e) => {
+        if (e.style?.stroke) uniqueEdgeStrokeColors.add(e.style.stroke);
+      });
+      uniqueEdgeStrokeColors.forEach((color) => {
+        const cm = document.createElementNS(svgNS, 'marker');
+        cm.setAttribute('id', arrowMarkerIdFor(color));
+        cm.setAttribute('markerWidth', '10');
+        cm.setAttribute('markerHeight', '7');
+        cm.setAttribute('refX', '9');
+        cm.setAttribute('refY', '3.5');
+        cm.setAttribute('orient', 'auto');
+        const cp = document.createElementNS(svgNS, 'polygon');
+        cp.setAttribute('points', '0 0, 10 3.5, 0 7');
+        cp.setAttribute('fill', color);
+        cm.appendChild(cp);
+        defs.appendChild(cm);
+      });
+
       svg.appendChild(defs);
 
       // Layers
@@ -862,7 +896,8 @@ class VizBuilderImpl implements VizBuilder {
       }
       line.setAttribute('d', edgePath.d);
       if (edge.markerEnd === 'arrow') {
-        line.setAttribute('marker-end', 'url(#viz-arrow)');
+        const mid = arrowMarkerIdFor(edge.style?.stroke);
+        line.setAttribute('marker-end', `url(#${mid})`);
       } else {
         line.removeAttribute('marker-end');
       }
@@ -870,11 +905,8 @@ class VizBuilderImpl implements VizBuilder {
       // Per-edge style overrides (inline style wins over CSS class defaults)
       if (edge.style?.stroke !== undefined) {
         line.style.stroke = edge.style.stroke;
-        // Also set color so marker fill="currentColor" inherits the edge stroke
-        line.style.color = edge.style.stroke;
       } else {
         line.style.removeProperty('stroke');
-        line.style.removeProperty('color');
       }
       if (edge.style?.strokeWidth !== undefined)
         line.style.strokeWidth = String(edge.style.strokeWidth);
@@ -1269,7 +1301,20 @@ class VizBuilderImpl implements VizBuilder {
         <defs>
           <marker id="viz-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
-          </marker>
+          </marker>`;
+    // Per-color arrow markers for edges with custom stroke
+    const uniqueSvgStrokeColors = new Set<string>();
+    edges.forEach((e) => {
+      if (e.style?.stroke) uniqueSvgStrokeColors.add(e.style.stroke);
+    });
+    uniqueSvgStrokeColors.forEach((color) => {
+      const mid = arrowMarkerIdFor(color);
+      svgContent += `
+          <marker id="${mid}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="${color}" />
+          </marker>`;
+    });
+    svgContent += `
         </defs>`;
 
     // Render Edges
@@ -1309,7 +1354,9 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       const markerEnd =
-        edge.markerEnd === 'arrow' ? 'marker-end="url(#viz-arrow)"' : '';
+        edge.markerEnd === 'arrow'
+          ? `marker-end="url(#${arrowMarkerIdFor(edge.style?.stroke)})"`
+          : '';
 
       const endpoints = computeEdgeEndpoints(start, end, edge);
       const edgePath = computeEdgePath(
@@ -1336,7 +1383,7 @@ class VizBuilderImpl implements VizBuilder {
 
       let edgeInlineStyle = lineRuntimeStyle;
       if (edge.style?.stroke !== undefined)
-        edgeInlineStyle += `stroke: ${edge.style.stroke}; color: ${edge.style.stroke}; `;
+        edgeInlineStyle += `stroke: ${edge.style.stroke}; `;
       if (edge.style?.strokeWidth !== undefined)
         edgeInlineStyle += `stroke-width: ${edge.style.strokeWidth}; `;
       if (edge.style?.fill !== undefined)

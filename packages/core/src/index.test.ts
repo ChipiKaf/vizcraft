@@ -1422,11 +1422,9 @@ describe('vizcraft core', () => {
       expect(pathMatch![0]).toContain('stroke: #ff0000');
       expect(pathMatch![0]).toContain('stroke-width: 3');
       expect(pathMatch![0]).toContain('fill: blue');
-      // color must match stroke so marker fill="currentColor" inherits edge color
-      expect(pathMatch![0]).toContain('color: #ff0000');
     });
 
-    it('arrowhead inherits edge stroke color via currentColor', () => {
+    it('arrowhead marker matches edge stroke color', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1435,17 +1433,22 @@ describe('vizcraft core', () => {
         .at(250, 50)
         .circle(10)
         .edge('a', 'b')
+        .arrow()
         .stroke('#e74c3c')
         .svg();
 
+      // A per-color marker definition should exist in defs
+      expect(svgStr).toContain('id="viz-arrow-_e74c3c"');
+      expect(svgStr).toContain('fill="#e74c3c"');
+
+      // The edge path should reference the colored marker, not the default
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
-      // color is set to match stroke so the marker's fill="currentColor" resolves correctly
-      expect(pathMatch![0]).toContain('color: #e74c3c');
+      expect(pathMatch![0]).toContain('url(#viz-arrow-_e74c3c)');
       expect(pathMatch![0]).toContain('stroke: #e74c3c');
     });
 
-    it('edge without style does not add inline stroke/fill styles', () => {
+    it('edge without custom stroke uses default viz-arrow marker', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1454,10 +1457,13 @@ describe('vizcraft core', () => {
         .at(250, 50)
         .circle(10)
         .edge('a', 'b')
+        .arrow()
         .svg();
 
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
+      // Default marker uses currentColor
+      expect(pathMatch![0]).toContain('url(#viz-arrow)');
       // style attribute should be empty when no per-edge style is set
       const styleMatch = pathMatch![0].match(/style="([^"]*)"/);
       expect(styleMatch).toBeTruthy();

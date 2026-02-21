@@ -10,6 +10,13 @@ import {
   defaultOverlayRegistry,
 } from './registries/OverlayRegistry';
 
+/** Return the marker id to use for an edge with an optional custom stroke. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke
+    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
+    : 'viz-arrow';
+}
+
 export interface VizCanvasProps {
   scene: VizScene;
   className?: string; // Container class
@@ -161,6 +168,26 @@ export function VizCanvas(props: VizCanvasProps) {
           >
             <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
           </marker>
+          {/* Per-color arrow markers for edges with custom stroke */}
+          {Array.from(
+            new Set(
+              edges
+                .map((e: VizEdge) => e.style?.stroke)
+                .filter((s): s is string => !!s)
+            )
+          ).map((color) => (
+            <marker
+              key={arrowMarkerIdFor(color)}
+              id={arrowMarkerIdFor(color)}
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill={color} />
+            </marker>
+          ))}
         </defs>
 
         {/* 1. Edges (Visual + Hit + Labels) */}
@@ -217,11 +244,12 @@ export function VizCanvas(props: VizCanvasProps) {
                   d={edgePath.d}
                   className="viz-edge"
                   markerEnd={
-                    edge.markerEnd === 'arrow' ? 'url(#viz-arrow)' : undefined
+                    edge.markerEnd === 'arrow'
+                      ? `url(#${arrowMarkerIdFor(edge.style?.stroke)})`
+                      : undefined
                   }
                   style={{
                     stroke: edge.style?.stroke,
-                    color: edge.style?.stroke,
                     strokeWidth: edge.style?.strokeWidth,
                     fill: edge.style?.fill,
                     opacity: edge.style?.opacity,

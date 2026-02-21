@@ -2,6 +2,41 @@ import type { VizScene } from './types';
 import { applyShapeGeometry, effectivePos } from './shapes';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 
+const svgNS = 'http://www.w3.org/2000/svg';
+
+/** Sanitise a CSS color for use as a marker ID suffix. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke
+    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
+    : 'viz-arrow';
+}
+
+/**
+ * Ensure a `<marker>` for the given color exists inside `<defs>`.
+ * Creates one on the fly when the RuntimePatcher encounters a new stroke color.
+ */
+function ensureColoredMarker(svg: SVGSVGElement, color: string): string {
+  const mid = arrowMarkerIdFor(color);
+  if (!svg.querySelector(`#${CSS.escape(mid)}`)) {
+    const defs = svg.querySelector('defs');
+    if (defs) {
+      const m = document.createElementNS(svgNS, 'marker');
+      m.setAttribute('id', mid);
+      m.setAttribute('markerWidth', '10');
+      m.setAttribute('markerHeight', '7');
+      m.setAttribute('refX', '9');
+      m.setAttribute('refY', '3.5');
+      m.setAttribute('orient', 'auto');
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0 0, 10 3.5, 0 7');
+      p.setAttribute('fill', color);
+      m.appendChild(p);
+      defs.appendChild(m);
+    }
+  }
+  return mid;
+}
+
 export interface RuntimePatchCtx {
   svg: SVGSVGElement;
 
@@ -215,13 +250,20 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     // Per-edge style overrides (inline style wins over CSS class defaults)
     if (edge.style?.stroke !== undefined) {
       line.style.stroke = edge.style.stroke;
-      line.style.color = edge.style.stroke;
     }
     if (edge.style?.strokeWidth !== undefined)
       line.style.strokeWidth = String(edge.style.strokeWidth);
     if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;
     if (edge.style?.opacity !== undefined)
       line.style.opacity = String(edge.style.opacity);
+
+    // Update marker-end to match edge stroke color
+    if (edge.markerEnd === 'arrow') {
+      const mid = edge.style?.stroke
+        ? ensureColoredMarker(ctx.svg, edge.style.stroke)
+        : 'viz-arrow';
+      line.setAttribute('marker-end', `url(#${mid})`);
+    }
 
     const hit = ctx.edgeHitsById.get(edge.id);
     if (hit) {
