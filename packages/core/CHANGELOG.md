@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.0.0
+
+### Major Changes
+
+- [`73ee1fb`](https://github.com/ChipiKaf/vizcraft/commit/73ee1fbd204bf1ba0447c764eba2c1b9d6981ee5) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Added new shapes, connection ports, path based edges, Edge marker types, Multi-position edge labels, Containers and The overlay builder
+
 ## 0.3.0
 
 ### Minor Changes
