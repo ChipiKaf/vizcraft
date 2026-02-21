@@ -168,6 +168,9 @@ b.edge('a', 'c').orthogonal().arrow()
 
 // Waypoints — intermediate points the edge passes through
 b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow()
+
+// Per-edge styling (overrides CSS defaults)
+b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8)
 ```
 
 | Method | Description |
@@ -177,6 +180,9 @@ b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow()
 | `.orthogonal()` | Right-angle elbows. |
 | `.routing(mode)` | Set mode programmatically. |
 | `.via(x, y)` | Add an intermediate waypoint (chainable). |
+| `.stroke(color, width?)` | Set stroke color and optional width. |
+| `.fill(color)` | Set fill color. |
+| `.opacity(value)` | Set opacity (0–1). |
 
 ### Animations
 
@@ -308,11 +314,17 @@ VizCraft generates standard SVG elements with predictable classes, making it eas
   fill: #ff6b6b;
 }
 
-/* Edge styling */
+/* Edge styling (CSS defaults) */
 .viz-edge {
   stroke: #ccc;
   stroke-width: 2;
 }
+```
+
+Edges can also be styled **per-edge** via the builder (inline SVG attributes override CSS):
+
+```ts
+b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8)
 ```
 
 ## 🧭 Advanced Topics

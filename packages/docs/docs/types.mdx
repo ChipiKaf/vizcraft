@@ -68,6 +68,7 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `waypoints?: Vec2[]` — intermediate points the edge must pass through.
 - `markerEnd?: 'arrow' | 'none'` — arrow head.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
+- `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number }` — per-edge visual styling. When set, inline SVG attributes override the CSS class defaults.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
 - `data?: unknown` — your payload.
