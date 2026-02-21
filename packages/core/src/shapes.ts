@@ -4,7 +4,7 @@ export type AnchorMode = 'center' | 'boundary';
 
 export interface ShapeBehavior<K extends NodeShape['kind']> {
   kind: K;
-  tagName: 'circle' | 'rect' | 'polygon';
+  tagName: 'circle' | 'rect' | 'polygon' | 'g';
   applyGeometry(
     el: SVGElement,
     shape: Extract<NodeShape, { kind: K }>,
@@ -116,12 +116,88 @@ const diamondBehavior: ShapeBehavior<'diamond'> = {
   },
 };
 
+function cylinderGeometry(
+  shape: Extract<NodeShape, { kind: 'cylinder' }>,
+  pos: Vec2
+) {
+  const rx = shape.w / 2;
+  const ry = shape.arcHeight ?? Math.round(shape.h * 0.15);
+  const topY = pos.y - shape.h / 2;
+  const bottomY = pos.y + shape.h / 2;
+  const x0 = pos.x - rx;
+  const x1 = pos.x + rx;
+  const bodyD = `M ${x0} ${topY} A ${rx} ${ry} 0 0 1 ${x1} ${topY} V ${bottomY} A ${rx} ${ry} 0 0 1 ${x0} ${bottomY} V ${topY} Z`;
+  return { rx, ry, topY, bottomY, x0, x1, bodyD };
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const cylinderBehavior: ShapeBehavior<'cylinder'> = {
+  kind: 'cylinder',
+  tagName: 'g',
+  applyGeometry(el, shape, pos) {
+    const { rx, ry, topY, bodyD } = cylinderGeometry(shape, pos);
+
+    // Get or create body path
+    let body = el.querySelector(
+      '[data-viz-cyl="body"]'
+    ) as SVGPathElement | null;
+    if (!body) {
+      body = document.createElementNS(SVG_NS, 'path');
+      body.setAttribute('data-viz-cyl', 'body');
+      el.appendChild(body);
+    }
+    body.setAttribute('d', bodyD);
+
+    // Get or create top cap ellipse (drawn on top for 3D effect)
+    let cap = el.querySelector(
+      '[data-viz-cyl="cap"]'
+    ) as SVGEllipseElement | null;
+    if (!cap) {
+      cap = document.createElementNS(SVG_NS, 'ellipse');
+      cap.setAttribute('data-viz-cyl', 'cap');
+      el.appendChild(cap);
+    }
+    cap.setAttribute('cx', String(pos.x));
+    cap.setAttribute('cy', String(topY));
+    cap.setAttribute('rx', String(rx));
+    cap.setAttribute('ry', String(ry));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const { rx, ry, topY, bodyD } = cylinderGeometry(shape, pos);
+    const end = '</g>';
+    return (
+      `<g class="viz-node-shape" data-viz-role="node-shape"${attrs}>` +
+      `<path d="${bodyD}" data-viz-cyl="body"/>` +
+      `<ellipse cx="${pos.x}" cy="${topY}" rx="${rx}" ry="${ry}" data-viz-cyl="cap"/>` +
+      end
+    );
+  },
+  anchorBoundary(pos, target, shape) {
+    // Approximate as rectangle bounding box
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
   circle: circleBehavior,
   rect: rectBehavior,
   diamond: diamondBehavior,
+  cylinder: cylinderBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

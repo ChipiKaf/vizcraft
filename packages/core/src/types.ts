@@ -5,7 +5,8 @@ import type { AnimationSpec } from './anim/spec';
 export type NodeShape =
   | { kind: 'circle'; r: number }
   | { kind: 'rect'; w: number; h: number; rx?: number }
-  | { kind: 'diamond'; w: number; h: number };
+  | { kind: 'diamond'; w: number; h: number }
+  | { kind: 'cylinder'; w: number; h: number; arcHeight?: number };
 
 export type NodeLabel = {
   text: string;

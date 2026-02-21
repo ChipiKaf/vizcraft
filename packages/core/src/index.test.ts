@@ -83,4 +83,69 @@ describe('vizcraft core', () => {
     expect(spec.tweens.length).toBe(1);
     expect(spec.tweens[0]!.target).toBe('edge:e1');
   });
+
+  describe('cylinder shape', () => {
+    it('creates a node with cylinder shape via .cylinder(w, h)', () => {
+      const scene = viz()
+        .node('db')
+        .at(300, 100)
+        .cylinder(100, 80)
+        .fill('#fab387')
+        .label('DB')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('db');
+      expect(node.shape).toEqual({
+        kind: 'cylinder',
+        w: 100,
+        h: 80,
+        arcHeight: undefined,
+      });
+      expect(node.style?.fill).toBe('#fab387');
+      expect(node.label?.text).toBe('DB');
+    });
+
+    it('creates a cylinder with custom arcHeight', () => {
+      const scene = viz().node('db').at(0, 0).cylinder(120, 100, 20).build();
+
+      const node = scene.nodes[0]!;
+      expect(node.shape).toEqual({
+        kind: 'cylinder',
+        w: 120,
+        h: 100,
+        arcHeight: 20,
+      });
+    });
+
+    it('generates SVG markup for cylinder shape', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('db')
+        .at(200, 150)
+        .cylinder(100, 80)
+        .fill('#fab387')
+        .label('DB')
+        .svg();
+
+      // Cylinder should produce a <g> with a <path> body and <ellipse> cap
+      expect(svg).toContain('data-viz-cyl="body"');
+      expect(svg).toContain('data-viz-cyl="cap"');
+      expect(svg).toContain('<path');
+      expect(svg).toContain('<ellipse');
+    });
+
+    it('uses default arcHeight of ~15% of h when not specified', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('db')
+        .at(200, 150)
+        .cylinder(100, 80)
+        .svg();
+
+      // Default arcHeight = Math.round(80 * 0.15) = 12
+      // The ellipse ry should be 12
+      expect(svg).toContain('ry="12"');
+    });
+  });
 });

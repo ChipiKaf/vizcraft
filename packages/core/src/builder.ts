@@ -161,6 +161,7 @@ interface NodeBuilder {
   circle(r: number): NodeBuilder;
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
+  cylinder(w: number, h: number, arcHeight?: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1349,6 +1350,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   diamond(w: number, h: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'diamond', w, h };
+    return this;
+  }
+
+  cylinder(w: number, h: number, arcHeight?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cylinder', w, h, arcHeight };
     return this;
   }
 
