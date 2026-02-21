@@ -161,6 +161,47 @@ interface NodeBuilder {
   circle(r: number): NodeBuilder;
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
+  cylinder(w: number, h: number, arcHeight?: number): NodeBuilder;
+  hexagon(r: number, orientation?: 'pointy' | 'flat'): NodeBuilder;
+  ellipse(rx: number, ry: number): NodeBuilder;
+  arc(
+    r: number,
+    startAngle: number,
+    endAngle: number,
+    closed?: boolean
+  ): NodeBuilder;
+  blockArrow(
+    length: number,
+    bodyWidth: number,
+    headWidth: number,
+    headLength: number,
+    direction?: 'right' | 'left' | 'up' | 'down'
+  ): NodeBuilder;
+  callout(
+    w: number,
+    h: number,
+    opts?: {
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
+    }
+  ): NodeBuilder;
+  cloud(w: number, h: number): NodeBuilder;
+  cross(size: number, barWidth?: number): NodeBuilder;
+  cube(w: number, h: number, depth?: number): NodeBuilder;
+  path(d: string, w: number, h: number): NodeBuilder;
+  document(w: number, h: number, waveHeight?: number): NodeBuilder;
+  note(w: number, h: number, foldSize?: number): NodeBuilder;
+  parallelogram(w: number, h: number, skew?: number): NodeBuilder;
+  star(points: number, outerR: number, innerR?: number): NodeBuilder;
+  trapezoid(topW: number, bottomW: number, h: number): NodeBuilder;
+  triangle(
+    w: number,
+    h: number,
+    direction?: 'up' | 'down' | 'left' | 'right'
+  ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1349,6 +1390,127 @@ class NodeBuilderImpl implements NodeBuilder {
 
   diamond(w: number, h: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'diamond', w, h };
+    return this;
+  }
+
+  cylinder(w: number, h: number, arcHeight?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cylinder', w, h, arcHeight };
+    return this;
+  }
+
+  hexagon(r: number, orientation?: 'pointy' | 'flat'): NodeBuilder {
+    this.nodeDef.shape = { kind: 'hexagon', r, orientation };
+    return this;
+  }
+
+  ellipse(rx: number, ry: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'ellipse', rx, ry };
+    return this;
+  }
+
+  arc(
+    r: number,
+    startAngle: number,
+    endAngle: number,
+    closed?: boolean
+  ): NodeBuilder {
+    this.nodeDef.shape = { kind: 'arc', r, startAngle, endAngle, closed };
+    return this;
+  }
+
+  blockArrow(
+    length: number,
+    bodyWidth: number,
+    headWidth: number,
+    headLength: number,
+    direction?: 'right' | 'left' | 'up' | 'down'
+  ): NodeBuilder {
+    this.nodeDef.shape = {
+      kind: 'blockArrow',
+      length,
+      bodyWidth,
+      headWidth,
+      headLength,
+      direction,
+    };
+    return this;
+  }
+
+  callout(
+    w: number,
+    h: number,
+    opts?: {
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
+    }
+  ): NodeBuilder {
+    this.nodeDef.shape = {
+      kind: 'callout',
+      w,
+      h,
+      rx: opts?.rx,
+      pointerSide: opts?.pointerSide,
+      pointerHeight: opts?.pointerHeight,
+      pointerWidth: opts?.pointerWidth,
+      pointerPosition: opts?.pointerPosition,
+    };
+    return this;
+  }
+
+  cloud(w: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cloud', w, h };
+    return this;
+  }
+
+  cross(size: number, barWidth?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cross', size, barWidth };
+    return this;
+  }
+
+  cube(w: number, h: number, depth?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'cube', w, h, depth };
+    return this;
+  }
+
+  path(d: string, w: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'path', d, w, h };
+    return this;
+  }
+
+  document(w: number, h: number, waveHeight?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'document', w, h, waveHeight };
+    return this;
+  }
+
+  note(w: number, h: number, foldSize?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'note', w, h, foldSize };
+    return this;
+  }
+
+  parallelogram(w: number, h: number, skew?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'parallelogram', w, h, skew };
+    return this;
+  }
+
+  star(points: number, outerR: number, innerR?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'star', points, outerR, innerR };
+    return this;
+  }
+
+  trapezoid(topW: number, bottomW: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'trapezoid', topW, bottomW, h };
+    return this;
+  }
+
+  triangle(
+    w: number,
+    h: number,
+    direction?: 'up' | 'down' | 'left' | 'right'
+  ): NodeBuilder {
+    this.nodeDef.shape = { kind: 'triangle', w, h, direction };
     return this;
   }
 

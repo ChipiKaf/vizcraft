@@ -101,7 +101,25 @@ b.node('n1')
  .at(x, y)               // Absolute position
  // OR
  .cell(col, row)         // Grid position
- .circle(radius)         // Shape definition
+ .circle(radius)         // Circle shape
+ .rect(w, h, [rx])       // Rectangle (optional corner radius)
+ .diamond(w, h)          // Diamond shape
+ .cylinder(w, h, [arcHeight]) // Cylinder (database symbol)
+ .hexagon(r, [orientation])   // Hexagon ('pointy' or 'flat')
+ .ellipse(rx, ry)        // Ellipse / oval
+ .arc(r, start, end, [closed]) // Arc / pie slice
+ .blockArrow(len, bodyW, headW, headLen, [dir]) // Block arrow
+ .callout(w, h, [opts])   // Speech bubble / callout
+ .cloud(w, h)             // Cloud / thought bubble
+ .cross(size, [barWidth])  // Cross / plus sign
+ .cube(w, h, [depth])      // 3D isometric cube
+ .path(d, w, h)            // Custom SVG path
+ .document(w, h, [wave])   // Document (wavy bottom)
+ .note(w, h, [foldSize])   // Note (folded corner)
+ .parallelogram(w, h, [skew]) // Parallelogram (I/O)
+ .star(points, outerR, [innerR]) // Star / badge
+ .trapezoid(topW, bottomW, h) // Trapezoid
+ .triangle(w, h, [direction]) // Triangle
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

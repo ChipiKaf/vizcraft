@@ -5,7 +5,50 @@ import type { AnimationSpec } from './anim/spec';
 export type NodeShape =
   | { kind: 'circle'; r: number }
   | { kind: 'rect'; w: number; h: number; rx?: number }
-  | { kind: 'diamond'; w: number; h: number };
+  | { kind: 'diamond'; w: number; h: number }
+  | { kind: 'cylinder'; w: number; h: number; arcHeight?: number }
+  | { kind: 'hexagon'; r: number; orientation?: 'pointy' | 'flat' }
+  | { kind: 'ellipse'; rx: number; ry: number }
+  | {
+      kind: 'arc';
+      r: number;
+      startAngle: number;
+      endAngle: number;
+      closed?: boolean;
+    }
+  | {
+      kind: 'blockArrow';
+      length: number;
+      bodyWidth: number;
+      headWidth: number;
+      headLength: number;
+      direction?: 'right' | 'left' | 'up' | 'down';
+    }
+  | {
+      kind: 'callout';
+      w: number;
+      h: number;
+      rx?: number;
+      pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+      pointerHeight?: number;
+      pointerWidth?: number;
+      pointerPosition?: number;
+    }
+  | { kind: 'cloud'; w: number; h: number }
+  | { kind: 'cross'; size: number; barWidth?: number }
+  | { kind: 'cube'; w: number; h: number; depth?: number }
+  | { kind: 'path'; d: string; w: number; h: number }
+  | { kind: 'document'; w: number; h: number; waveHeight?: number }
+  | { kind: 'note'; w: number; h: number; foldSize?: number }
+  | { kind: 'parallelogram'; w: number; h: number; skew?: number }
+  | { kind: 'star'; points: number; outerR: number; innerR?: number }
+  | { kind: 'trapezoid'; topW: number; bottomW: number; h: number }
+  | {
+      kind: 'triangle';
+      w: number;
+      h: number;
+      direction?: 'up' | 'down' | 'left' | 'right';
+    };
 
 export type NodeLabel = {
   text: string;
