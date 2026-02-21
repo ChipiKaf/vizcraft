@@ -374,8 +374,7 @@ describe('vizcraft core', () => {
         .at(300, 100)
         .circle(10)
         .edge('ba', 'tgt')
-        .arrow()
-        .done()
+        .connect('boundary')
         .build();
 
       const edge = scene.edges[0]!;
