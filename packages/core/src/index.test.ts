@@ -816,4 +816,51 @@ describe('vizcraft core', () => {
       expect(shape.innerR).toBe(25);
     });
   });
+
+  describe('trapezoid', () => {
+    it('creates a trapezoid node', () => {
+      const scene = viz()
+        .node('manual-op')
+        .at(200, 100)
+        .trapezoid(100, 140, 60)
+        .fill('#ffffff')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('manual-op');
+      expect(node.shape).toEqual({
+        kind: 'trapezoid',
+        topW: 100,
+        bottomW: 140,
+        h: 60,
+      });
+      expect(node.style?.fill).toBe('#ffffff');
+    });
+
+    it('renders a polygon with 4 vertices in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('t')
+        .at(200, 150)
+        .trapezoid(80, 120, 60)
+        .svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('stores all three dimensions', () => {
+      const scene = viz().node('t').at(0, 0).trapezoid(60, 100, 40).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'trapezoid';
+        topW: number;
+        bottomW: number;
+        h: number;
+      };
+      expect(shape.topW).toBe(60);
+      expect(shape.bottomW).toBe(100);
+      expect(shape.h).toBe(40);
+    });
+  });
 });

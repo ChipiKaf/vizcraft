@@ -631,6 +631,18 @@ function RenderShape({ node }: { node: VizNode }) {
       }
       return <polygon points={sVerts.join(' ')} className="viz-node-shape" />;
     }
+    case 'trapezoid': {
+      const thtw = shape.topW / 2;
+      const thbw = shape.bottomW / 2;
+      const thh = shape.h / 2;
+      const trapPts = [
+        `${x - thtw},${y - thh}`,
+        `${x + thtw},${y - thh}`,
+        `${x + thbw},${y + thh}`,
+        `${x - thbw},${y + thh}`,
+      ].join(' ');
+      return <polygon points={trapPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

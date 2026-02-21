@@ -123,6 +123,7 @@ b.node('n1')
  .note(w, h, [foldSize])   // Note (folded corner)
  .parallelogram(w, h, [skew]) // Parallelogram (I/O)
  .star(points, outerR, [innerR]) // Star / badge
+ .trapezoid(topW, bottomW, h) // Trapezoid
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

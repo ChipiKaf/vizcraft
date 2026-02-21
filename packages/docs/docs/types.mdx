@@ -79,6 +79,7 @@ Supported node geometry.
 - `{ kind: 'note'; w: number; h: number; foldSize?: number }` — note (folded corner). The standard UML note / annotation symbol. A rectangle with a dog-eared top-right corner. The fold triangle is shaded darker for the paper-fold effect. `foldSize` defaults to `15`.
 - `{ kind: 'parallelogram'; w: number; h: number; skew?: number }` — parallelogram (skewed rectangle). The standard ISO 5807 Input/Output flowchart symbol. The top edge is shifted right by `skew`. Defaults to ~20 % of `w`.
 - `{ kind: 'star'; points: number; outerR: number; innerR?: number }` — multi-pointed star. `points` is the number of tips, `outerR` the tip radius, `innerR` the valley radius (defaults to ~40 % of `outerR`). Anchor uses an outer-radius circle approximation.
+- `{ kind: 'trapezoid'; topW: number; bottomW: number; h: number }` — trapezoid. A quadrilateral with a shorter top edge (`topW`) and a longer bottom edge (`bottomW`). The standard ISO 5807 Manual Operation symbol. Swap the two widths for an inverted trapezoid (Manual Input). Anchor uses a bounding-box approximation based on the wider edge.
 - `{ kind: 'path'; d: string; w: number; h: number }` — **custom SVG path** (escape hatch). `d` is any valid SVG path data string. `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center sits at the node position.
 
 ---

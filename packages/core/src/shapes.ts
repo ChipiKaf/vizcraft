@@ -929,6 +929,48 @@ const starBehavior: ShapeBehavior<'star'> = {
   },
 };
 
+function trapezoidPoints(
+  shape: Extract<NodeShape, { kind: 'trapezoid' }>,
+  pos: Vec2
+): string {
+  const htw = shape.topW / 2;
+  const hbw = shape.bottomW / 2;
+  const hh = shape.h / 2;
+  return [
+    `${pos.x - htw},${pos.y - hh}`,
+    `${pos.x + htw},${pos.y - hh}`,
+    `${pos.x + hbw},${pos.y + hh}`,
+    `${pos.x - hbw},${pos.y + hh}`,
+  ].join(' ');
+}
+
+const trapezoidBehavior: ShapeBehavior<'trapezoid'> = {
+  kind: 'trapezoid',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', trapezoidPoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = trapezoidPoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = Math.max(shape.topW, shape.bottomW) / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -949,6 +991,7 @@ const shapeBehaviorRegistry: {
   note: noteBehavior,
   parallelogram: parallelogramBehavior,
   star: starBehavior,
+  trapezoid: trapezoidBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

@@ -196,6 +196,7 @@ interface NodeBuilder {
   note(w: number, h: number, foldSize?: number): NodeBuilder;
   parallelogram(w: number, h: number, skew?: number): NodeBuilder;
   star(points: number, outerR: number, innerR?: number): NodeBuilder;
+  trapezoid(topW: number, bottomW: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1491,6 +1492,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   star(points: number, outerR: number, innerR?: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'star', points, outerR, innerR };
+    return this;
+  }
+
+  trapezoid(topW: number, bottomW: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'trapezoid', topW, bottomW, h };
     return this;
   }
 
