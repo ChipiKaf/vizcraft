@@ -1,5 +1,41 @@
-import type { VizEdge, VizNode, VizScene } from './types';
-import { applyShapeGeometry, computeNodeAnchor, effectivePos } from './shapes';
+import type { VizScene } from './types';
+import { applyShapeGeometry, effectivePos } from './shapes';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+
+const svgNS = 'http://www.w3.org/2000/svg';
+
+/** Sanitise a CSS color for use as a marker ID suffix. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke
+    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
+    : 'viz-arrow';
+}
+
+/**
+ * Ensure a `<marker>` for the given color exists inside `<defs>`.
+ * Creates one on the fly when the RuntimePatcher encounters a new stroke color.
+ */
+function ensureColoredMarker(svg: SVGSVGElement, color: string): string {
+  const mid = arrowMarkerIdFor(color);
+  if (!svg.querySelector(`#${CSS.escape(mid)}`)) {
+    const defs = svg.querySelector('defs');
+    if (defs) {
+      const m = document.createElementNS(svgNS, 'marker');
+      m.setAttribute('id', mid);
+      m.setAttribute('markerWidth', '10');
+      m.setAttribute('markerHeight', '7');
+      m.setAttribute('refX', '9');
+      m.setAttribute('refY', '3.5');
+      m.setAttribute('orient', 'auto');
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0 0, 10 3.5, 0 7');
+      p.setAttribute('fill', color);
+      m.appendChild(p);
+      defs.appendChild(m);
+    }
+  }
+  return mid;
+}
 
 export interface RuntimePatchCtx {
   svg: SVGSVGElement;
@@ -9,19 +45,9 @@ export interface RuntimePatchCtx {
   nodeLabelsById: Map<string, SVGTextElement>;
 
   edgeGroupsById: Map<string, SVGGElement>;
-  edgeLinesById: Map<string, SVGLineElement>;
-  edgeHitsById: Map<string, SVGLineElement>;
+  edgeLinesById: Map<string, SVGPathElement>;
+  edgeHitsById: Map<string, SVGPathElement>;
   edgeLabelsById: Map<string, SVGTextElement>;
-}
-
-function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
-  const anchor = edge.anchor ?? 'boundary';
-  const startPos = effectivePos(start);
-  const endPos = effectivePos(end);
-
-  const startAnchor = computeNodeAnchor(start, endPos, anchor);
-  const endAnchor = computeNodeAnchor(end, startPos, anchor);
-  return { start: startAnchor, end: endAnchor };
 }
 
 export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
@@ -30,8 +56,8 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
   const nodeLabelsById = new Map<string, SVGTextElement>();
 
   const edgeGroupsById = new Map<string, SVGGElement>();
-  const edgeLinesById = new Map<string, SVGLineElement>();
-  const edgeHitsById = new Map<string, SVGLineElement>();
+  const edgeLinesById = new Map<string, SVGPathElement>();
+  const edgeHitsById = new Map<string, SVGPathElement>();
   const edgeLabelsById = new Map<string, SVGTextElement>();
 
   const nodeLayer =
@@ -71,13 +97,13 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
       edgeGroupsById.set(id, group);
 
       const line =
-        group.querySelector<SVGLineElement>('[data-viz-role="edge-line"]') ||
-        group.querySelector<SVGLineElement>('.viz-edge');
+        group.querySelector<SVGPathElement>('[data-viz-role="edge-line"]') ||
+        group.querySelector<SVGPathElement>('.viz-edge');
       if (line) edgeLinesById.set(id, line);
 
       const hit =
-        group.querySelector<SVGLineElement>('[data-viz-role="edge-hit"]') ||
-        group.querySelector<SVGLineElement>('.viz-edge-hit');
+        group.querySelector<SVGPathElement>('[data-viz-role="edge-hit"]') ||
+        group.querySelector<SVGPathElement>('.viz-edge-hit');
       if (hit) edgeHitsById.set(id, hit);
 
       const label =
@@ -211,27 +237,43 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     if (!start || !end) continue;
 
     const endpoints = computeEdgeEndpoints(start, end, edge);
+    const edgePath = computeEdgePath(
+      endpoints.start,
+      endpoints.end,
+      edge.routing,
+      edge.waypoints
+    );
 
-    // Endpoints
-    line.setAttribute('x1', String(endpoints.start.x));
-    line.setAttribute('y1', String(endpoints.start.y));
-    line.setAttribute('x2', String(endpoints.end.x));
-    line.setAttribute('y2', String(endpoints.end.y));
+    // Path
+    line.setAttribute('d', edgePath.d);
+
+    // Per-edge style overrides (inline style wins over CSS class defaults)
+    if (edge.style?.stroke !== undefined) {
+      line.style.stroke = edge.style.stroke;
+    }
+    if (edge.style?.strokeWidth !== undefined)
+      line.style.strokeWidth = String(edge.style.strokeWidth);
+    if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;
+    if (edge.style?.opacity !== undefined)
+      line.style.opacity = String(edge.style.opacity);
+
+    // Update marker-end to match edge stroke color
+    if (edge.markerEnd === 'arrow') {
+      const mid = edge.style?.stroke
+        ? ensureColoredMarker(ctx.svg, edge.style.stroke)
+        : 'viz-arrow';
+      line.setAttribute('marker-end', `url(#${mid})`);
+    }
 
     const hit = ctx.edgeHitsById.get(edge.id);
     if (hit) {
-      hit.setAttribute('x1', String(endpoints.start.x));
-      hit.setAttribute('y1', String(endpoints.start.y));
-      hit.setAttribute('x2', String(endpoints.end.x));
-      hit.setAttribute('y2', String(endpoints.end.y));
+      hit.setAttribute('d', edgePath.d);
     }
 
     const label = ctx.edgeLabelsById.get(edge.id);
     if (label && edge.label) {
-      const mx =
-        (endpoints.start.x + endpoints.end.x) / 2 + (edge.label.dx || 0);
-      const my =
-        (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
+      const mx = edgePath.mid.x + (edge.label.dx || 0);
+      const my = edgePath.mid.y + (edge.label.dy || 0);
       label.setAttribute('x', String(mx));
       label.setAttribute('y', String(my));
     }

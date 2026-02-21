@@ -133,6 +133,9 @@ export interface EdgeLabel {
   dy?: number;
 }
 
+/** Edge routing algorithm. */
+export type EdgeRouting = 'straight' | 'curved' | 'orthogonal';
+
 export interface VizEdge {
   id: string;
   from: string;
@@ -141,11 +144,22 @@ export interface VizEdge {
   runtime?: VizRuntimeEdgeProps;
   markerEnd?: 'arrow' | 'none';
   anchor?: 'center' | 'boundary';
+  /** Per-edge visual styling. Overrides the CSS defaults when set. */
+  style?: {
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
+    opacity?: number;
+  };
   className?: string;
   hitArea?: number; // width in px
   data?: unknown;
   onClick?: (id: string, edge: VizEdge) => void;
   animations?: VizAnimSpec[];
+  /** Routing algorithm for the edge path (default: 'straight'). */
+  routing?: EdgeRouting;
+  /** User-defined intermediate waypoints the edge must pass through. */
+  waypoints?: Vec2[];
 }
 
 /**

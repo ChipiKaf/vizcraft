@@ -39,6 +39,16 @@ export const DEFAULT_VIZ_CSS = `
   animation: vizFlow var(--viz-anim-duration, 2s) linear infinite;
 }
 
+/* Edge base styling (path elements need explicit fill:none) */
+.viz-edge {
+  fill: none;
+  stroke: currentColor;
+}
+
+.viz-edge-hit {
+  fill: none;
+}
+
 /* Node Transition */
 .viz-node-group {
     transition: transform 0.3s ease-out, opacity 0.3s ease-out;

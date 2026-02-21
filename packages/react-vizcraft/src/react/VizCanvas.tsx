@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { VizScene, VizNode, VizEdge } from 'vizcraft';
+import { computeEdgePath, computeEdgeEndpoints } from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -8,6 +9,13 @@ import {
   OverlayRegistry,
   defaultOverlayRegistry,
 } from './registries/OverlayRegistry';
+
+/** Return the marker id to use for an edge with an optional custom stroke. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke
+    ? `viz-arrow-${stroke.replace(/[^a-zA-Z0-9]/g, '_')}`
+    : 'viz-arrow';
+}
 
 export interface VizCanvasProps {
   scene: VizScene;
@@ -160,6 +168,26 @@ export function VizCanvas(props: VizCanvasProps) {
           >
             <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
           </marker>
+          {/* Per-color arrow markers for edges with custom stroke */}
+          {Array.from(
+            new Set(
+              edges
+                .map((e: VizEdge) => e.style?.stroke)
+                .filter((s): s is string => !!s)
+            )
+          ).map((color) => (
+            <marker
+              key={arrowMarkerIdFor(color)}
+              id={arrowMarkerIdFor(color)}
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill={color} />
+            </marker>
+          ))}
         </defs>
 
         {/* 1. Edges (Visual + Hit + Labels) */}
@@ -197,32 +225,41 @@ export function VizCanvas(props: VizCanvasProps) {
               });
             }
 
+            const endpoints = computeEdgeEndpoints(start, end, edge);
+            const edgePath = computeEdgePath(
+              endpoints.start,
+              endpoints.end,
+              edge.routing,
+              edge.waypoints
+            );
+
             return (
               <g
                 key={edge.id}
                 className={`viz-edge-group ${edge.className || ''} ${animClasses}`}
                 style={animStyles}
               >
-                {/* Visual Line */}
-                <line
-                  x1={start.pos.x}
-                  y1={start.pos.y}
-                  x2={end.pos.x}
-                  y2={end.pos.y}
+                {/* Visual Path */}
+                <path
+                  d={edgePath.d}
                   className="viz-edge"
                   markerEnd={
-                    edge.markerEnd === 'arrow' ? 'url(#viz-arrow)' : undefined
+                    edge.markerEnd === 'arrow'
+                      ? `url(#${arrowMarkerIdFor(edge.style?.stroke)})`
+                      : undefined
                   }
-                  stroke="currentColor"
+                  style={{
+                    stroke: edge.style?.stroke,
+                    strokeWidth: edge.style?.strokeWidth,
+                    fill: edge.style?.fill,
+                    opacity: edge.style?.opacity,
+                  }}
                 />
 
                 {/* Hit Area */}
                 {(edge.hitArea || edge.onClick) && (
-                  <line
-                    x1={start.pos.x}
-                    y1={start.pos.y}
-                    x2={end.pos.x}
-                    y2={end.pos.y}
+                  <path
+                    d={edgePath.d}
                     className="viz-edge-hit"
                     stroke="transparent"
                     strokeWidth={edge.hitArea || 10}
@@ -239,8 +276,8 @@ export function VizCanvas(props: VizCanvasProps) {
                 {/* Edge Label */}
                 {edge.label && (
                   <text
-                    x={(start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0)}
-                    y={(start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0)}
+                    x={edgePath.mid.x + (edge.label.dx || 0)}
+                    y={edgePath.mid.y + (edge.label.dy || 0)}
                     className={`viz-edge-label ${edge.label.className || ''}`}
                     textAnchor="middle"
                     dominantBaseline="middle"

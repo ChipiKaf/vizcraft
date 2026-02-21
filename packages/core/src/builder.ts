@@ -10,6 +10,7 @@ import type {
   OverlayParams,
   VizGridConfig,
   ContainerConfig,
+  EdgeRouting,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { DEFAULT_VIZ_CSS } from './styles';
@@ -21,6 +22,20 @@ import {
   patchRuntime,
   type RuntimePatchCtx,
 } from './runtimePatcher';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+
+/**
+ * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
+ * Non-alphanumeric characters are replaced with underscores.
+ */
+function colorToMarkerSuffix(color: string): string {
+  return color.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+/** Return the marker id to use for an edge with an optional custom stroke. */
+function arrowMarkerIdFor(stroke: string | undefined): string {
+  return stroke ? `viz-arrow-${colorToMarkerSuffix(stroke)}` : 'viz-arrow';
+}
 
 import type { AnimationSpec } from './anim/spec';
 import {
@@ -45,7 +60,6 @@ const autoplayControllerByContainer = new WeakMap<
 
 import {
   applyShapeGeometry,
-  computeNodeAnchor,
   effectivePos,
   getShapeBehavior,
   shapeSvgMarkup,
@@ -80,17 +94,6 @@ function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
   return Object.entries(params as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => [`--viz-anim-${k}`, String(v)] as [string, string]);
-}
-
-function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
-  const anchor = edge.anchor ?? 'boundary';
-  // Use effective positions of start/end nodes to calculate anchors
-  const startPos = effectivePos(start);
-  const endPos = effectivePos(end);
-
-  const startAnchor = computeNodeAnchor(start, endPos, anchor);
-  const endAnchor = computeNodeAnchor(end, startPos, anchor);
-  return { start: startAnchor, end: endAnchor };
 }
 
 interface VizBuilder {
@@ -235,9 +238,19 @@ interface NodeBuilder {
 
 interface EdgeBuilder {
   straight(): EdgeBuilder;
+  curved(): EdgeBuilder;
+  orthogonal(): EdgeBuilder;
+  routing(mode: EdgeRouting): EdgeBuilder;
+  via(x: number, y: number): EdgeBuilder;
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder;
   arrow(enabled?: boolean): EdgeBuilder;
   connect(anchor: 'center' | 'boundary'): EdgeBuilder;
+  /** Sets the fill color of the edge path. */
+  fill(color: string): EdgeBuilder;
+  /** Sets the stroke color and optional width of the edge path. */
+  stroke(color: string, width?: number): EdgeBuilder;
+  /** Sets the opacity of the edge. */
+  opacity(value: number): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
@@ -717,6 +730,27 @@ class VizBuilderImpl implements VizBuilder {
       poly.setAttribute('fill', 'currentColor');
       marker.appendChild(poly);
       defs.appendChild(marker);
+
+      // Per-color arrow markers for edges with custom stroke
+      const uniqueEdgeStrokeColors = new Set<string>();
+      edges.forEach((e) => {
+        if (e.style?.stroke) uniqueEdgeStrokeColors.add(e.style.stroke);
+      });
+      uniqueEdgeStrokeColors.forEach((color) => {
+        const cm = document.createElementNS(svgNS, 'marker');
+        cm.setAttribute('id', arrowMarkerIdFor(color));
+        cm.setAttribute('markerWidth', '10');
+        cm.setAttribute('markerHeight', '7');
+        cm.setAttribute('refX', '9');
+        cm.setAttribute('refY', '3.5');
+        cm.setAttribute('orient', 'auto');
+        const cp = document.createElementNS(svgNS, 'polygon');
+        cp.setAttribute('points', '0 0, 10 3.5, 0 7');
+        cp.setAttribute('fill', color);
+        cm.appendChild(cp);
+        defs.appendChild(cm);
+      });
+
       svg.appendChild(defs);
 
       // Layers
@@ -786,10 +820,10 @@ class VizBuilderImpl implements VizBuilder {
         edgeLayer.appendChild(group);
 
         // Initial creation of children
-        const line = document.createElementNS(svgNS, 'line');
-        line.setAttribute('class', 'viz-edge');
-        line.setAttribute('data-viz-role', 'edge-line');
-        group.appendChild(line);
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('class', 'viz-edge');
+        path.setAttribute('data-viz-role', 'edge-line');
+        group.appendChild(path);
 
         // Optional parts created on demand later, but structure expected
       }
@@ -826,6 +860,12 @@ class VizBuilderImpl implements VizBuilder {
 
       // Use effective positions (handles runtime overrides internally via helper)
       const endpoints = computeEdgeEndpoints(start, end, edge);
+      const edgePath = computeEdgePath(
+        endpoints.start,
+        endpoints.end,
+        edge.routing,
+        edge.waypoints
+      );
 
       // Apply Edge Runtime Overrides
       if (edge.runtime?.opacity !== undefined) {
@@ -834,12 +874,12 @@ class VizBuilderImpl implements VizBuilder {
         group.style.removeProperty('opacity');
       }
 
-      // Update Line
+      // Update Path
       const line =
         (group.querySelector(
           '[data-viz-role="edge-line"]'
-        ) as SVGLineElement | null) ||
-        (group.querySelector('.viz-edge') as SVGLineElement | null);
+        ) as SVGPathElement | null) ||
+        (group.querySelector('.viz-edge') as SVGPathElement | null);
 
       if (!line) return;
 
@@ -854,16 +894,28 @@ class VizBuilderImpl implements VizBuilder {
         line.style.removeProperty('stroke-dashoffset');
         line.removeAttribute('stroke-dashoffset');
       }
-      line.setAttribute('x1', String(endpoints.start.x));
-      line.setAttribute('y1', String(endpoints.start.y));
-      line.setAttribute('x2', String(endpoints.end.x));
-      line.setAttribute('y2', String(endpoints.end.y));
-      line.setAttribute('stroke', 'currentColor');
+      line.setAttribute('d', edgePath.d);
       if (edge.markerEnd === 'arrow') {
-        line.setAttribute('marker-end', 'url(#viz-arrow)');
+        const mid = arrowMarkerIdFor(edge.style?.stroke);
+        line.setAttribute('marker-end', `url(#${mid})`);
       } else {
         line.removeAttribute('marker-end');
       }
+
+      // Per-edge style overrides (inline style wins over CSS class defaults)
+      if (edge.style?.stroke !== undefined) {
+        line.style.stroke = edge.style.stroke;
+      } else {
+        line.style.removeProperty('stroke');
+      }
+      if (edge.style?.strokeWidth !== undefined)
+        line.style.strokeWidth = String(edge.style.strokeWidth);
+      else line.style.removeProperty('stroke-width');
+      if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;
+      else line.style.removeProperty('fill');
+      if (edge.style?.opacity !== undefined)
+        line.style.opacity = String(edge.style.opacity);
+      else line.style.removeProperty('opacity');
 
       const oldHit =
         group.querySelector('[data-viz-role="edge-hit"]') ||
@@ -871,13 +923,10 @@ class VizBuilderImpl implements VizBuilder {
       if (oldHit) oldHit.remove();
 
       if (edge.hitArea || edge.onClick) {
-        const hit = document.createElementNS(svgNS, 'line');
+        const hit = document.createElementNS(svgNS, 'path');
         hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
         hit.setAttribute('data-viz-role', 'edge-hit');
-        hit.setAttribute('x1', String(endpoints.start.x));
-        hit.setAttribute('y1', String(endpoints.start.y));
-        hit.setAttribute('x2', String(endpoints.end.x));
-        hit.setAttribute('y2', String(endpoints.end.y));
+        hit.setAttribute('d', edgePath.d);
         hit.setAttribute('stroke', 'transparent');
         hit.setAttribute('stroke-width', String(edge.hitArea || 10));
         hit.style.cursor = edge.onClick ? 'pointer' : '';
@@ -898,10 +947,8 @@ class VizBuilderImpl implements VizBuilder {
 
       if (edge.label) {
         const text = document.createElementNS(svgNS, 'text');
-        const mx =
-          (endpoints.start.x + endpoints.end.x) / 2 + (edge.label.dx || 0);
-        const my =
-          (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
+        const mx = edgePath.mid.x + (edge.label.dx || 0);
+        const my = edgePath.mid.y + (edge.label.dy || 0);
         text.setAttribute('x', String(mx));
         text.setAttribute('y', String(my));
         text.setAttribute(
@@ -1254,7 +1301,20 @@ class VizBuilderImpl implements VizBuilder {
         <defs>
           <marker id="viz-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
-          </marker>
+          </marker>`;
+    // Per-color arrow markers for edges with custom stroke
+    const uniqueSvgStrokeColors = new Set<string>();
+    edges.forEach((e) => {
+      if (e.style?.stroke) uniqueSvgStrokeColors.add(e.style.stroke);
+    });
+    uniqueSvgStrokeColors.forEach((color) => {
+      const mid = arrowMarkerIdFor(color);
+      svgContent += `
+          <marker id="${mid}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="${color}" />
+          </marker>`;
+    });
+    svgContent += `
         </defs>`;
 
     // Render Edges
@@ -1294,9 +1354,17 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       const markerEnd =
-        edge.markerEnd === 'arrow' ? 'marker-end="url(#viz-arrow)"' : '';
+        edge.markerEnd === 'arrow'
+          ? `marker-end="url(#${arrowMarkerIdFor(edge.style?.stroke)})"`
+          : '';
 
       const endpoints = computeEdgeEndpoints(start, end, edge);
+      const edgePath = computeEdgePath(
+        endpoints.start,
+        endpoints.end,
+        edge.routing,
+        edge.waypoints
+      );
 
       // Runtime overrides for SVG export
       let runtimeStyle = '';
@@ -1312,14 +1380,22 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
-      svgContent += `<line x1="${endpoints.start.x}" y1="${endpoints.start.y}" x2="${endpoints.end.x}" y2="${endpoints.end.y}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} stroke="currentColor" style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
+
+      let edgeInlineStyle = lineRuntimeStyle;
+      if (edge.style?.stroke !== undefined)
+        edgeInlineStyle += `stroke: ${edge.style.stroke}; `;
+      if (edge.style?.strokeWidth !== undefined)
+        edgeInlineStyle += `stroke-width: ${edge.style.strokeWidth}; `;
+      if (edge.style?.fill !== undefined)
+        edgeInlineStyle += `fill: ${edge.style.fill}; `;
+      if (edge.style?.opacity !== undefined)
+        edgeInlineStyle += `opacity: ${edge.style.opacity}; `;
+      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} style="${edgeInlineStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {
-        const mx =
-          (endpoints.start.x + endpoints.end.x) / 2 + (edge.label.dx || 0);
-        const my =
-          (endpoints.start.y + endpoints.end.y) / 2 + (edge.label.dy || 0);
+        const mx = edgePath.mid.x + (edge.label.dx || 0);
+        const my = edgePath.mid.y + (edge.label.dy || 0);
         const labelClass = `viz-edge-label ${edge.label.className || ''}`;
         svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" data-viz-role="edge-label" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
       }
@@ -1810,7 +1886,30 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   straight(): EdgeBuilder {
-    // No-op for now as it is default
+    this.edgeDef.routing = 'straight';
+    return this;
+  }
+
+  curved(): EdgeBuilder {
+    this.edgeDef.routing = 'curved';
+    return this;
+  }
+
+  orthogonal(): EdgeBuilder {
+    this.edgeDef.routing = 'orthogonal';
+    return this;
+  }
+
+  routing(mode: EdgeRouting): EdgeBuilder {
+    this.edgeDef.routing = mode;
+    return this;
+  }
+
+  via(x: number, y: number): EdgeBuilder {
+    if (!this.edgeDef.waypoints) {
+      this.edgeDef.waypoints = [];
+    }
+    this.edgeDef.waypoints.push({ x, y });
     return this;
   }
 
@@ -1826,6 +1925,31 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   connect(anchor: 'center' | 'boundary'): EdgeBuilder {
     this.edgeDef.anchor = anchor;
+    return this;
+  }
+
+  fill(color: string): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      fill: color,
+    };
+    return this;
+  }
+
+  stroke(color: string, width?: number): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      stroke: color,
+      strokeWidth: width ?? this.edgeDef.style?.strokeWidth,
+    };
+    return this;
+  }
+
+  opacity(value: number): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      opacity: value,
+    };
     return this;
   }
 

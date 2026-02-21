@@ -1065,4 +1065,409 @@ describe('vizcraft core', () => {
       expect(matches).toHaveLength(2);
     });
   });
+
+  // ── Edge Routing (Path-Based Edges) ──────────────────────────────
+  describe('edge routing', () => {
+    it('renders edges as <path> elements instead of <line>', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(20)
+        .node('b')
+        .at(250, 150)
+        .circle(20)
+        .edge('a', 'b')
+        .svg();
+
+      expect(svgStr).toContain('<path');
+      expect(svgStr).toContain('data-viz-role="edge-line"');
+      expect(svgStr).not.toContain('<line');
+    });
+
+    it('defaults to straight routing', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .build();
+
+      const edge = scene.edges[0]!;
+      // routing is undefined (defaults to 'straight')
+      expect(edge.routing).toBeUndefined();
+    });
+
+    it('.straight() sets routing to straight', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .straight()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('straight');
+    });
+
+    it('.curved() sets routing to curved', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('curved');
+    });
+
+    it('.orthogonal() sets routing to orthogonal', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .orthogonal()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('orthogonal');
+    });
+
+    it('.routing(mode) sets routing mode', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .routing('curved')
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('curved');
+    });
+
+    it('.via(x, y) adds waypoints', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 200)
+        .circle(10)
+        .edge('a', 'b')
+        .via(100, 0)
+        .via(100, 200)
+        .build();
+
+      expect(scene.edges[0]!.waypoints).toEqual([
+        { x: 100, y: 0 },
+        { x: 100, y: 200 },
+      ]);
+    });
+
+    it('straight SVG path uses M/L commands', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .straight()
+        .svg();
+
+      // Path should contain M and L commands
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('L');
+    });
+
+    it('curved SVG path uses Q command (no waypoints)', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('Q');
+    });
+
+    it('curved SVG path uses C commands (with waypoints)', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 250)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .via(150, 50)
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('C');
+    });
+
+    it('orthogonal SVG path uses only H/V or right-angle L commands', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 150)
+        .circle(10)
+        .edge('a', 'b')
+        .orthogonal()
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      // Orthogonal should have multiple L segments forming right angles
+      const lSegments = d.match(/L\s/g);
+      expect(lSegments!.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('path edges get fill/stroke from CSS class, not hardcoded attributes', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .svg();
+
+      // fill and stroke come from the .viz-edge CSS rule, not inline attributes
+      expect(svgStr).toContain('class="viz-edge"');
+      expect(svgStr).toContain('fill: none');
+      expect(svgStr).toContain('stroke: currentColor');
+      // Ensure they are NOT hardcoded on the <path> element itself
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).not.toContain('fill="none"');
+      expect(pathMatch![0]).not.toContain('stroke="currentColor"');
+    });
+
+    it('straight waypoints produce polyline path', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 250)
+        .circle(10)
+        .edge('a', 'b')
+        .via(150, 50)
+        .via(150, 250)
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      // Should have M + 3 L commands (via1, via2, end)
+      const lSegments = d.match(/L\s/g);
+      expect(lSegments!.length).toBe(3);
+    });
+
+    it('edge routing chains with other builder methods', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 200)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .via(100, 0)
+        .arrow()
+        .label('test')
+        .class('my-edge')
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.routing).toBe('curved');
+      expect(edge.waypoints).toEqual([{ x: 100, y: 0 }]);
+      expect(edge.markerEnd).toBe('arrow');
+      expect(edge.label?.text).toBe('test');
+      expect(edge.className).toBe('my-edge');
+    });
+
+    it('edge .stroke() sets style.stroke on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000')
+        .build();
+      expect(scene.edges[0]!.style?.stroke).toBe('#ff0000');
+    });
+
+    it('edge .stroke() with width sets both stroke and strokeWidth', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('red', 3)
+        .build();
+      expect(scene.edges[0]!.style?.stroke).toBe('red');
+      expect(scene.edges[0]!.style?.strokeWidth).toBe(3);
+    });
+
+    it('edge .fill() sets style.fill on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .fill('blue')
+        .build();
+      expect(scene.edges[0]!.style?.fill).toBe('blue');
+    });
+
+    it('edge .opacity() sets style.opacity on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .opacity(0.5)
+        .build();
+      expect(scene.edges[0]!.style?.opacity).toBe(0.5);
+    });
+
+    it('edge style methods chain together', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000', 3)
+        .fill('none')
+        .opacity(0.8)
+        .build();
+      const style = scene.edges[0]!.style!;
+      expect(style.stroke).toBe('#ff0000');
+      expect(style.strokeWidth).toBe(3);
+      expect(style.fill).toBe('none');
+      expect(style.opacity).toBe(0.8);
+    });
+
+    it('per-edge style renders as inline styles in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000', 3)
+        .fill('blue')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      // Per-edge styles are in the style attribute (inline wins over CSS class)
+      expect(pathMatch![0]).toContain('stroke: #ff0000');
+      expect(pathMatch![0]).toContain('stroke-width: 3');
+      expect(pathMatch![0]).toContain('fill: blue');
+    });
+
+    it('arrowhead marker matches edge stroke color', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow()
+        .stroke('#e74c3c')
+        .svg();
+
+      // A per-color marker definition should exist in defs
+      expect(svgStr).toContain('id="viz-arrow-_e74c3c"');
+      expect(svgStr).toContain('fill="#e74c3c"');
+
+      // The edge path should reference the colored marker, not the default
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('url(#viz-arrow-_e74c3c)');
+      expect(pathMatch![0]).toContain('stroke: #e74c3c');
+    });
+
+    it('edge without custom stroke uses default viz-arrow marker', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .arrow()
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      // Default marker uses currentColor
+      expect(pathMatch![0]).toContain('url(#viz-arrow)');
+      // style attribute should be empty when no per-edge style is set
+      const styleMatch = pathMatch![0].match(/style="([^"]*)"/);
+      expect(styleMatch).toBeTruthy();
+      expect(styleMatch![1]!.trim()).toBe('');
+    });
+  });
 });
