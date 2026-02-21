@@ -725,6 +725,54 @@ const pathBehavior: ShapeBehavior<'path'> = {
   },
 };
 
+function documentPathD(
+  shape: Extract<NodeShape, { kind: 'document' }>,
+  pos: Vec2
+): string {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const wh = shape.waveHeight ?? Math.round(shape.h * 0.1);
+  const x0 = pos.x - hw;
+  const x1 = pos.x + hw;
+  const y0 = pos.y - hh;
+  const y1 = pos.y + hh - wh;
+  // Top-left → top-right → bottom-right → wavy bottom → close
+  return (
+    `M ${x0} ${y0}` +
+    ` H ${x1}` +
+    ` V ${y1}` +
+    ` C ${x1 - hw * 0.5} ${y1 + wh * 2}, ${x0 + hw * 0.5} ${y1 - wh}, ${x0} ${y1}` +
+    ' Z'
+  );
+}
+
+const documentBehavior: ShapeBehavior<'document'> = {
+  kind: 'document',
+  tagName: 'path',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('d', documentPathD(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const d = documentPathD(shape, pos);
+    return `<path d="${d}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -741,6 +789,7 @@ const shapeBehaviorRegistry: {
   cross: crossBehavior,
   cube: cubeBehavior,
   path: pathBehavior,
+  document: documentBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

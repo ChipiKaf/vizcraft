@@ -123,6 +123,11 @@ export const shapesScene = viz()
   .cube(80, 60, 20)
   .fill('#89b4fa')
   .label('cube')
+  .node('doc')
+  .at(560, 570)
+  .document(100, 70)
+  .fill('#f9e2af')
+  .label('document')
   .node('pth')
   .at(140, 680)
   .path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100)
@@ -175,7 +180,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports twelve built-in shapes plus a generic custom-path escape hatch:
+VizCraft supports thirteen built-in shapes plus a generic custom-path escape hatch:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -189,6 +194,7 @@ VizCraft supports twelve built-in shapes plus a generic custom-path escape hatch
 - `.cloud(w, h)` — cloud / thought bubble. A bumpy outline built from cubic Bézier curves, sized to fit within the `w × h` bounding box. Commonly used for external systems, the internet, or cloud services
 - `.cross(size, [barWidth])` — cross / plus sign. A 12-vertex polygon. `barWidth` defaults to ~33 % of `size`
 - `.cube(w, h, [depth])` — 3D isometric cube / box. Three polygons (front face, top face, right face) with automatic shading for the 3D effect. `depth` (isometric projection offset) defaults to ~20 % of `w`
+- `.document(w, h, [waveHeight])` — document (wavy bottom). The standard flowchart document symbol — a rectangle with a sine-wave-like curved bottom edge. `waveHeight` (the wave amplitude) defaults to ~10 % of `h`
 - `.path(d, w, h)` — **custom SVG path** (escape hatch). Supply any SVG path data string as `d`; `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center aligns with the node position
 
 <CodePreview code={`
@@ -213,6 +219,7 @@ builder
 .node('cld').at(560, 460).cloud(120, 70).fill('#b4befe').stroke('#585b70', 2).label('cloud')
 .node('crs').at(140, 570).cross(50, 18).fill('#a6e3a1').label('cross')
 .node('cub').at(350, 570).cube(80, 60, 20).fill('#89b4fa').label('cube')
+.node('doc').at(560, 570).document(100, 70).fill('#f9e2af').label('document')
 .node('pth').at(140, 680).path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100).fill('#f5c2e7').label('path (pentagon)')
 .done();
 

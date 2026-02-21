@@ -631,4 +631,53 @@ describe('vizcraft core', () => {
       expect(scene.edges).toHaveLength(1);
     });
   });
+
+  describe('document', () => {
+    it('creates a document node with default waveHeight', () => {
+      const scene = viz()
+        .node('report')
+        .at(200, 100)
+        .document(120, 80)
+        .fill('#ffffff')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('report');
+      expect(node.shape).toEqual({
+        kind: 'document',
+        w: 120,
+        h: 80,
+        waveHeight: undefined,
+      });
+      expect(node.style?.fill).toBe('#ffffff');
+    });
+
+    it('renders a <path> with wavy bottom in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('d')
+        .at(200, 150)
+        .document(120, 80)
+        .svg();
+
+      expect(svg).toContain('<path');
+      expect(svg).toContain('class="viz-node-shape"');
+      // The path should contain a cubic Bézier (C command) for the wave
+      expect(svg).toMatch(/d="[^"]*C[^"]*"/);
+    });
+
+    it('supports custom waveHeight', () => {
+      const scene = viz().node('d').at(0, 0).document(100, 60, 15).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'document';
+        w: number;
+        h: number;
+        waveHeight: number;
+      };
+      expect(shape.w).toBe(100);
+      expect(shape.h).toBe(60);
+      expect(shape.waveHeight).toBe(15);
+    });
+  });
 });

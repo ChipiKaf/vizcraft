@@ -192,6 +192,7 @@ interface NodeBuilder {
   cross(size: number, barWidth?: number): NodeBuilder;
   cube(w: number, h: number, depth?: number): NodeBuilder;
   path(d: string, w: number, h: number): NodeBuilder;
+  document(w: number, h: number, waveHeight?: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1467,6 +1468,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   path(d: string, w: number, h: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'path', d, w, h };
+    return this;
+  }
+
+  document(w: number, h: number, waveHeight?: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'document', w, h, waveHeight };
     return this;
   }
 

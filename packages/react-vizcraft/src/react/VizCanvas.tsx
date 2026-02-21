@@ -567,6 +567,22 @@ function RenderShape({ node }: { node: VizNode }) {
         />
       );
     }
+    case 'document': {
+      const dhw = shape.w / 2;
+      const dhh = shape.h / 2;
+      const dwh = shape.waveHeight ?? Math.round(shape.h * 0.1);
+      const dx0 = x - dhw;
+      const dx1 = x + dhw;
+      const dy0 = y - dhh;
+      const dy1 = y + dhh - dwh;
+      const docD =
+        `M ${dx0} ${dy0}` +
+        ` H ${dx1}` +
+        ` V ${dy1}` +
+        ` C ${dx1 - dhw * 0.5} ${dy1 + dwh * 2}, ${dx0 + dhw * 0.5} ${dy1 - dwh}, ${dx0} ${dy1}` +
+        ' Z';
+      return <path d={docD} className="viz-node-shape" />;
+    }
     default:
       return null;
   }
