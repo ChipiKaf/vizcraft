@@ -77,6 +77,7 @@ Supported node geometry.
 - `{ kind: 'cube'; w: number; h: number; depth?: number }` — 3D isometric cube / box. Rendered as three polygons (front face, top face, right face) with automatic brightness shading for the 3D effect. `depth` (isometric projection offset) defaults to ~20 % of `w`.
 - `{ kind: 'document'; w: number; h: number; waveHeight?: number }` — document (wavy bottom). The standard ISO 5807 flowchart document symbol. A rectangle with a sine-wave-like curved bottom edge (single cubic Bézier). `waveHeight` defaults to ~10 % of `h`.
 - `{ kind: 'note'; w: number; h: number; foldSize?: number }` — note (folded corner). The standard UML note / annotation symbol. A rectangle with a dog-eared top-right corner. The fold triangle is shaded darker for the paper-fold effect. `foldSize` defaults to `15`.
+- `{ kind: 'parallelogram'; w: number; h: number; skew?: number }` — parallelogram (skewed rectangle). The standard ISO 5807 Input/Output flowchart symbol. The top edge is shifted right by `skew`. Defaults to ~20 % of `w`.
 - `{ kind: 'path'; d: string; w: number; h: number }` — **custom SVG path** (escape hatch). `d` is any valid SVG path data string. `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center sits at the node position.
 
 ---

@@ -39,7 +39,8 @@ export type NodeShape =
   | { kind: 'cube'; w: number; h: number; depth?: number }
   | { kind: 'path'; d: string; w: number; h: number }
   | { kind: 'document'; w: number; h: number; waveHeight?: number }
-  | { kind: 'note'; w: number; h: number; foldSize?: number };
+  | { kind: 'note'; w: number; h: number; foldSize?: number }
+  | { kind: 'parallelogram'; w: number; h: number; skew?: number };
 
 export type NodeLabel = {
   text: string;

@@ -846,6 +846,50 @@ const noteBehavior: ShapeBehavior<'note'> = {
   },
 };
 
+function parallelogramPoints(
+  shape: Extract<NodeShape, { kind: 'parallelogram' }>,
+  pos: Vec2
+): string {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const sk = shape.skew ?? Math.round(shape.w * 0.2);
+  const half = sk / 2;
+  return [
+    `${pos.x - hw - half},${pos.y + hh}`,
+    `${pos.x + hw - half},${pos.y + hh}`,
+    `${pos.x + hw + half},${pos.y - hh}`,
+    `${pos.x - hw + half},${pos.y - hh}`,
+  ].join(' ');
+}
+
+const parallelogramBehavior: ShapeBehavior<'parallelogram'> = {
+  kind: 'parallelogram',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', parallelogramPoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = parallelogramPoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const sk = shape.skew ?? Math.round(shape.w * 0.2);
+    const hw = shape.w / 2 + sk / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -864,6 +908,7 @@ const shapeBehaviorRegistry: {
   path: pathBehavior,
   document: documentBehavior,
   note: noteBehavior,
+  parallelogram: parallelogramBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

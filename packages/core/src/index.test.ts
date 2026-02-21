@@ -727,4 +727,51 @@ describe('vizcraft core', () => {
       expect(shape.foldSize).toBe(25);
     });
   });
+
+  describe('parallelogram', () => {
+    it('creates a parallelogram node with default skew', () => {
+      const scene = viz()
+        .node('io')
+        .at(100, 100)
+        .parallelogram(140, 60)
+        .fill('#cba6f7')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('io');
+      expect(node.shape).toEqual({
+        kind: 'parallelogram',
+        w: 140,
+        h: 60,
+        skew: undefined,
+      });
+      expect(node.style?.fill).toBe('#cba6f7');
+    });
+
+    it('renders a polygon with 4 vertices in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('p')
+        .at(200, 150)
+        .parallelogram(120, 60, 30)
+        .svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports custom skew', () => {
+      const scene = viz().node('p').at(0, 0).parallelogram(100, 50, 25).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'parallelogram';
+        w: number;
+        h: number;
+        skew: number;
+      };
+      expect(shape.w).toBe(100);
+      expect(shape.h).toBe(50);
+      expect(shape.skew).toBe(25);
+    });
+  });
 });

@@ -116,6 +116,7 @@ b.node('n1')
  .path(d, w, h)            // Custom SVG path
  .document(w, h, [wave])   // Document (wavy bottom)
  .note(w, h, [foldSize])   // Note (folded corner)
+ .parallelogram(w, h, [skew]) // Parallelogram (I/O)
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

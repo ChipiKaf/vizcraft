@@ -604,6 +604,19 @@ function RenderShape({ node }: { node: VizNode }) {
         </g>
       );
     }
+    case 'parallelogram': {
+      const phw = shape.w / 2;
+      const phh = shape.h / 2;
+      const psk = shape.skew ?? Math.round(shape.w * 0.2);
+      const pHalf = psk / 2;
+      const parPts = [
+        `${x - phw - pHalf},${y + phh}`,
+        `${x + phw - pHalf},${y + phh}`,
+        `${x + phw + pHalf},${y - phh}`,
+        `${x - phw + pHalf},${y - phh}`,
+      ].join(' ');
+      return <polygon points={parPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }
