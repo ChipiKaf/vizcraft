@@ -400,6 +400,83 @@ if (el) builder.mount(el);
 | `.routing(mode)` | Set routing mode programmatically (`'straight'`, `'curved'`, or `'orthogonal'`).     |
 | `.via(x, y)`     | Add an intermediate waypoint. Chain multiple `.via()` calls for multi-segment paths. |
 
+### Edge Labels
+
+Use `.label(text)` to add a text label at the midpoint of an edge. Chain multiple `.label()` calls with a `position` option to place labels at **start**, **mid**, or **end** — useful for ER-diagram cardinalities, protocol annotations, or any edge that needs more than one label.
+
+| Position  | Placement                       |
+| --------- | ------------------------------- |
+| `'start'` | ~15 % from the source node.     |
+| `'mid'`   | Midpoint of the path (default). |
+| `'end'`   | ~85 % toward the target node.   |
+
+export const edgeLabelScene = viz()
+  .view(600, 220)
+  .node('users')
+  .at(80, 110)
+  .rect(100, 50)
+  .label('Users')
+  .node('orders')
+  .at(340, 60)
+  .rect(100, 50)
+  .label('Orders')
+  .node('products')
+  .at(340, 170)
+  .rect(100, 50)
+  .label('Products')
+  .edge('users', 'orders')
+  .label('1', { position: 'start' })
+  .label('places', { position: 'mid' })
+  .label('*', { position: 'end' })
+  .arrow()
+  .edge('orders', 'products')
+  .curved()
+  .label('*', { position: 'start' })
+  .label('contains', { position: 'mid' })
+  .label('*', { position: 'end' })
+  .arrow()
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(600, 220);
+
+builder
+.node('users').at(80, 110).rect(100, 50).label('Users')
+.node('orders').at(340, 60).rect(100, 50).label('Orders')
+.node('products').at(340, 170).rect(100, 50).label('Products')
+// ER-style: 1 user places _ orders
+.edge('users', 'orders')
+.label('1', { position: 'start' })
+.label('places', { position: 'mid' })
+.label('_', { position: 'end' })
+.arrow()
+// _ orders contain _ products (curved)
+.edge('orders', 'products')
+.curved()
+.label('_', { position: 'start' })
+.label('contains', { position: 'mid' })
+.label('_', { position: 'end' })
+.arrow()
+.done();
+
+const el = document.getElementById('viz-edge-labels');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={edgeLabelScene} style={{ height: '220px', width: '100%' }} />
+</CodePreview>
+
+| Builder method        | Effect                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.label(text)`        | Add a label at the midpoint (default position `'mid'`).                                                                                     |
+| `.label(text, opts?)` | Add a label with options. `opts.position` can be `'start'`, `'mid'`, or `'end'`. `opts.className`, `opts.dx`, `opts.dy` are also available. |
+
+:::tip
+You can chain `.label()` as many times as you like — each call adds an additional label. The `dy` default of `-10` places text slightly above the path.
+:::
+
 ### Edge Styling
 
 Like nodes, edges can be styled **per-edge** via the builder using `.stroke()`, `.fill()`, and `.opacity()`.

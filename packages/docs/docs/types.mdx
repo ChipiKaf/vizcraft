@@ -68,6 +68,8 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `waypoints?: Vec2[]` — intermediate points the edge must pass through.
 - `markerEnd?: 'arrow' | 'none'` — arrow head.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
+- `labels?: EdgeLabel[]` — text labels at various positions along the edge. Each label has a `position` (`'start'`, `'mid'`, or `'end'`). Chain `.label()` calls on the builder to add multiple labels.
+- `label?: EdgeLabel` — _(deprecated)_ single label. Kept for backwards compatibility; prefer `labels`.
 - `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number }` — per-edge visual styling. When set, inline SVG attributes override the CSS class defaults.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
@@ -80,6 +82,18 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 | `'straight'`   | Direct line (default). With waypoints, produces a polyline.                                               |
 | `'curved'`     | Smooth bezier curve. Auto-computed control point without waypoints; Catmull-Rom spline through waypoints. |
 | `'orthogonal'` | Right-angle (elbow) connectors. Auto L-shaped without waypoints; elbow segments through each waypoint.    |
+
+### EdgeLabel
+
+A text label rendered on an edge path.
+
+| Property     | Type                        | Description                                                                                                                                      |
+| ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `text`       | `string`                    | The label text.                                                                                                                                  |
+| `position`   | `'start' \| 'mid' \| 'end'` | Where on the path to place the label. `'start'` is ~15 % from the source, `'mid'` (default) is the midpoint, `'end'` is ~85 % toward the target. |
+| `className?` | `string`                    | Optional CSS class applied to the `<text>` element.                                                                                              |
+| `dx?`        | `number`                    | Horizontal offset (SVG `dx` attribute).                                                                                                          |
+| `dy?`        | `number`                    | Vertical offset (SVG `dy` attribute). Defaults to `-10` to sit above the path.                                                                   |
 
 ---
 

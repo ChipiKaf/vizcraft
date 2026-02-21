@@ -1,6 +1,11 @@
 import React, { useMemo } from 'react';
 import type { VizScene, VizNode, VizEdge } from 'vizcraft';
-import { computeEdgePath, computeEdgeEndpoints } from 'vizcraft';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  resolveEdgeLabelPosition,
+  collectEdgeLabels,
+} from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -273,19 +278,25 @@ export function VizCanvas(props: VizCanvasProps) {
                   />
                 )}
 
-                {/* Edge Label */}
-                {edge.label && (
-                  <text
-                    x={edgePath.mid.x + (edge.label.dx || 0)}
-                    y={edgePath.mid.y + (edge.label.dy || 0)}
-                    className={`viz-edge-label ${edge.label.className || ''}`}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {edge.label.text}
-                  </text>
-                )}
+                {/* Edge Labels (multi-position) */}
+                {collectEdgeLabels(edge).map((lbl, idx) => {
+                  const pos = resolveEdgeLabelPosition(lbl, edgePath);
+                  return (
+                    <text
+                      key={`${edge.id}-label-${idx}`}
+                      x={pos.x}
+                      y={pos.y}
+                      className={`viz-edge-label ${lbl.className || ''}`}
+                      data-label-index={idx}
+                      data-label-position={lbl.position}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {lbl.text}
+                    </text>
+                  );
+                })}
               </g>
             );
           })}

@@ -1470,4 +1470,197 @@ describe('vizcraft core', () => {
       expect(styleMatch![1]!.trim()).toBe('');
     });
   });
+
+  describe('multi-position edge labels', () => {
+    it('single .label() call still renders one label in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .label('hello')
+        .svg();
+
+      const labels = svgStr.match(
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+      );
+      expect(labels).toHaveLength(1);
+      expect(labels![0]).toContain('hello');
+      expect(labels![0]).toContain('data-label-position="mid"');
+    });
+
+    it('multiple .label() calls render multiple labels in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .label('1', { position: 'start', dy: -10 })
+        .label('places', { position: 'mid' })
+        .label('*', { position: 'end', dy: -10 })
+        .svg();
+
+      const labels = svgStr.match(
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+      );
+      expect(labels).toHaveLength(3);
+
+      // Verify positions
+      expect(labels![0]).toContain('data-label-position="start"');
+      expect(labels![0]).toContain('>1<');
+      expect(labels![1]).toContain('data-label-position="mid"');
+      expect(labels![1]).toContain('>places<');
+      expect(labels![2]).toContain('data-label-position="end"');
+      expect(labels![2]).toContain('>*<');
+    });
+
+    it('start/end labels are positioned along the edge path (not at midpoint)', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .label('S', { position: 'start' })
+        .label('M', { position: 'mid' })
+        .label('E', { position: 'end' })
+        .svg();
+
+      const labels = svgStr.match(
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+      );
+      expect(labels).toHaveLength(3);
+
+      // Extract x coordinates
+      const getX = (tag: string) => {
+        const m = tag.match(/x="([^"]*)"/);
+        return m ? parseFloat(m[1]!) : NaN;
+      };
+
+      const startX = getX(labels![0]!);
+      const midX = getX(labels![1]!);
+      const endX = getX(labels![2]!);
+
+      // start < mid < end along horizontal edge
+      expect(startX).toBeLessThan(midX);
+      expect(midX).toBeLessThan(endX);
+
+      // start is near source (~15%), end near target (~85%)
+      // Edge from ~10 to ~190 (boundary anchored circles r=10)
+      expect(startX).toBeGreaterThan(0);
+      expect(startX).toBeLessThan(midX - 10);
+      expect(endX).toBeGreaterThan(midX + 10);
+    });
+
+    it('backwards compatibility: scene.label is set for a single mid label', () => {
+      const scene = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .label('hello')
+        .build();
+
+      const edge = scene.edges[0]!;
+      // Legacy field is set
+      expect(edge.label).toBeDefined();
+      expect(edge.label!.text).toBe('hello');
+      expect(edge.label!.position).toBe('mid');
+      // New field is also set
+      expect(edge.labels).toHaveLength(1);
+      expect(edge.labels![0]!.text).toBe('hello');
+    });
+
+    it('labels[] is populated with all labels from chained calls', () => {
+      const scene = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .label('src', { position: 'start' })
+        .label('rel', { position: 'mid' })
+        .label('tgt', { position: 'end' })
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.labels).toHaveLength(3);
+      expect(edge.labels![0]!.position).toBe('start');
+      expect(edge.labels![1]!.position).toBe('mid');
+      expect(edge.labels![2]!.position).toBe('end');
+    });
+
+    it('data-label-index attribute is set on each label', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .label('A', { position: 'start' })
+        .label('B', { position: 'end' })
+        .svg();
+
+      expect(svgStr).toContain('data-label-index="0"');
+      expect(svgStr).toContain('data-label-index="1"');
+    });
+
+    it('labels work with curved edge routing', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 150)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .label('S', { position: 'start' })
+        .label('E', { position: 'end' })
+        .svg();
+
+      const labels = svgStr.match(
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+      );
+      expect(labels).toHaveLength(2);
+      expect(labels![0]).toContain('>S<');
+      expect(labels![1]).toContain('>E<');
+    });
+
+    it('labels work with orthogonal edge routing', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 150)
+        .circle(10)
+        .edge('a', 'b')
+        .orthogonal()
+        .label('S', { position: 'start' })
+        .label('M', { position: 'mid' })
+        .label('E', { position: 'end' })
+        .svg();
+
+      const labels = svgStr.match(
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+      );
+      expect(labels).toHaveLength(3);
+    });
+  });
 });
