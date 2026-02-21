@@ -40,6 +40,19 @@ A node in the scene graph.
 - `runtime?: VizRuntimeNodeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests (e.g. `pulse`, `flow`).
 - `data?: unknown` — your payload.
+- `parentId?: string` — parent container node id (makes this node a child of that container).
+- `container?: ContainerConfig` — marks this node as a container and configures grouping behaviour.
+
+---
+
+## ContainerConfig
+
+Configuration for a container / group node. Applied via `.container(config?)` on the builder.
+
+- `layout?: 'free' | 'vertical' | 'horizontal'` — child layout direction (default `'free'`).
+- `padding?: { top: number; right: number; bottom: number; left: number }` — interior padding.
+- `autoSize?: boolean` — whether the container auto-resizes to fit children.
+- `headerHeight?: number` — height of the header band for swimlane-style headers. When set, a separator line is rendered at this offset from the container's top edge and the node label is centred inside the header area.
 
 ---
 

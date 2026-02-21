@@ -123,7 +123,26 @@ b.node('n1')
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
+ .container(config?)     // Mark as container / group node
+ .parent('containerId')  // Make child of a container
 ```
+
+### Container / Group Nodes
+
+Group related nodes into visual containers (swimlanes, sub-processes, etc.).
+
+```typescript
+b.node('lane')
+  .at(250, 170)
+  .rect(460, 300)
+  .label('Process Phase')
+  .container({ headerHeight: 36 });
+
+b.node('step1').at(150, 220).rect(100, 50).parent('lane');
+b.node('step2').at(350, 220).rect(100, 50).parent('lane');
+```
+
+Container children are nested inside the container `<g>` in the SVG and follow the container when moved at runtime.
 
 ### Edges
 

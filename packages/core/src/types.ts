@@ -91,6 +91,17 @@ export type VizRuntimeEdgeProps = Partial<{
   opacity: number;
 }>;
 
+export interface ContainerConfig {
+  /** Layout direction for children (default 'free') */
+  layout?: 'free' | 'vertical' | 'horizontal';
+  /** Padding inside the container */
+  padding?: { top: number; right: number; bottom: number; left: number };
+  /** Whether the container auto-resizes to fit children */
+  autoSize?: boolean;
+  /** Header height for swimlane-style headers */
+  headerHeight?: number;
+}
+
 export interface VizNode {
   id: string;
   pos: Vec2;
@@ -107,6 +118,11 @@ export interface VizNode {
   data?: unknown; // User payload
   onClick?: (id: string, node: VizNode) => void;
   animations?: VizAnimSpec[];
+
+  /** If set, this node is a child of the node with this id. */
+  parentId?: string;
+  /** Container-specific configuration (only on parent nodes). */
+  container?: ContainerConfig;
 }
 
 export interface EdgeLabel {

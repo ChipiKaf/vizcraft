@@ -910,4 +910,159 @@ describe('vizcraft core', () => {
       expect(shape.direction).toBe('down');
     });
   });
+
+  // ── Container / Group Nodes ──────────────────────────────────────
+  describe('container', () => {
+    it('should mark a node as a container with default config', () => {
+      const scene = viz()
+        .node('group')
+        .at(200, 200)
+        .rect(400, 300)
+        .container()
+        .build();
+
+      const node = scene.nodes.find((n) => n.id === 'group')!;
+      expect(node.container).toEqual({ layout: 'free' });
+    });
+
+    it('should accept custom container config', () => {
+      const scene = viz()
+        .node('group')
+        .at(200, 200)
+        .rect(400, 300)
+        .container({
+          layout: 'vertical',
+          headerHeight: 30,
+          padding: { top: 10, right: 10, bottom: 10, left: 10 },
+          autoSize: true,
+        })
+        .build();
+
+      const node = scene.nodes.find((n) => n.id === 'group')!;
+      expect(node.container).toEqual({
+        layout: 'vertical',
+        headerHeight: 30,
+        padding: { top: 10, right: 10, bottom: 10, left: 10 },
+        autoSize: true,
+      });
+    });
+
+    it('should set parentId on child nodes via .parent()', () => {
+      const scene = viz()
+        .node('group')
+        .at(200, 200)
+        .rect(400, 300)
+        .container()
+        .node('child1')
+        .at(250, 250)
+        .rect(80, 40)
+        .parent('group')
+        .node('child2')
+        .at(350, 250)
+        .rect(80, 40)
+        .parent('group')
+        .build();
+
+      expect(scene.nodes.find((n) => n.id === 'child1')!.parentId).toBe(
+        'group'
+      );
+      expect(scene.nodes.find((n) => n.id === 'child2')!.parentId).toBe(
+        'group'
+      );
+      expect(
+        scene.nodes.find((n) => n.id === 'group')!.parentId
+      ).toBeUndefined();
+    });
+
+    it('should render container with viz-container class in SVG string output', () => {
+      const svgStr = viz()
+        .node('group')
+        .at(200, 200)
+        .rect(400, 300)
+        .container()
+        .node('child')
+        .at(250, 250)
+        .circle(20)
+        .parent('group')
+        .svg();
+
+      // Container node should have viz-container class
+      expect(svgStr).toContain('viz-container');
+      // Child should be rendered inside container-children group
+      expect(svgStr).toContain('viz-container-children');
+    });
+
+    it('should render header line when headerHeight is set', () => {
+      const svgStr = viz()
+        .node('swim')
+        .at(200, 200)
+        .rect(400, 300)
+        .label('Header')
+        .container({ headerHeight: 30 })
+        .svg();
+
+      expect(svgStr).toContain('viz-container-header');
+    });
+
+    it('should not render children at root level in SVG string output', () => {
+      const svgStr = viz()
+        .node('group')
+        .at(200, 200)
+        .rect(400, 300)
+        .container()
+        .node('child')
+        .at(250, 250)
+        .circle(20)
+        .parent('group')
+        .svg();
+
+      // The child node should appear inside a container-children group,
+      // not as a sibling of the container node in the nodes layer
+      const containerChildrenIdx = svgStr.indexOf('viz-container-children');
+      const childDataIdIdx = svgStr.indexOf('data-id="child"');
+      // Child data-id should come after the container-children group opens
+      expect(containerChildrenIdx).toBeLessThan(childDataIdIdx);
+    });
+
+    it('should support nested containers', () => {
+      const scene = viz()
+        .node('outer')
+        .at(300, 300)
+        .rect(600, 400)
+        .container()
+        .node('inner')
+        .at(350, 350)
+        .rect(200, 150)
+        .container()
+        .parent('outer')
+        .node('leaf')
+        .at(380, 380)
+        .circle(15)
+        .parent('inner')
+        .build();
+
+      expect(scene.nodes.find((n) => n.id === 'inner')!.parentId).toBe('outer');
+      expect(scene.nodes.find((n) => n.id === 'leaf')!.parentId).toBe('inner');
+
+      const svgStr = viz()
+        .node('outer')
+        .at(300, 300)
+        .rect(600, 400)
+        .container()
+        .node('inner')
+        .at(350, 350)
+        .rect(200, 150)
+        .container()
+        .parent('outer')
+        .node('leaf')
+        .at(380, 380)
+        .circle(15)
+        .parent('inner')
+        .svg();
+
+      // Both container-children groups should be present
+      const matches = svgStr.match(/viz-container-children/g);
+      expect(matches).toHaveLength(2);
+    });
+  });
 });
