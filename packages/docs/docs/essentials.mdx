@@ -92,6 +92,11 @@ export const shapesScene = viz()
   .fill('none')
   .stroke('#a6e3a1', 3)
   .label('arc (open)', { dy: 50 })
+  .node('ba')
+  .at(590, 210)
+  .blockArrow(90, 20, 40, 25)
+  .fill('#94e2d5')
+  .label('block arrow')
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -139,7 +144,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports seven built-in shapes:
+VizCraft supports eight built-in shapes:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -148,6 +153,7 @@ VizCraft supports seven built-in shapes:
 - `.hexagon(r, [orientation])` — regular hexagon with outer radius `r`. `orientation` is `'pointy'` (default, vertex at top) or `'flat'` (flat edge at top)
 - `.ellipse(rx, ry)` — ellipse / oval with independent horizontal and vertical radii
 - `.arc(r, startAngle, endAngle, [closed])` — arc / pie slice. Angles in degrees (0 = right, 90 = bottom). Defaults to a closed pie; pass `false` for an open arc
+- `.blockArrow(length, bodyWidth, headWidth, headLength, [direction])` — thick directional arrow polygon. `direction` is `'right'` (default), `'left'`, `'up'`, or `'down'`
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
@@ -165,6 +171,7 @@ builder
 .node('pie').at(140, 330).arc(40, 180, 360).fill('#f38ba8').label('arc (half)', { dy: 50 })
 .node('quarter').at(320, 330).arc(40, 0, 90).fill('#fab387').label('arc (quarter)', { dy: 50 })
 .node('open').at(510, 330).arc(40, 45, 315, false).fill('none').stroke('#a6e3a1', 3).label('arc (open)', { dy: 50 })
+.node('ba').at(590, 210).blockArrow(90, 20, 40, 25).fill('#94e2d5').label('block arrow')
 .done();
 
 const container = document.getElementById('viz-shapes');

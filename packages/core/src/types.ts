@@ -15,6 +15,14 @@ export type NodeShape =
       startAngle: number;
       endAngle: number;
       closed?: boolean;
+    }
+  | {
+      kind: 'blockArrow';
+      length: number;
+      bodyWidth: number;
+      headWidth: number;
+      headLength: number;
+      direction?: 'right' | 'left' | 'up' | 'down';
     };
 
 export type NodeLabel = {

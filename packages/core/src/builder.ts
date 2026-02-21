@@ -170,6 +170,13 @@ interface NodeBuilder {
     endAngle: number,
     closed?: boolean
   ): NodeBuilder;
+  blockArrow(
+    length: number,
+    bodyWidth: number,
+    headWidth: number,
+    headLength: number,
+    direction?: 'right' | 'left' | 'up' | 'down'
+  ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1383,6 +1390,24 @@ class NodeBuilderImpl implements NodeBuilder {
     closed?: boolean
   ): NodeBuilder {
     this.nodeDef.shape = { kind: 'arc', r, startAngle, endAngle, closed };
+    return this;
+  }
+
+  blockArrow(
+    length: number,
+    bodyWidth: number,
+    headWidth: number,
+    headLength: number,
+    direction?: 'right' | 'left' | 'up' | 'down'
+  ): NodeBuilder {
+    this.nodeDef.shape = {
+      kind: 'blockArrow',
+      length,
+      bodyWidth,
+      headWidth,
+      headLength,
+      direction,
+    };
     return this;
   }
 

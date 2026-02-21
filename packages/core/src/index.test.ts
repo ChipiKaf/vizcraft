@@ -318,4 +318,68 @@ describe('vizcraft core', () => {
       expect(svg).toMatch(/A 50 50 0 1 1/);
     });
   });
+
+  describe('blockArrow shape', () => {
+    it('creates a node with blockArrow shape via .blockArrow()', () => {
+      const scene = viz()
+        .node('ba')
+        .at(200, 100)
+        .blockArrow(120, 30, 50, 35)
+        .fill('#89b4fa')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('ba');
+      expect(node.shape).toEqual({
+        kind: 'blockArrow',
+        length: 120,
+        bodyWidth: 30,
+        headWidth: 50,
+        headLength: 35,
+        direction: undefined,
+      });
+      expect(node.style?.fill).toBe('#89b4fa');
+    });
+
+    it('renders a polygon in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('ba')
+        .at(200, 150)
+        .blockArrow(100, 20, 40, 30)
+        .svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports direction variants', () => {
+      const scene = viz()
+        .node('up')
+        .at(100, 100)
+        .blockArrow(80, 20, 40, 25, 'up')
+        .build();
+
+      const node = scene.nodes[0]!;
+      const shape = node.shape as { kind: 'blockArrow'; direction: string };
+      expect(shape.direction).toBe('up');
+    });
+
+    it('uses bounding-rect anchor for boundary mode', () => {
+      const scene = viz()
+        .node('ba')
+        .at(100, 100)
+        .blockArrow(100, 20, 40, 30)
+        .node('tgt')
+        .at(300, 100)
+        .circle(10)
+        .edge('ba', 'tgt')
+        .arrow()
+        .done()
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.anchor).toBe('boundary');
+    });
+  });
 });

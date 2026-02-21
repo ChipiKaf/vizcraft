@@ -307,6 +307,74 @@ const arcBehavior: ShapeBehavior<'arc'> = {
   },
 };
 
+function blockArrowPoints(
+  shape: Extract<NodeShape, { kind: 'blockArrow' }>,
+  pos: Vec2
+): string {
+  const halfBody = shape.bodyWidth / 2;
+  const halfHead = shape.headWidth / 2;
+  const halfLen = shape.length / 2;
+  const neckX = halfLen - shape.headLength;
+  const dir = shape.direction ?? 'right';
+  const angle =
+    dir === 'left'
+      ? Math.PI
+      : dir === 'up'
+        ? -Math.PI / 2
+        : dir === 'down'
+          ? Math.PI / 2
+          : 0;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const basePts: [number, number][] = [
+    [-halfLen, -halfBody],
+    [neckX, -halfBody],
+    [neckX, -halfHead],
+    [halfLen, 0],
+    [neckX, halfHead],
+    [neckX, halfBody],
+    [-halfLen, halfBody],
+  ];
+
+  return basePts
+    .map(([px, py]) => {
+      const rx = px * cos - py * sin;
+      const ry = px * sin + py * cos;
+      return `${pos.x + rx},${pos.y + ry}`;
+    })
+    .join(' ');
+}
+
+const blockArrowBehavior: ShapeBehavior<'blockArrow'> = {
+  kind: 'blockArrow',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', blockArrowPoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = blockArrowPoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const dir = shape.direction ?? 'right';
+    const hw =
+      dir === 'up' || dir === 'down' ? shape.headWidth / 2 : shape.length / 2;
+    const hh =
+      dir === 'up' || dir === 'down' ? shape.length / 2 : shape.headWidth / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -317,6 +385,7 @@ const shapeBehaviorRegistry: {
   hexagon: hexagonBehavior,
   ellipse: ellipseBehavior,
   arc: arcBehavior,
+  blockArrow: blockArrowBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

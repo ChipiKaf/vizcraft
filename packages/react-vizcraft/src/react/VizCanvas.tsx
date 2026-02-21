@@ -381,6 +381,40 @@ function RenderShape({ node }: { node: VizNode }) {
         : `M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey}`;
       return <path d={d} className="viz-node-shape" />;
     }
+    case 'blockArrow': {
+      const dir = shape.direction ?? 'right';
+      const halfBody = shape.bodyWidth / 2;
+      const halfHead = shape.headWidth / 2;
+      const halfLen = shape.length / 2;
+      const neckX = halfLen - shape.headLength;
+      const angle =
+        dir === 'left'
+          ? Math.PI
+          : dir === 'up'
+            ? -Math.PI / 2
+            : dir === 'down'
+              ? Math.PI / 2
+              : 0;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const basePts: [number, number][] = [
+        [-halfLen, -halfBody],
+        [neckX, -halfBody],
+        [neckX, -halfHead],
+        [halfLen, 0],
+        [neckX, halfHead],
+        [neckX, halfBody],
+        [-halfLen, halfBody],
+      ];
+      const blockPts = basePts
+        .map(([px, py]) => {
+          const rx = px * cos - py * sin;
+          const ry = px * sin + py * cos;
+          return `${x + rx},${y + ry}`;
+        })
+        .join(' ');
+      return <polygon points={blockPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

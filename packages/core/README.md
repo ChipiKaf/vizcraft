@@ -108,6 +108,7 @@ b.node('n1')
  .hexagon(r, [orientation])   // Hexagon ('pointy' or 'flat')
  .ellipse(rx, ry)        // Ellipse / oval
  .arc(r, start, end, [closed]) // Arc / pie slice
+ .blockArrow(len, bodyW, headW, headLen, [dir]) // Block arrow
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
