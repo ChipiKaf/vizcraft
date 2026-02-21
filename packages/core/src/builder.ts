@@ -71,9 +71,10 @@ function generateMarkerSvg(
 
   // Common marker properties
   const viewBox = '0 0 10 10';
-  // Start markers use refX=1 so they sit outside the node boundary;
-  // end markers use refX=9 so the tip aligns with the path endpoint.
-  const refX = position === 'start' ? '1' : '9';
+  // refX=9 positions the marker tip at the path endpoint.
+  // Start markers use orient="auto-start-reverse" which flips the marker,
+  // so the same refX=9 keeps the tip at the node boundary.
+  const refX = '9';
   const refY = '5'; // Center vertically
   const markerWidth = '10';
   const markerHeight = '10';
@@ -850,7 +851,7 @@ class VizBuilderImpl implements VizBuilder {
           markerEl.setAttribute('viewBox', '0 0 10 10');
           markerEl.setAttribute('markerWidth', '10');
           markerEl.setAttribute('markerHeight', '10');
-          markerEl.setAttribute('refX', pos === 'start' ? '1' : '9');
+          markerEl.setAttribute('refX', '9');
           markerEl.setAttribute('refY', '5');
           markerEl.setAttribute(
             'orient',
@@ -888,7 +889,7 @@ class VizBuilderImpl implements VizBuilder {
             markerEl.setAttribute('viewBox', '0 0 10 10');
             markerEl.setAttribute('markerWidth', '10');
             markerEl.setAttribute('markerHeight', '10');
-            markerEl.setAttribute('refX', pos === 'start' ? '1' : '9');
+            markerEl.setAttribute('refX', '9');
             markerEl.setAttribute('refY', '5');
             markerEl.setAttribute(
               'orient',

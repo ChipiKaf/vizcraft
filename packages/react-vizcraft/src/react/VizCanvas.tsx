@@ -243,7 +243,7 @@ function MarkerDef({
       viewBox="0 0 10 10"
       markerWidth="10"
       markerHeight="10"
-      refX={position === 'start' ? 1 : 9}
+      refX={9}
       refY={5}
       orient={position === 'start' ? 'auto-start-reverse' : 'auto'}
     >

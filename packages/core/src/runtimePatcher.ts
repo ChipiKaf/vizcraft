@@ -130,7 +130,7 @@ function ensureColoredMarker(
       m.setAttribute('viewBox', '0 0 10 10');
       m.setAttribute('markerWidth', '10');
       m.setAttribute('markerHeight', '10');
-      m.setAttribute('refX', position === 'start' ? '1' : '9');
+      m.setAttribute('refX', '9');
       m.setAttribute('refY', '5');
       m.setAttribute(
         'orient',
