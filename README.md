@@ -117,6 +117,7 @@ b.node('n1')
  .callout(w, h, [opts])   // Speech bubble / callout
  .cloud(w, h)             // Cloud / thought bubble
  .cross(size, [barWidth])  // Cross / plus sign
+ .cube(w, h, [depth])      // 3D isometric cube
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

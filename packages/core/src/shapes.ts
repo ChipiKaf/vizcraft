@@ -605,6 +605,94 @@ const crossBehavior: ShapeBehavior<'cross'> = {
   },
 };
 
+function cubeVertices(shape: Extract<NodeShape, { kind: 'cube' }>, pos: Vec2) {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const d = shape.depth ?? Math.round(shape.w * 0.2);
+  // Front face centered at pos so labels align naturally
+  const ftl = { x: pos.x - hw, y: pos.y - hh };
+  const ftr = { x: pos.x + hw, y: pos.y - hh };
+  const fbr = { x: pos.x + hw, y: pos.y + hh };
+  const fbl = { x: pos.x - hw, y: pos.y + hh };
+  // Back top corners (shifted by +d in x, -d in y)
+  const btl = { x: ftl.x + d, y: ftl.y - d };
+  const btr = { x: ftr.x + d, y: ftr.y - d };
+  // Back bottom-right (for right face)
+  const bbr = { x: fbr.x + d, y: fbr.y - d };
+  return { ftl, ftr, fbr, fbl, btl, btr, bbr, d };
+}
+
+function polyStr(...pts: { x: number; y: number }[]): string {
+  return pts.map((p) => `${p.x},${p.y}`).join(' ');
+}
+
+const cubeBehavior: ShapeBehavior<'cube'> = {
+  kind: 'cube',
+  tagName: 'g',
+  applyGeometry(el, shape, pos) {
+    const { ftl, ftr, fbr, fbl, btl, btr, bbr } = cubeVertices(shape, pos);
+
+    let front = el.querySelector(
+      '[data-viz-cube="front"]'
+    ) as SVGPolygonElement | null;
+    if (!front) {
+      front = document.createElementNS(SVG_NS, 'polygon');
+      front.setAttribute('data-viz-cube', 'front');
+      el.appendChild(front);
+    }
+    front.setAttribute('points', polyStr(ftl, ftr, fbr, fbl));
+
+    let top = el.querySelector(
+      '[data-viz-cube="top"]'
+    ) as SVGPolygonElement | null;
+    if (!top) {
+      top = document.createElementNS(SVG_NS, 'polygon');
+      top.setAttribute('data-viz-cube', 'top');
+      el.appendChild(top);
+    }
+    top.setAttribute('points', polyStr(ftl, ftr, btr, btl));
+    top.style.filter = 'brightness(0.85)';
+
+    let right = el.querySelector(
+      '[data-viz-cube="right"]'
+    ) as SVGPolygonElement | null;
+    if (!right) {
+      right = document.createElementNS(SVG_NS, 'polygon');
+      right.setAttribute('data-viz-cube', 'right');
+      el.appendChild(right);
+    }
+    right.setAttribute('points', polyStr(ftr, btr, bbr, fbr));
+    right.style.filter = 'brightness(0.7)';
+  },
+  svgMarkup(shape, pos, attrs) {
+    const { ftl, ftr, fbr, fbl, btl, btr, bbr } = cubeVertices(shape, pos);
+    const end = '</g>';
+    return (
+      `<g class="viz-node-shape" data-viz-role="node-shape"${attrs}>` +
+      `<polygon points="${polyStr(ftl, ftr, fbr, fbl)}" data-viz-cube="front"/>` +
+      `<polygon points="${polyStr(ftl, ftr, btr, btl)}" data-viz-cube="top" style="filter:brightness(0.85)"/>` +
+      `<polygon points="${polyStr(ftr, btr, bbr, fbr)}" data-viz-cube="right" style="filter:brightness(0.7)"/>` +
+      end
+    );
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const d = shape.depth ?? Math.round(shape.w * 0.2);
+    const hw = shape.w / 2 + d / 2;
+    const hh = shape.h / 2 + d / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -619,6 +707,7 @@ const shapeBehaviorRegistry: {
   callout: calloutBehavior,
   cloud: cloudBehavior,
   cross: crossBehavior,
+  cube: cubeBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

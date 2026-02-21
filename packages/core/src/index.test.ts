@@ -536,4 +536,52 @@ describe('vizcraft core', () => {
       expect(shape.barWidth).toBe(30);
     });
   });
+
+  describe('cube', () => {
+    it('creates a cube node with default depth', () => {
+      const scene = viz()
+        .node('srv')
+        .at(200, 100)
+        .cube(100, 80)
+        .fill('#89b4fa')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('srv');
+      expect(node.shape).toEqual({
+        kind: 'cube',
+        w: 100,
+        h: 80,
+        depth: undefined,
+      });
+      expect(node.style?.fill).toBe('#89b4fa');
+    });
+
+    it('renders a <g> with three polygons in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('s')
+        .at(200, 150)
+        .cube(100, 80, 25)
+        .svg();
+
+      expect(svg).toContain('data-viz-cube="front"');
+      expect(svg).toContain('data-viz-cube="top"');
+      expect(svg).toContain('data-viz-cube="right"');
+    });
+
+    it('supports custom depth', () => {
+      const scene = viz().node('s').at(0, 0).cube(100, 80, 30).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'cube';
+        w: number;
+        h: number;
+        depth: number;
+      };
+      expect(shape.w).toBe(100);
+      expect(shape.h).toBe(80);
+      expect(shape.depth).toBe(30);
+    });
+  });
 });

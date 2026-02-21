@@ -526,6 +526,36 @@ function RenderShape({ node }: { node: VizNode }) {
       ].join(' ');
       return <polygon points={crossPts} className="viz-node-shape" />;
     }
+    case 'cube': {
+      const chw = shape.w / 2;
+      const chh = shape.h / 2;
+      const cd = shape.depth ?? Math.round(shape.w * 0.2);
+      // Front face centered at pos so label aligns naturally
+      const ftl = { x: x - chw, y: y - chh };
+      const ftr = { x: x + chw, y: y - chh };
+      const fbr = { x: x + chw, y: y + chh };
+      const fbl = { x: x - chw, y: y + chh };
+      const btl = { x: ftl.x + cd, y: ftl.y - cd };
+      const btr = { x: ftr.x + cd, y: ftr.y - cd };
+      const bbr = { x: fbr.x + cd, y: fbr.y - cd };
+      const pts = (...vs: { x: number; y: number }[]) =>
+        vs.map((v) => `${v.x},${v.y}`).join(' ');
+      return (
+        <g className="viz-node-shape">
+          <polygon points={pts(ftl, ftr, fbr, fbl)} data-viz-cube="front" />
+          <polygon
+            points={pts(ftl, ftr, btr, btl)}
+            data-viz-cube="top"
+            style={{ filter: 'brightness(0.85)' }}
+          />
+          <polygon
+            points={pts(ftr, btr, bbr, fbr)}
+            data-viz-cube="right"
+            style={{ filter: 'brightness(0.7)' }}
+          />
+        </g>
+      );
+    }
     default:
       return null;
   }
