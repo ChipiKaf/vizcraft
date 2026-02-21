@@ -22,7 +22,7 @@ import {
   patchRuntime,
   type RuntimePatchCtx,
 } from './runtimePatcher';
-import { computeEdgePath } from './edgePaths';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 
 import type { AnimationSpec } from './anim/spec';
 import {
@@ -47,7 +47,6 @@ const autoplayControllerByContainer = new WeakMap<
 
 import {
   applyShapeGeometry,
-  computeNodeAnchor,
   effectivePos,
   getShapeBehavior,
   shapeSvgMarkup,
@@ -82,17 +81,6 @@ function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
   return Object.entries(params as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => [`--viz-anim-${k}`, String(v)] as [string, string]);
-}
-
-function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
-  const anchor = edge.anchor ?? 'boundary';
-  // Use effective positions of start/end nodes to calculate anchors
-  const startPos = effectivePos(start);
-  const endPos = effectivePos(end);
-
-  const startAnchor = computeNodeAnchor(start, endPos, anchor);
-  const endAnchor = computeNodeAnchor(end, startPos, anchor);
-  return { start: startAnchor, end: endAnchor };
 }
 
 interface VizBuilder {
@@ -795,7 +783,6 @@ class VizBuilderImpl implements VizBuilder {
         const path = document.createElementNS(svgNS, 'path');
         path.setAttribute('class', 'viz-edge');
         path.setAttribute('data-viz-role', 'edge-line');
-        path.setAttribute('fill', 'none');
         group.appendChild(path);
 
         // Optional parts created on demand later, but structure expected
@@ -868,8 +855,6 @@ class VizBuilderImpl implements VizBuilder {
         line.removeAttribute('stroke-dashoffset');
       }
       line.setAttribute('d', edgePath.d);
-      line.setAttribute('fill', 'none');
-      line.setAttribute('stroke', 'currentColor');
       if (edge.markerEnd === 'arrow') {
         line.setAttribute('marker-end', 'url(#viz-arrow)');
       } else {
@@ -886,7 +871,6 @@ class VizBuilderImpl implements VizBuilder {
         hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
         hit.setAttribute('data-viz-role', 'edge-hit');
         hit.setAttribute('d', edgePath.d);
-        hit.setAttribute('fill', 'none');
         hit.setAttribute('stroke', 'transparent');
         hit.setAttribute('stroke-width', String(edge.hitArea || 10));
         hit.style.cursor = edge.onClick ? 'pointer' : '';
@@ -1325,7 +1309,7 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
-      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} stroke="currentColor" fill="none" style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
+      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {

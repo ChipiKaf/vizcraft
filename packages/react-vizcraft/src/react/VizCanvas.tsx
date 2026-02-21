@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { VizScene, VizNode, VizEdge } from 'vizcraft';
-import { computeEdgePath } from 'vizcraft';
+import { computeEdgePath, computeEdgeEndpoints } from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -198,9 +198,10 @@ export function VizCanvas(props: VizCanvasProps) {
               });
             }
 
+            const endpoints = computeEdgeEndpoints(start, end, edge);
             const edgePath = computeEdgePath(
-              start.pos,
-              end.pos,
+              endpoints.start,
+              endpoints.end,
               edge.routing,
               edge.waypoints
             );
@@ -218,8 +219,6 @@ export function VizCanvas(props: VizCanvasProps) {
                   markerEnd={
                     edge.markerEnd === 'arrow' ? 'url(#viz-arrow)' : undefined
                   }
-                  stroke="currentColor"
-                  fill="none"
                 />
 
                 {/* Hit Area */}
@@ -228,7 +227,6 @@ export function VizCanvas(props: VizCanvasProps) {
                     d={edgePath.d}
                     className="viz-edge-hit"
                     stroke="transparent"
-                    fill="none"
                     strokeWidth={edge.hitArea || 10}
                     onClick={(e: React.MouseEvent) => {
                       if (edge.onClick) {

@@ -1259,7 +1259,7 @@ describe('vizcraft core', () => {
       expect(lSegments!.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('path edges include fill="none"', () => {
+    it('path edges get fill/stroke from CSS class, not hardcoded attributes', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1270,7 +1270,15 @@ describe('vizcraft core', () => {
         .edge('a', 'b')
         .svg();
 
-      expect(svgStr).toContain('fill="none"');
+      // fill and stroke come from the .viz-edge CSS rule, not inline attributes
+      expect(svgStr).toContain('class="viz-edge"');
+      expect(svgStr).toContain('fill: none');
+      expect(svgStr).toContain('stroke: currentColor');
+      // Ensure they are NOT hardcoded on the <path> element itself
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).not.toContain('fill="none"');
+      expect(pathMatch![0]).not.toContain('stroke="currentColor"');
     });
 
     it('straight waypoints produce polyline path', () => {

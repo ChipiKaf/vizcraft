@@ -7,15 +7,37 @@
  *   2. A midpoint along the path (for label positioning).
  */
 
-import type { Vec2, EdgeRouting } from './types';
+import type { Vec2, VizNode, VizEdge, EdgeRouting } from './types';
+import { computeNodeAnchor, effectivePos } from './shapes';
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export interface EdgePathResult {
   /** SVG path `d` attribute. */
   d: string;
-  /** Midpoint of the path (for label placement). */
+  /** Approximate label position along the path (exact for straight/quadratic, approximated for spline and orthogonal-with-waypoints paths). */
   mid: Vec2;
+}
+
+/**
+ * Compute anchor-resolved start/end points for an edge.
+ *
+ * This replicates the logic used internally by the core builder and
+ * runtime patcher so that external renderers (e.g. React) can
+ * resolve boundary anchors consistently.
+ */
+export function computeEdgeEndpoints(
+  start: VizNode,
+  end: VizNode,
+  edge: VizEdge
+): { start: Vec2; end: Vec2 } {
+  const anchor = edge.anchor ?? 'boundary';
+  const startPos = effectivePos(start);
+  const endPos = effectivePos(end);
+
+  const startAnchor = computeNodeAnchor(start, endPos, anchor);
+  const endAnchor = computeNodeAnchor(end, startPos, anchor);
+  return { start: startAnchor, end: endAnchor };
 }
 
 /**
@@ -227,7 +249,7 @@ function orthogonalThroughWaypoints(
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
-/** Midpoint along a polyline (approximated as midpoint of the middle segment). */
+/** Midpoint along a polyline by arc length (point at half the total path length). */
 function polylineMidpoint(pts: Vec2[]): Vec2 {
   if (pts.length === 0) return { x: 0, y: 0 };
   if (pts.length === 1) return pts[0]!;

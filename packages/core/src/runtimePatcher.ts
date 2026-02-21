@@ -1,6 +1,6 @@
-import type { VizEdge, VizNode, VizScene } from './types';
-import { applyShapeGeometry, computeNodeAnchor, effectivePos } from './shapes';
-import { computeEdgePath } from './edgePaths';
+import type { VizScene } from './types';
+import { applyShapeGeometry, effectivePos } from './shapes';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 
 export interface RuntimePatchCtx {
   svg: SVGSVGElement;
@@ -13,16 +13,6 @@ export interface RuntimePatchCtx {
   edgeLinesById: Map<string, SVGPathElement>;
   edgeHitsById: Map<string, SVGPathElement>;
   edgeLabelsById: Map<string, SVGTextElement>;
-}
-
-function computeEdgeEndpoints(start: VizNode, end: VizNode, edge: VizEdge) {
-  const anchor = edge.anchor ?? 'boundary';
-  const startPos = effectivePos(start);
-  const endPos = effectivePos(end);
-
-  const startAnchor = computeNodeAnchor(start, endPos, anchor);
-  const endAnchor = computeNodeAnchor(end, startPos, anchor);
-  return { start: startAnchor, end: endAnchor };
 }
 
 export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
