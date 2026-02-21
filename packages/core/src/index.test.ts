@@ -492,4 +492,48 @@ describe('vizcraft core', () => {
       expect(shape.h).toBe(120);
     });
   });
+
+  describe('cross shape', () => {
+    it('creates a node with cross shape via .cross(size)', () => {
+      const scene = viz()
+        .node('add')
+        .at(100, 100)
+        .cross(60)
+        .fill('#a6e3a1')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('add');
+      expect(node.shape).toEqual({
+        kind: 'cross',
+        size: 60,
+        barWidth: undefined,
+      });
+      expect(node.style?.fill).toBe('#a6e3a1');
+    });
+
+    it('renders a polygon with 12 vertices in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('c')
+        .at(200, 150)
+        .cross(50, 18)
+        .svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports custom barWidth', () => {
+      const scene = viz().node('c').at(0, 0).cross(80, 30).build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'cross';
+        size: number;
+        barWidth: number;
+      };
+      expect(shape.size).toBe(80);
+      expect(shape.barWidth).toBe(30);
+    });
+  });
 });

@@ -34,7 +34,8 @@ export type NodeShape =
       pointerWidth?: number;
       pointerPosition?: number;
     }
-  | { kind: 'cloud'; w: number; h: number };
+  | { kind: 'cloud'; w: number; h: number }
+  | { kind: 'cross'; size: number; barWidth?: number };
 
 export type NodeLabel = {
   text: string;

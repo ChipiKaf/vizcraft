@@ -111,6 +111,7 @@ b.node('n1')
  .blockArrow(len, bodyW, headW, headLen, [dir]) // Block arrow
  .callout(w, h, [opts])   // Speech bubble / callout
  .cloud(w, h)             // Cloud / thought bubble
+ .cross(size, [barWidth])  // Cross / plus sign
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

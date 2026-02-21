@@ -73,6 +73,7 @@ Supported node geometry.
 - `{ kind: 'blockArrow'; length: number; bodyWidth: number; headWidth: number; headLength: number; direction?: 'right' | 'left' | 'up' | 'down' }` — thick directional arrow polygon. `length` is tip-to-tail, `bodyWidth` is the shaft thickness, `headWidth` is the arrowhead wingspan, `headLength` is the arrowhead depth. `direction` defaults to `'right'`.
 - `{ kind: 'callout'; w: number; h: number; rx?: number; pointerSide?: 'bottom' | 'top' | 'left' | 'right'; pointerHeight?: number; pointerWidth?: number; pointerPosition?: number }` — speech bubble / callout. A rounded rectangle body with a triangular pointer extending from one side. `pointerSide` defaults to `'bottom'`, `pointerPosition` (0–1) defaults to `0.3`, `pointerHeight` defaults to ~25 % of `h`, `pointerWidth` defaults to ~20 % of `w`.
 - `{ kind: 'cloud'; w: number; h: number }` — cloud / thought bubble. A bumpy outline built from cubic Bézier arcs, sized to fit within the `w × h` bounding box. Anchor uses a bounding-ellipse approximation.
+- `{ kind: 'cross'; size: number; barWidth?: number }` — cross / plus sign. A 12-vertex polygon inscribed in a square of the given `size`. `barWidth` defaults to ~33 % of `size`.
 
 ---
 

@@ -556,6 +556,55 @@ const cloudBehavior: ShapeBehavior<'cloud'> = {
   },
 };
 
+function crossPoints(
+  shape: Extract<NodeShape, { kind: 'cross' }>,
+  pos: Vec2
+): string {
+  const hs = shape.size / 2;
+  const bw = (shape.barWidth ?? Math.round(shape.size / 3)) / 2;
+  // 12-vertex plus sign, CW from top-left of vertical bar
+  return [
+    `${pos.x - bw},${pos.y - hs}`,
+    `${pos.x + bw},${pos.y - hs}`,
+    `${pos.x + bw},${pos.y - bw}`,
+    `${pos.x + hs},${pos.y - bw}`,
+    `${pos.x + hs},${pos.y + bw}`,
+    `${pos.x + bw},${pos.y + bw}`,
+    `${pos.x + bw},${pos.y + hs}`,
+    `${pos.x - bw},${pos.y + hs}`,
+    `${pos.x - bw},${pos.y + bw}`,
+    `${pos.x - hs},${pos.y + bw}`,
+    `${pos.x - hs},${pos.y - bw}`,
+    `${pos.x - bw},${pos.y - bw}`,
+  ].join(' ');
+}
+
+const crossBehavior: ShapeBehavior<'cross'> = {
+  kind: 'cross',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', crossPoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = crossPoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hs = shape.size / 2;
+    const scale = Math.min(
+      hs / Math.abs(dx || 1e-6),
+      hs / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -569,6 +618,7 @@ const shapeBehaviorRegistry: {
   blockArrow: blockArrowBehavior,
   callout: calloutBehavior,
   cloud: cloudBehavior,
+  cross: crossBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

@@ -40,7 +40,7 @@ export const edgesScene = edgesBuilder
   .done();
 
 export const shapesScene = viz()
-  .view(700, 530)
+  .view(700, 640)
   .node('circ')
   .at(60, 80)
   .circle(30)
@@ -113,6 +113,11 @@ export const shapesScene = viz()
   .fill('#b4befe')
   .stroke('#585b70', 2)
   .label('cloud')
+  .node('crs')
+  .at(140, 570)
+  .cross(50, 18)
+  .fill('#a6e3a1')
+  .label('cross')
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -160,7 +165,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports ten built-in shapes:
+VizCraft supports eleven built-in shapes:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -172,11 +177,12 @@ VizCraft supports ten built-in shapes:
 - `.blockArrow(length, bodyWidth, headWidth, headLength, [direction])` — thick directional arrow polygon. `direction` is `'right'` (default), `'left'`, `'up'`, or `'down'`
 - `.callout(w, h, [opts])` — speech bubble / callout. A rounded rectangle body with a triangular pointer. Options: `rx` (corner radius), `pointerSide` (`'bottom'` default, `'top'`, `'left'`, `'right'`), `pointerHeight`, `pointerWidth`, `pointerPosition` (0–1, default 0.3)
 - `.cloud(w, h)` — cloud / thought bubble. A bumpy outline built from cubic Bézier curves, sized to fit within the `w × h` bounding box. Commonly used for external systems, the internet, or cloud services
+- `.cross(size, [barWidth])` — cross / plus sign. A 12-vertex polygon. `barWidth` defaults to ~33 % of `size`
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz().view(700, 530);
+const builder = viz().view(700, 640);
 
 builder
 .node('circ').at(60, 80).circle(30).fill('#89b4fa').label('circle')
@@ -193,6 +199,7 @@ builder
 .node('co').at(140, 460).callout(120, 60, { rx: 8 }).fill('#f9e2af').label('callout')
 .node('coL').at(350, 460).callout(120, 60, { rx: 8, pointerSide: 'left' }).fill('#cba6f7').label('callout (left)')
 .node('cld').at(560, 460).cloud(120, 70).fill('#b4befe').stroke('#585b70', 2).label('cloud')
+.node('crs').at(140, 570).cross(50, 18).fill('#a6e3a1').label('cross')
 .done();
 
 const container = document.getElementById('viz-shapes');
@@ -201,7 +208,7 @@ if (container) builder.mount(container);
 
   <VizMount
     builder={shapesScene}
-    style={{ height: '500px', width: '100%', border: '1px solid #ccc' }}
+    style={{ height: '600px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
 

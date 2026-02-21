@@ -507,6 +507,25 @@ function RenderShape({ node }: { node: VizNode }) {
       cParts.push('Z');
       return <path d={cParts.join(' ')} className="viz-node-shape" />;
     }
+    case 'cross': {
+      const chs = shape.size / 2;
+      const cbw = (shape.barWidth ?? Math.round(shape.size / 3)) / 2;
+      const crossPts = [
+        `${x - cbw},${y - chs}`,
+        `${x + cbw},${y - chs}`,
+        `${x + cbw},${y - cbw}`,
+        `${x + chs},${y - cbw}`,
+        `${x + chs},${y + cbw}`,
+        `${x + cbw},${y + cbw}`,
+        `${x + cbw},${y + chs}`,
+        `${x - cbw},${y + chs}`,
+        `${x - cbw},${y + cbw}`,
+        `${x - chs},${y + cbw}`,
+        `${x - chs},${y - cbw}`,
+        `${x - cbw},${y - cbw}`,
+      ].join(' ');
+      return <polygon points={crossPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }
