@@ -643,6 +643,43 @@ function RenderShape({ node }: { node: VizNode }) {
       ].join(' ');
       return <polygon points={trapPts} className="viz-node-shape" />;
     }
+    case 'triangle': {
+      const trhw = shape.w / 2;
+      const trhh = shape.h / 2;
+      const tdir = shape.direction ?? 'up';
+      let triPts: string;
+      switch (tdir) {
+        case 'up':
+          triPts = [
+            `${x},${y - trhh}`,
+            `${x + trhw},${y + trhh}`,
+            `${x - trhw},${y + trhh}`,
+          ].join(' ');
+          break;
+        case 'down':
+          triPts = [
+            `${x},${y + trhh}`,
+            `${x - trhw},${y - trhh}`,
+            `${x + trhw},${y - trhh}`,
+          ].join(' ');
+          break;
+        case 'left':
+          triPts = [
+            `${x - trhw},${y}`,
+            `${x + trhw},${y - trhh}`,
+            `${x + trhw},${y + trhh}`,
+          ].join(' ');
+          break;
+        case 'right':
+          triPts = [
+            `${x + trhw},${y}`,
+            `${x - trhw},${y + trhh}`,
+            `${x - trhw},${y - trhh}`,
+          ].join(' ');
+          break;
+      }
+      return <polygon points={triPts} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

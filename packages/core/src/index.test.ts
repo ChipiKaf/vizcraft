@@ -863,4 +863,51 @@ describe('vizcraft core', () => {
       expect(shape.h).toBe(40);
     });
   });
+
+  describe('triangle', () => {
+    it('creates a triangle node with default direction (up)', () => {
+      const scene = viz()
+        .node('warning')
+        .at(100, 100)
+        .triangle(80, 70)
+        .fill('#f9e2af')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('warning');
+      expect(node.shape).toEqual({
+        kind: 'triangle',
+        w: 80,
+        h: 70,
+        direction: undefined,
+      });
+      expect(node.style?.fill).toBe('#f9e2af');
+    });
+
+    it('renders a polygon with 3 vertices in SVG output', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('t')
+        .at(200, 150)
+        .triangle(80, 70)
+        .svg();
+
+      expect(svg).toContain('<polygon');
+      expect(svg).toContain('class="viz-node-shape"');
+    });
+
+    it('supports custom direction', () => {
+      const scene = viz().node('t').at(0, 0).triangle(60, 50, 'down').build();
+
+      const shape = scene.nodes[0]!.shape as {
+        kind: 'triangle';
+        w: number;
+        h: number;
+        direction: string;
+      };
+      expect(shape.w).toBe(60);
+      expect(shape.h).toBe(50);
+      expect(shape.direction).toBe('down');
+    });
+  });
 });

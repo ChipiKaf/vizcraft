@@ -40,7 +40,7 @@ export const edgesScene = edgesBuilder
   .done();
 
 export const shapesScene = viz()
-  .view(700, 860)
+  .view(700, 960)
   .node('circ')
   .at(60, 80)
   .circle(30)
@@ -153,6 +153,11 @@ export const shapesScene = viz()
   .trapezoid(80, 120, 55)
   .fill('#fab387')
   .label('trapezoid')
+  .node('tri')
+  .at(140, 900)
+  .triangle(80, 70)
+  .fill('#f38ba8')
+  .label('triangle')
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -200,7 +205,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports seventeen built-in shapes plus a generic custom-path escape hatch:
+VizCraft supports eighteen built-in shapes plus a generic custom-path escape hatch:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -219,12 +224,13 @@ VizCraft supports seventeen built-in shapes plus a generic custom-path escape ha
 - `.parallelogram(w, h, [skew])` — parallelogram (skewed rectangle). The standard ISO 5807 Input/Output symbol. The top edge is shifted right by `skew` (defaults to ~20 % of `w`)
 - `.star(points, outerR, [innerR])` — multi-pointed star. `points` is the number of tips, `outerR` the tip radius, `innerR` the valley radius (defaults to ~40 % of `outerR`). Great for ratings, badges, or decorative markers
 - `.trapezoid(topW, bottomW, h)` — trapezoid. A quadrilateral with a shorter top edge (`topW`) and a longer bottom edge (`bottomW`). The standard ISO 5807 Manual Operation symbol. Swap `topW` / `bottomW` for an inverted trapezoid (Manual Input)
+- `.triangle(w, h, [direction])` — triangle. A 3-vertex polygon with base `w` and height `h`. `direction` is `'up'` (default), `'down'`, `'left'`, or `'right'` — controls which way the apex points. Useful for warnings, data-flow symbols, and hierarchy diagrams
 - `.path(d, w, h)` — **custom SVG path** (escape hatch). Supply any SVG path data string as `d`; `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center aligns with the node position
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz().view(700, 860);
+const builder = viz().view(700, 960);
 
 builder
 .node('circ').at(60, 80).circle(30).fill('#89b4fa').label('circle')
@@ -249,6 +255,7 @@ builder
 .node('par').at(140, 790).parallelogram(120, 55).fill('#cba6f7').label('parallelogram')
 .node('str').at(350, 790).star(5, 40).fill('#f9e2af').label('star')
 .node('trp').at(560, 790).trapezoid(80, 120, 55).fill('#fab387').label('trapezoid')
+.node('tri').at(140, 900).triangle(80, 70).fill('#f38ba8').label('triangle')
 .done();
 
 const container = document.getElementById('viz-shapes');
@@ -257,7 +264,7 @@ if (container) builder.mount(container);
 
   <VizMount
     builder={shapesScene}
-    style={{ height: '820px', width: '100%', border: '1px solid #ccc' }}
+    style={{ height: '920px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
 

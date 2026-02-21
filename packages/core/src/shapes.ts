@@ -971,6 +971,68 @@ const trapezoidBehavior: ShapeBehavior<'trapezoid'> = {
   },
 };
 
+function trianglePoints(
+  shape: Extract<NodeShape, { kind: 'triangle' }>,
+  pos: Vec2
+): string {
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  const dir = shape.direction ?? 'up';
+  switch (dir) {
+    case 'up':
+      return [
+        `${pos.x},${pos.y - hh}`,
+        `${pos.x + hw},${pos.y + hh}`,
+        `${pos.x - hw},${pos.y + hh}`,
+      ].join(' ');
+    case 'down':
+      return [
+        `${pos.x},${pos.y + hh}`,
+        `${pos.x - hw},${pos.y - hh}`,
+        `${pos.x + hw},${pos.y - hh}`,
+      ].join(' ');
+    case 'left':
+      return [
+        `${pos.x - hw},${pos.y}`,
+        `${pos.x + hw},${pos.y - hh}`,
+        `${pos.x + hw},${pos.y + hh}`,
+      ].join(' ');
+    case 'right':
+      return [
+        `${pos.x + hw},${pos.y}`,
+        `${pos.x - hw},${pos.y + hh}`,
+        `${pos.x - hw},${pos.y - hh}`,
+      ].join(' ');
+  }
+}
+
+const triangleBehavior: ShapeBehavior<'triangle'> = {
+  kind: 'triangle',
+  tagName: 'polygon',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('points', trianglePoints(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const pts = trianglePoints(shape, pos);
+    return `<polygon points="${pts}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -992,6 +1054,7 @@ const shapeBehaviorRegistry: {
   parallelogram: parallelogramBehavior,
   star: starBehavior,
   trapezoid: trapezoidBehavior,
+  triangle: triangleBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

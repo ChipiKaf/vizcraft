@@ -119,6 +119,7 @@ b.node('n1')
  .parallelogram(w, h, [skew]) // Parallelogram (I/O)
  .star(points, outerR, [innerR]) // Star / badge
  .trapezoid(topW, bottomW, h) // Trapezoid
+ .triangle(w, h, [direction]) // Triangle
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

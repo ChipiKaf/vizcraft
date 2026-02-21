@@ -42,7 +42,13 @@ export type NodeShape =
   | { kind: 'note'; w: number; h: number; foldSize?: number }
   | { kind: 'parallelogram'; w: number; h: number; skew?: number }
   | { kind: 'star'; points: number; outerR: number; innerR?: number }
-  | { kind: 'trapezoid'; topW: number; bottomW: number; h: number };
+  | { kind: 'trapezoid'; topW: number; bottomW: number; h: number }
+  | {
+      kind: 'triangle';
+      w: number;
+      h: number;
+      direction?: 'up' | 'down' | 'left' | 'right';
+    };
 
 export type NodeLabel = {
   text: string;
