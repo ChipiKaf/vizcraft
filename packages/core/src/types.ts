@@ -136,6 +136,32 @@ export interface EdgeLabel {
 /** Edge routing algorithm. */
 export type EdgeRouting = 'straight' | 'curved' | 'orthogonal';
 
+/**
+ * Edge marker/arrowhead types.
+ *
+ * - `'none'`: No marker
+ * - `'arrow'`: Filled triangle (default arrowhead)
+ * - `'arrowOpen'`: Open/unfilled triangle (V shape)
+ * - `'diamond'`: Filled diamond (UML composition)
+ * - `'diamondOpen'`: Open diamond (UML aggregation)
+ * - `'circle'`: Filled circle
+ * - `'circleOpen'`: Open circle
+ * - `'square'`: Filled square
+ * - `'bar'`: Perpendicular line (T shape, for cardinality)
+ * - `'halfArrow'`: Single-sided arrow (one wing)
+ */
+export type EdgeMarkerType =
+  | 'none'
+  | 'arrow'
+  | 'arrowOpen'
+  | 'diamond'
+  | 'diamondOpen'
+  | 'circle'
+  | 'circleOpen'
+  | 'square'
+  | 'bar'
+  | 'halfArrow';
+
 export interface VizEdge {
   id: string;
   from: string;
@@ -145,7 +171,10 @@ export interface VizEdge {
   /** Multiple labels at different positions along the edge. */
   labels?: EdgeLabel[];
   runtime?: VizRuntimeEdgeProps;
-  markerEnd?: 'arrow' | 'none';
+  /** Marker at the target (end) of the edge. */
+  markerEnd?: EdgeMarkerType;
+  /** Marker at the source (start) of the edge. */
+  markerStart?: EdgeMarkerType;
   anchor?: 'center' | 'boundary';
   /** Per-edge visual styling. Overrides the CSS defaults when set. */
   style?: {

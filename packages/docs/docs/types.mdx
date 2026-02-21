@@ -66,7 +66,8 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `from: string` / `to: string` — node ids.
 - `routing?: 'straight' | 'curved' | 'orthogonal'` — path routing algorithm (default `'straight'`).
 - `waypoints?: Vec2[]` — intermediate points the edge must pass through.
-- `markerEnd?: 'arrow' | 'none'` — arrow head.
+- `markerEnd?: EdgeMarkerType` — marker/arrowhead at the target end of the edge.
+- `markerStart?: EdgeMarkerType` — marker/arrowhead at the source end of the edge.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
 - `labels?: EdgeLabel[]` — text labels at various positions along the edge. Each label has a `position` (`'start'`, `'mid'`, or `'end'`). Chain `.label()` calls on the builder to add multiple labels.
 - `label?: EdgeLabel` — _(deprecated)_ single label. Kept for backwards compatibility; prefer `labels`.
@@ -82,6 +83,23 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 | `'straight'`   | Direct line (default). With waypoints, produces a polyline.                                               |
 | `'curved'`     | Smooth bezier curve. Auto-computed control point without waypoints; Catmull-Rom spline through waypoints. |
 | `'orthogonal'` | Right-angle (elbow) connectors. Auto L-shaped without waypoints; elbow segments through each waypoint.    |
+
+### EdgeMarkerType {#edge-marker-type}
+
+Marker/arrowhead styles for edge endpoints. Used by both `markerEnd` and `markerStart` on `VizEdge`.
+
+| Type            | Description                         | Use case                           |
+| --------------- | ----------------------------------- | ---------------------------------- |
+| `'none'`        | No marker                           | Plain line                         |
+| `'arrow'`       | Filled triangle (default arrowhead) | Dependency / association           |
+| `'arrowOpen'`   | Open / unfilled triangle (V shape)  | Inheritance / generalization (UML) |
+| `'diamond'`     | Filled diamond                      | Composition (UML)                  |
+| `'diamondOpen'` | Open diamond                        | Aggregation (UML)                  |
+| `'circle'`      | Filled circle                       | Navigable association              |
+| `'circleOpen'`  | Open circle                         | Association endpoint               |
+| `'square'`      | Filled square                       | Custom endpoint                    |
+| `'bar'`         | Perpendicular line (T shape)        | "Exactly one" (ER cardinality)     |
+| `'halfArrow'`   | Single-sided arrow (one wing)       | Custom directional hint            |
 
 ### EdgeLabel
 

@@ -561,6 +561,197 @@ if (el) builder.mount(el);
 You can combine per-edge styling with CSS classes. Use `.class('my-edge')` for broad theming and `.stroke()` / `.fill()` / `.opacity()` for one-off overrides.
 :::
 
+### Edge Markers (Arrowheads)
+
+Edges support a rich set of **marker types** — arrowheads, diamonds, circles, bars, and more — at **both ends** of the path.
+This makes it easy to express UML, ER, and BPMN relationship semantics.
+
+Use `.markerEnd(type)` and `.markerStart(type)` to set markers explicitly, or `.arrow()` as a shorthand for the common arrow marker.
+
+export const edgeMarkerScene = viz()
+  .view(620, 340)
+  .node('a1')
+  .at(50, 40)
+  .circle(18)
+  .label('A')
+  .node('b1')
+  .at(280, 40)
+  .circle(18)
+  .label('B')
+  .edge('a1', 'b1')
+  .arrow()
+  .label('arrow')
+  .node('a2')
+  .at(50, 100)
+  .circle(18)
+  .label('C')
+  .node('b2')
+  .at(280, 100)
+  .circle(18)
+  .label('D')
+  .edge('a2', 'b2')
+  .markerEnd('arrowOpen')
+  .label('arrowOpen')
+  .node('a3')
+  .at(50, 160)
+  .circle(18)
+  .label('E')
+  .node('b3')
+  .at(280, 160)
+  .circle(18)
+  .label('F')
+  .edge('a3', 'b3')
+  .markerStart('diamond')
+  .markerEnd('arrow')
+  .label('composition')
+  .node('a4')
+  .at(340, 40)
+  .circle(18)
+  .label('G')
+  .node('b4')
+  .at(570, 40)
+  .circle(18)
+  .label('H')
+  .edge('a4', 'b4')
+  .markerStart('diamondOpen')
+  .markerEnd('arrow')
+  .label('aggregation')
+  .node('a5')
+  .at(340, 100)
+  .circle(18)
+  .label('I')
+  .node('b5')
+  .at(570, 100)
+  .circle(18)
+  .label('J')
+  .edge('a5', 'b5')
+  .markerStart('circleOpen')
+  .markerEnd('arrow')
+  .label('assoc')
+  .node('a6')
+  .at(340, 160)
+  .circle(18)
+  .label('K')
+  .node('b6')
+  .at(570, 160)
+  .circle(18)
+  .label('L')
+  .edge('a6', 'b6')
+  .arrow('both')
+  .label('bidirectional')
+  .node('a7')
+  .at(50, 220)
+  .circle(18)
+  .label('M')
+  .node('b7')
+  .at(280, 220)
+  .circle(18)
+  .label('N')
+  .edge('a7', 'b7')
+  .markerEnd('bar')
+  .label('bar (ER)')
+  .node('a8')
+  .at(340, 220)
+  .circle(18)
+  .label('O')
+  .node('b8')
+  .at(570, 220)
+  .circle(18)
+  .label('P')
+  .edge('a8', 'b8')
+  .markerEnd('circle')
+  .label('circle')
+  .node('a9')
+  .at(50, 280)
+  .circle(18)
+  .label('Q')
+  .node('b9')
+  .at(280, 280)
+  .circle(18)
+  .label('R')
+  .edge('a9', 'b9')
+  .markerEnd('square')
+  .label('square')
+  .node('a10')
+  .at(340, 280)
+  .circle(18)
+  .label('S')
+  .node('b10')
+  .at(570, 280)
+  .circle(18)
+  .label('T')
+  .edge('a10', 'b10')
+  .markerEnd('halfArrow')
+  .label('halfArrow')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(620, 340);
+
+builder
+// Basic arrow
+.node('a1').at(50, 40).circle(18).label('A')
+.node('b1').at(280, 40).circle(18).label('B')
+.edge('a1', 'b1').arrow().label('arrow')
+// Open arrow (inheritance)
+.node('a2').at(50, 100).circle(18).label('C')
+.node('b2').at(280, 100).circle(18).label('D')
+.edge('a2', 'b2').markerEnd('arrowOpen').label('arrowOpen')
+// UML composition: diamond start + arrow end
+.node('a3').at(50, 160).circle(18).label('E')
+.node('b3').at(280, 160).circle(18).label('F')
+.edge('a3', 'b3').markerStart('diamond').markerEnd('arrow').label('composition')
+// UML aggregation: open diamond start + arrow end
+.node('a4').at(340, 40).circle(18).label('G')
+.node('b4').at(570, 40).circle(18).label('H')
+.edge('a4', 'b4').markerStart('diamondOpen').markerEnd('arrow').label('aggregation')
+// Association with circle marker
+.node('a5').at(340, 100).circle(18).label('I')
+.node('b5').at(570, 100).circle(18).label('J')
+.edge('a5', 'b5').markerStart('circleOpen').markerEnd('arrow').label('assoc')
+// Bidirectional
+.node('a6').at(340, 160).circle(18).label('K')
+.node('b6').at(570, 160).circle(18).label('L')
+.edge('a6', 'b6').arrow('both').label('bidirectional')
+// Bar (ER cardinality)
+.node('a7').at(50, 220).circle(18).label('M')
+.node('b7').at(280, 220).circle(18).label('N')
+.edge('a7', 'b7').markerEnd('bar').label('bar (ER)')
+// Other types
+.node('a8').at(340, 220).circle(18).label('O')
+.node('b8').at(570, 220).circle(18).label('P')
+.edge('a8', 'b8').markerEnd('circle').label('circle')
+.node('a9').at(50, 280).circle(18).label('Q')
+.node('b9').at(280, 280).circle(18).label('R')
+.edge('a9', 'b9').markerEnd('square').label('square')
+.node('a10').at(340, 280).circle(18).label('S')
+.node('b10').at(570, 280).circle(18).label('T')
+.edge('a10', 'b10').markerEnd('halfArrow').label('halfArrow')
+.done();
+
+const el = document.getElementById('viz-edge-markers');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={edgeMarkerScene} style={{ height: '340px', width: '100%' }} />
+</CodePreview>
+
+| Builder method       | Effect                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `.arrow()`           | Shorthand: set `markerEnd` to `'arrow'` (default arrowhead).                          |
+| `.arrow('both')`     | Bidirectional: set both `markerStart` and `markerEnd` to `'arrow'`.                   |
+| `.arrow('start')`    | Set only `markerStart` to `'arrow'`.                                                  |
+| `.arrow('end')`      | Set only `markerEnd` to `'arrow'` (same as `.arrow()`).                               |
+| `.arrow(false)`      | Remove the default arrow marker (`markerEnd: 'none'`).                                |
+| `.markerEnd(type)`   | Set the marker at the **target** end. See [EdgeMarkerType](./types#edge-marker-type). |
+| `.markerStart(type)` | Set the marker at the **source** end. See [EdgeMarkerType](./types#edge-marker-type). |
+
+:::tip
+Marker colors automatically match the edge's stroke color. If you use `.stroke('#e74c3c')`, the marker will also be red — no extra config needed.
+:::
+
 ## Animations
 
 For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:
