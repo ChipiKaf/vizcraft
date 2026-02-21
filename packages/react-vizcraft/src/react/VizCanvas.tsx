@@ -34,19 +34,6 @@ function markerIdFor(
     : `${base}${suffix}`;
 }
 
-/** All possible marker types (excluding 'none'). */
-const ALL_MARKER_TYPES: Exclude<EdgeMarkerType, 'none'>[] = [
-  'arrow',
-  'arrowOpen',
-  'diamond',
-  'diamondOpen',
-  'circle',
-  'circleOpen',
-  'square',
-  'bar',
-  'halfArrow',
-];
-
 export interface VizCanvasProps {
   scene: VizScene;
   className?: string; // Container class
@@ -141,32 +128,48 @@ function useAnimatedNodes(targetNodes: VizNode[]) {
 }
 
 /**
- * Renders SVG `<marker>` definitions for all marker types with a given color.
+ * Collect the set of unique marker (id, type, position) tuples actually
+ * referenced by edges, so we only render the defs that are needed.
  */
-function MarkerDefs({ color }: { color: string }) {
-  const isDefault = color === 'currentColor';
-  return (
-    <>
-      {ALL_MARKER_TYPES.flatMap((markerType) =>
-        (['end', 'start'] as const).map((pos) => {
-          const base = `viz-${markerType}`;
-          const suffix = pos === 'start' ? '-start' : '';
-          const id = isDefault
-            ? `${base}${suffix}`
-            : `${base}${suffix}-${colorToMarkerSuffix(color)}`;
-          return (
-            <MarkerDef
-              key={id}
-              id={id}
-              markerType={markerType}
-              color={color}
-              position={pos}
-            />
-          );
-        })
-      )}
-    </>
-  );
+function useNeededMarkers(edges: VizEdge[]) {
+  return useMemo(() => {
+    const seen = new Set<string>();
+    const markers: {
+      id: string;
+      markerType: Exclude<EdgeMarkerType, 'none'>;
+      color: string;
+      position: 'start' | 'end';
+    }[] = [];
+
+    for (const e of edges) {
+      const stroke = e.style?.stroke;
+      if (e.markerEnd && e.markerEnd !== 'none') {
+        const mid = markerIdFor(e.markerEnd, stroke, 'end');
+        if (!seen.has(mid)) {
+          seen.add(mid);
+          markers.push({
+            id: mid,
+            markerType: e.markerEnd,
+            color: stroke ?? 'currentColor',
+            position: 'end',
+          });
+        }
+      }
+      if (e.markerStart && e.markerStart !== 'none') {
+        const mid = markerIdFor(e.markerStart, stroke, 'start');
+        if (!seen.has(mid)) {
+          seen.add(mid);
+          markers.push({
+            id: mid,
+            markerType: e.markerStart,
+            color: stroke ?? 'currentColor',
+            position: 'start',
+          });
+        }
+      }
+    }
+    return markers;
+  }, [edges]);
 }
 
 function MarkerDef({
@@ -293,6 +296,8 @@ export function VizCanvas(props: VizCanvasProps) {
     [animatedNodes]
   );
 
+  const neededMarkers = useNeededMarkers(edges);
+
   return (
     <div className={`viz-canvas ${className || ''}`}>
       <svg
@@ -300,17 +305,15 @@ export function VizCanvas(props: VizCanvasProps) {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Default markers (currentColor) for all marker types */}
-          <MarkerDefs color="currentColor" />
-          {/* Per-color markers for edges with custom stroke */}
-          {Array.from(
-            new Set(
-              edges
-                .map((e: VizEdge) => e.style?.stroke)
-                .filter((s): s is string => !!s)
-            )
-          ).map((color) => (
-            <MarkerDefs key={color} color={color} />
+          {/* Only render marker defs for types/positions actually used by edges */}
+          {neededMarkers.map((m) => (
+            <MarkerDef
+              key={m.id}
+              id={m.id}
+              markerType={m.markerType}
+              color={m.color}
+              position={m.position}
+            />
           ))}
         </defs>
 

@@ -61,6 +61,15 @@ function arrowMarkerIdFor(stroke: string | undefined): string {
  * @param id The marker element id
  * @param position Whether this marker is used at the start or end of an edge
  */
+/** Escape a string for safe use inside an XML/SVG attribute value. */
+function escapeXmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function generateMarkerSvg(
   markerType: EdgeMarkerType,
   color: string,
@@ -68,6 +77,9 @@ function generateMarkerSvg(
   position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
+
+  // Sanitise color for safe interpolation into SVG attribute strings
+  const safeColor = escapeXmlAttr(color);
 
   // Common marker properties
   const viewBox = '0 0 10 10';
@@ -84,47 +96,47 @@ function generateMarkerSvg(
   switch (markerType) {
     case 'arrow':
       // Filled triangle
-      content = `<polygon points="0,2 10,5 0,8" fill="${color}" />`;
+      content = `<polygon points="0,2 10,5 0,8" fill="${safeColor}" />`;
       break;
 
     case 'arrowOpen':
       // Open V-shape triangle (white fill hides the edge line behind the marker)
-      content = `<polyline points="0,2 10,5 0,8" fill="white" stroke="${color}" stroke-width="1.5" stroke-linejoin="miter" />`;
+      content = `<polyline points="0,2 10,5 0,8" fill="white" stroke="${safeColor}" stroke-width="1.5" stroke-linejoin="miter" />`;
       break;
 
     case 'diamond':
       // Filled diamond
-      content = `<polygon points="0,5 5,2 10,5 5,8" fill="${color}" />`;
+      content = `<polygon points="0,5 5,2 10,5 5,8" fill="${safeColor}" />`;
       break;
 
     case 'diamondOpen':
       // Open diamond (white fill hides the edge line behind the marker)
-      content = `<polygon points="0,5 5,2 10,5 5,8" fill="white" stroke="${color}" stroke-width="1.5" />`;
+      content = `<polygon points="0,5 5,2 10,5 5,8" fill="white" stroke="${safeColor}" stroke-width="1.5" />`;
       break;
 
     case 'circle':
       // Filled circle
-      content = `<circle cx="5" cy="5" r="3" fill="${color}" />`;
+      content = `<circle cx="5" cy="5" r="3" fill="${safeColor}" />`;
       break;
 
     case 'circleOpen':
       // Open circle (white fill hides the edge line behind the marker)
-      content = `<circle cx="5" cy="5" r="3" fill="white" stroke="${color}" stroke-width="1.5" />`;
+      content = `<circle cx="5" cy="5" r="3" fill="white" stroke="${safeColor}" stroke-width="1.5" />`;
       break;
 
     case 'square':
       // Filled square
-      content = `<rect x="2" y="2" width="6" height="6" fill="${color}" />`;
+      content = `<rect x="2" y="2" width="6" height="6" fill="${safeColor}" />`;
       break;
 
     case 'bar':
       // Perpendicular line (T shape)
-      content = `<line x1="5" y1="1" x2="5" y2="9" stroke="${color}" stroke-width="2" stroke-linecap="round" />`;
+      content = `<line x1="5" y1="1" x2="5" y2="9" stroke="${safeColor}" stroke-width="2" stroke-linecap="round" />`;
       break;
 
     case 'halfArrow':
       // Single-sided arrow (top half of a filled triangle)
-      content = `<polygon points="0,2 10,5 0,5" fill="${color}" />`;
+      content = `<polygon points="0,2 10,5 0,5" fill="${safeColor}" />`;
       break;
 
     default:
