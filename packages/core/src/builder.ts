@@ -843,7 +843,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Default markers (using currentColor)
       allMarkerTypesList.forEach((markerType) => {
-        // Generate both end (refX=9) and start (refX=1) variants
+        // Generate both end and start variants (start uses orient=auto-start-reverse)
         for (const pos of ['end', 'start'] as const) {
           const mid = markerIdFor(markerType, undefined, pos);
           const markerEl = document.createElementNS(svgNS, 'marker');
@@ -1481,11 +1481,11 @@ class VizBuilderImpl implements VizBuilder {
 
     // Default markers (using currentColor) — both end and start variants
     allMarkerTypes.forEach((markerType) => {
-      // End variant (refX=9)
+      // End variant
       const endId = markerIdFor(markerType, undefined, 'end');
       markerDefinitions.add(endId);
       svgContent += generateMarkerSvg(markerType, 'currentColor', endId, 'end');
-      // Start variant (refX=1)
+      // Start variant (orient=auto-start-reverse flips the marker)
       const startId = markerIdFor(markerType, undefined, 'start');
       markerDefinitions.add(startId);
       svgContent += generateMarkerSvg(
