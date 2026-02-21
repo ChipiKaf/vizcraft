@@ -75,6 +75,7 @@ Supported node geometry.
 - `{ kind: 'cloud'; w: number; h: number }` — cloud / thought bubble. A bumpy outline built from cubic Bézier arcs, sized to fit within the `w × h` bounding box. Anchor uses a bounding-ellipse approximation.
 - `{ kind: 'cross'; size: number; barWidth?: number }` — cross / plus sign. A 12-vertex polygon inscribed in a square of the given `size`. `barWidth` defaults to ~33 % of `size`.
 - `{ kind: 'cube'; w: number; h: number; depth?: number }` — 3D isometric cube / box. Rendered as three polygons (front face, top face, right face) with automatic brightness shading for the 3D effect. `depth` (isometric projection offset) defaults to ~20 % of `w`.
+- `{ kind: 'path'; d: string; w: number; h: number }` — **custom SVG path** (escape hatch). `d` is any valid SVG path data string. `w` and `h` define the bounding box used for anchor computation and label centering. The path is translated so the bounding box center sits at the node position.
 
 ---
 

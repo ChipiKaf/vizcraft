@@ -693,6 +693,38 @@ const cubeBehavior: ShapeBehavior<'cube'> = {
   },
 };
 
+const pathBehavior: ShapeBehavior<'path'> = {
+  kind: 'path',
+  tagName: 'path',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('d', shape.d);
+    el.setAttribute(
+      'transform',
+      `translate(${pos.x - shape.w / 2},${pos.y - shape.h / 2})`
+    );
+  },
+  svgMarkup(shape, pos, attrs) {
+    const tx = pos.x - shape.w / 2;
+    const ty = pos.y - shape.h / 2;
+    return `<path d="${shape.d}" transform="translate(${tx},${ty})" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -708,6 +740,7 @@ const shapeBehaviorRegistry: {
   cloud: cloudBehavior,
   cross: crossBehavior,
   cube: cubeBehavior,
+  path: pathBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

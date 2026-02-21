@@ -584,4 +584,51 @@ describe('vizcraft core', () => {
       expect(shape.depth).toBe(30);
     });
   });
+
+  describe('path (custom SVG)', () => {
+    it('creates a path node with bounding box dimensions', () => {
+      const d = 'M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z';
+      const scene = viz()
+        .node('pent')
+        .at(200, 200)
+        .path(d, 100, 100)
+        .fill('#cba6f7')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('pent');
+      expect(node.shape).toEqual({ kind: 'path', d, w: 100, h: 100 });
+      expect(node.style?.fill).toBe('#cba6f7');
+    });
+
+    it('renders a <path> with translate in SVG output', () => {
+      const d = 'M 0,0 L 80,0 L 80,60 L 0,60 Z';
+      const svg = viz()
+        .view(400, 300)
+        .node('p')
+        .at(200, 150)
+        .path(d, 80, 60)
+        .svg();
+
+      expect(svg).toContain('<path');
+      expect(svg).toContain('translate(160,120)');
+      expect(svg).toContain(d);
+    });
+
+    it('uses bounding-box anchor like rect', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .path('M 0,0 L 60,0 L 60,40 L 0,40 Z', 60, 40)
+        .node('b')
+        .at(300, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .connect('boundary')
+        .done()
+        .build();
+
+      expect(scene.edges).toHaveLength(1);
+    });
+  });
 });

@@ -113,6 +113,7 @@ b.node('n1')
  .cloud(w, h)             // Cloud / thought bubble
  .cross(size, [barWidth])  // Cross / plus sign
  .cube(w, h, [depth])      // 3D isometric cube
+ .path(d, w, h)            // Custom SVG path
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data

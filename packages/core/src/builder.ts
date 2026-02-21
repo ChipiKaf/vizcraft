@@ -191,6 +191,7 @@ interface NodeBuilder {
   cloud(w: number, h: number): NodeBuilder;
   cross(size: number, barWidth?: number): NodeBuilder;
   cube(w: number, h: number, depth?: number): NodeBuilder;
+  path(d: string, w: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1461,6 +1462,11 @@ class NodeBuilderImpl implements NodeBuilder {
 
   cube(w: number, h: number, depth?: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'cube', w, h, depth };
+    return this;
+  }
+
+  path(d: string, w: number, h: number): NodeBuilder {
+    this.nodeDef.shape = { kind: 'path', d, w, h };
     return this;
   }
 

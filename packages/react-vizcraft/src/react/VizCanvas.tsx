@@ -556,6 +556,17 @@ function RenderShape({ node }: { node: VizNode }) {
         </g>
       );
     }
+    case 'path': {
+      const tx = x - shape.w / 2;
+      const ty = y - shape.h / 2;
+      return (
+        <path
+          d={shape.d}
+          transform={`translate(${tx},${ty})`}
+          className="viz-node-shape"
+        />
+      );
+    }
     default:
       return null;
   }

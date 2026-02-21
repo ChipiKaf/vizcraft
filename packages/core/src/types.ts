@@ -36,7 +36,8 @@ export type NodeShape =
     }
   | { kind: 'cloud'; w: number; h: number }
   | { kind: 'cross'; size: number; barWidth?: number }
-  | { kind: 'cube'; w: number; h: number; depth?: number };
+  | { kind: 'cube'; w: number; h: number; depth?: number }
+  | { kind: 'path'; d: string; w: number; h: number };
 
 export type NodeLabel = {
   text: string;
