@@ -1,10 +1,7 @@
-import type { VizScene, VizEdge, EdgeLabel } from './types';
+import type { VizScene } from './types';
 import { applyShapeGeometry, effectivePos } from './shapes';
-import {
-  computeEdgePath,
-  computeEdgeEndpoints,
-  type EdgePathResult,
-} from './edgePaths';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -39,27 +36,6 @@ function ensureColoredMarker(svg: SVGSVGElement, color: string): string {
     }
   }
   return mid;
-}
-
-/** Resolve the (x, y) position of an edge label given an EdgePathResult. */
-function resolveEdgeLabelPosition(
-  lbl: EdgeLabel,
-  path: EdgePathResult
-): { x: number; y: number } {
-  const base =
-    lbl.position === 'start'
-      ? path.start
-      : lbl.position === 'end'
-        ? path.end
-        : path.mid;
-  return { x: base.x + (lbl.dx || 0), y: base.y + (lbl.dy || 0) };
-}
-
-/** Collect all labels, preferring labels[] over legacy label. */
-function collectEdgeLabels(edge: VizEdge): EdgeLabel[] {
-  if (edge.labels && edge.labels.length > 0) return edge.labels;
-  if (edge.label) return [edge.label];
-  return [];
 }
 
 export interface RuntimePatchCtx {

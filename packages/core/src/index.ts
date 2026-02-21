@@ -5,6 +5,7 @@ export * from './animations';
 export * from './overlays';
 export * from './overlayBuilder';
 export * from './edgePaths';
+export * from './edgeLabels';
 export * from './anim/spec';
 export * from './anim/animationBuilder';
 export * from './anim/playback';

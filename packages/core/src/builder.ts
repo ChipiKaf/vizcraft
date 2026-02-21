@@ -22,11 +22,8 @@ import {
   patchRuntime,
   type RuntimePatchCtx,
 } from './runtimePatcher';
-import {
-  computeEdgePath,
-  computeEdgeEndpoints,
-  type EdgePathResult,
-} from './edgePaths';
+import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -39,36 +36,6 @@ function colorToMarkerSuffix(color: string): string {
 /** Return the marker id to use for an edge with an optional custom stroke. */
 function arrowMarkerIdFor(stroke: string | undefined): string {
   return stroke ? `viz-arrow-${colorToMarkerSuffix(stroke)}` : 'viz-arrow';
-}
-
-/**
- * Resolve the (x, y) position of an edge label given an EdgePathResult.
- * Falls back to `mid` for unknown positions.
- */
-function resolveEdgeLabelPosition(
-  lbl: EdgeLabel,
-  path: EdgePathResult
-): { x: number; y: number } {
-  const base =
-    lbl.position === 'start'
-      ? path.start
-      : lbl.position === 'end'
-        ? path.end
-        : path.mid;
-  return {
-    x: base.x + (lbl.dx || 0),
-    y: base.y + (lbl.dy || 0),
-  };
-}
-
-/**
- * Collect all labels for an edge, preferring `labels[]` when present
- * and falling back to the legacy `label` field.
- */
-function collectEdgeLabels(edge: VizEdge): EdgeLabel[] {
-  if (edge.labels && edge.labels.length > 0) return edge.labels;
-  if (edge.label) return [edge.label];
-  return [];
 }
 
 import type { AnimationSpec } from './anim/spec';
