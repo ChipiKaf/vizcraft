@@ -147,6 +147,7 @@ Container children are nested inside the container `<g>` in the SVG and follow t
 ### Edges
 
 Edges connect nodes and can be styled, directed, or animated.
+All edges are rendered as `<path>` elements supporting three routing modes.
 
 ```typescript
 b.edge('n1', 'n2')
@@ -154,7 +155,24 @@ b.edge('n1', 'n2')
   .straight() // (Default) Straight line
   .label('Connection')
   .animate('flow'); // Add animation
+
+// Curved edge
+b.edge('a', 'b').curved().arrow();
+
+// Orthogonal (right-angle) edge
+b.edge('a', 'c').orthogonal().arrow();
+
+// Waypoints — intermediate points the edge passes through
+b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow();
 ```
+
+| Method           | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `.straight()`    | Direct line (default). With waypoints → polyline.         |
+| `.curved()`      | Smooth bezier curve. With waypoints → Catmull-Rom spline. |
+| `.orthogonal()`  | Right-angle elbows.                                       |
+| `.routing(mode)` | Set mode programmatically.                                |
+| `.via(x, y)`     | Add an intermediate waypoint (chainable).                 |
 
 ### Animations
 

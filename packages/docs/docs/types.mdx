@@ -58,17 +58,27 @@ Configuration for a container / group node. Applied via `.container(config?)` on
 
 ## VizEdge
 
-An edge connecting two nodes.
+An edge connecting two nodes. All edges are rendered as `<path>` elements.
 
 **Key properties**
 
 - `id: string` — unique id (commonly `"a->b"`).
 - `from: string` / `to: string` — node ids.
+- `routing?: 'straight' | 'curved' | 'orthogonal'` — path routing algorithm (default `'straight'`).
+- `waypoints?: Vec2[]` — intermediate points the edge must pass through.
 - `markerEnd?: 'arrow' | 'none'` — arrow head.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
 - `data?: unknown` — your payload.
+
+### EdgeRouting
+
+| Mode | Description |
+|------|-------------|
+| `'straight'` | Direct line (default). With waypoints, produces a polyline. |
+| `'curved'` | Smooth bezier curve. Auto-computed control point without waypoints; Catmull-Rom spline through waypoints. |
+| `'orthogonal'` | Right-angle (elbow) connectors. Auto L-shaped without waypoints; elbow segments through each waypoint. |
 
 ---
 

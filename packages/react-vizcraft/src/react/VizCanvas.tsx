@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { VizScene, VizNode, VizEdge } from 'vizcraft';
+import { computeEdgePath } from 'vizcraft';
 import {
   AnimationRegistry,
   defaultRegistry,
@@ -197,34 +198,37 @@ export function VizCanvas(props: VizCanvasProps) {
               });
             }
 
+            const edgePath = computeEdgePath(
+              start.pos,
+              end.pos,
+              edge.routing,
+              edge.waypoints
+            );
+
             return (
               <g
                 key={edge.id}
                 className={`viz-edge-group ${edge.className || ''} ${animClasses}`}
                 style={animStyles}
               >
-                {/* Visual Line */}
-                <line
-                  x1={start.pos.x}
-                  y1={start.pos.y}
-                  x2={end.pos.x}
-                  y2={end.pos.y}
+                {/* Visual Path */}
+                <path
+                  d={edgePath.d}
                   className="viz-edge"
                   markerEnd={
                     edge.markerEnd === 'arrow' ? 'url(#viz-arrow)' : undefined
                   }
                   stroke="currentColor"
+                  fill="none"
                 />
 
                 {/* Hit Area */}
                 {(edge.hitArea || edge.onClick) && (
-                  <line
-                    x1={start.pos.x}
-                    y1={start.pos.y}
-                    x2={end.pos.x}
-                    y2={end.pos.y}
+                  <path
+                    d={edgePath.d}
                     className="viz-edge-hit"
                     stroke="transparent"
+                    fill="none"
                     strokeWidth={edge.hitArea || 10}
                     onClick={(e: React.MouseEvent) => {
                       if (edge.onClick) {
@@ -239,8 +243,8 @@ export function VizCanvas(props: VizCanvasProps) {
                 {/* Edge Label */}
                 {edge.label && (
                   <text
-                    x={(start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0)}
-                    y={(start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0)}
+                    x={edgePath.mid.x + (edge.label.dx || 0)}
+                    y={edgePath.mid.y + (edge.label.dy || 0)}
                     className={`viz-edge-label ${edge.label.className || ''}`}
                     textAnchor="middle"
                     dominantBaseline="middle"

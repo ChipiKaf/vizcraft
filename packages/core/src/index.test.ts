@@ -1065,4 +1065,257 @@ describe('vizcraft core', () => {
       expect(matches).toHaveLength(2);
     });
   });
+
+  // ── Edge Routing (Path-Based Edges) ──────────────────────────────
+  describe('edge routing', () => {
+    it('renders edges as <path> elements instead of <line>', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(20)
+        .node('b')
+        .at(250, 150)
+        .circle(20)
+        .edge('a', 'b')
+        .svg();
+
+      expect(svgStr).toContain('<path');
+      expect(svgStr).toContain('data-viz-role="edge-line"');
+      expect(svgStr).not.toContain('<line');
+    });
+
+    it('defaults to straight routing', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .build();
+
+      const edge = scene.edges[0]!;
+      // routing is undefined (defaults to 'straight')
+      expect(edge.routing).toBeUndefined();
+    });
+
+    it('.straight() sets routing to straight', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .straight()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('straight');
+    });
+
+    it('.curved() sets routing to curved', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('curved');
+    });
+
+    it('.orthogonal() sets routing to orthogonal', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .orthogonal()
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('orthogonal');
+    });
+
+    it('.routing(mode) sets routing mode', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(100, 100)
+        .circle(10)
+        .edge('a', 'b')
+        .routing('curved')
+        .build();
+
+      expect(scene.edges[0]!.routing).toBe('curved');
+    });
+
+    it('.via(x, y) adds waypoints', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 200)
+        .circle(10)
+        .edge('a', 'b')
+        .via(100, 0)
+        .via(100, 200)
+        .build();
+
+      expect(scene.edges[0]!.waypoints).toEqual([
+        { x: 100, y: 0 },
+        { x: 100, y: 200 },
+      ]);
+    });
+
+    it('straight SVG path uses M/L commands', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .straight()
+        .svg();
+
+      // Path should contain M and L commands
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('L');
+    });
+
+    it('curved SVG path uses Q command (no waypoints)', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('Q');
+    });
+
+    it('curved SVG path uses C commands (with waypoints)', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 250)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .via(150, 50)
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      expect(d).toContain('C');
+    });
+
+    it('orthogonal SVG path uses only H/V or right-angle L commands', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 150)
+        .circle(10)
+        .edge('a', 'b')
+        .orthogonal()
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      // Orthogonal should have multiple L segments forming right angles
+      const lSegments = d.match(/L\s/g);
+      expect(lSegments!.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('path edges include fill="none"', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .svg();
+
+      expect(svgStr).toContain('fill="none"');
+    });
+
+    it('straight waypoints produce polyline path', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 250)
+        .circle(10)
+        .edge('a', 'b')
+        .via(150, 50)
+        .via(150, 250)
+        .svg();
+
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+      const d = pathMatch![1]!;
+      // Should have M + 3 L commands (via1, via2, end)
+      const lSegments = d.match(/L\s/g);
+      expect(lSegments!.length).toBe(3);
+    });
+
+    it('edge routing chains with other builder methods', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 200)
+        .circle(10)
+        .edge('a', 'b')
+        .curved()
+        .via(100, 0)
+        .arrow()
+        .label('test')
+        .class('my-edge')
+        .build();
+
+      const edge = scene.edges[0]!;
+      expect(edge.routing).toBe('curved');
+      expect(edge.waypoints).toEqual([{ x: 100, y: 0 }]);
+      expect(edge.markerEnd).toBe('arrow');
+      expect(edge.label?.text).toBe('test');
+      expect(edge.className).toBe('my-edge');
+    });
+  });
 });
