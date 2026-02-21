@@ -1,4 +1,4 @@
-import type { NodeShape, Vec2, VizNode } from './types';
+import type { NodePort, NodeShape, Vec2, VizNode } from './types';
 
 export type AnchorMode = 'center' | 'boundary';
 
@@ -1086,4 +1086,242 @@ export function computeNodeAnchor(
   }
   const behavior = getShapeBehavior(node.shape);
   return behavior.anchorBoundary(pos, target, node.shape as never);
+}
+
+// ── Connection Ports ────────────────────────────────────────────────────────
+
+/**
+ * Return the default (implicit) ports for a node shape.
+ *
+ * Every shape provides at least `top`, `right`, `bottom`, `left`.
+ * Hexagons also include diagonal vertices.
+ * Default ports are **offsets relative to the node center**.
+ */
+export function getDefaultPorts(shape: NodeShape): NodePort[] {
+  switch (shape.kind) {
+    case 'circle':
+      return [
+        { id: 'top', offset: { x: 0, y: -shape.r }, direction: 270 },
+        { id: 'right', offset: { x: shape.r, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: shape.r }, direction: 90 },
+        { id: 'left', offset: { x: -shape.r, y: 0 }, direction: 180 },
+      ];
+
+    case 'rect':
+      return [
+        { id: 'top', offset: { x: 0, y: -shape.h / 2 }, direction: 270 },
+        { id: 'right', offset: { x: shape.w / 2, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: shape.h / 2 }, direction: 90 },
+        { id: 'left', offset: { x: -shape.w / 2, y: 0 }, direction: 180 },
+      ];
+
+    case 'diamond':
+      return [
+        { id: 'top', offset: { x: 0, y: -shape.h / 2 }, direction: 270 },
+        { id: 'right', offset: { x: shape.w / 2, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: shape.h / 2 }, direction: 90 },
+        { id: 'left', offset: { x: -shape.w / 2, y: 0 }, direction: 180 },
+      ];
+
+    case 'ellipse':
+      return [
+        { id: 'top', offset: { x: 0, y: -shape.ry }, direction: 270 },
+        { id: 'right', offset: { x: shape.rx, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: shape.ry }, direction: 90 },
+        { id: 'left', offset: { x: -shape.rx, y: 0 }, direction: 180 },
+      ];
+
+    case 'hexagon': {
+      const r = shape.r;
+      const orientation = shape.orientation ?? 'pointy';
+      if (orientation === 'pointy') {
+        // Pointy-top: vertices at top, top-right, bottom-right, bottom, bottom-left, top-left
+        const sin60 = r * Math.sin(Math.PI / 3); // ≈ 0.866r
+        const cos60 = r * Math.cos(Math.PI / 3); // = 0.5r
+        return [
+          { id: 'top', offset: { x: 0, y: -r }, direction: 270 },
+          { id: 'top-right', offset: { x: sin60, y: -cos60 }, direction: 330 },
+          {
+            id: 'bottom-right',
+            offset: { x: sin60, y: cos60 },
+            direction: 30,
+          },
+          { id: 'bottom', offset: { x: 0, y: r }, direction: 90 },
+          {
+            id: 'bottom-left',
+            offset: { x: -sin60, y: cos60 },
+            direction: 150,
+          },
+          {
+            id: 'top-left',
+            offset: { x: -sin60, y: -cos60 },
+            direction: 210,
+          },
+        ];
+      } else {
+        // Flat-top: vertices at right, bottom-right, bottom-left, left, top-left, top-right
+        const sin60 = r * Math.sin(Math.PI / 3);
+        const cos60 = r * Math.cos(Math.PI / 3);
+        return [
+          { id: 'right', offset: { x: r, y: 0 }, direction: 0 },
+          {
+            id: 'bottom-right',
+            offset: { x: cos60, y: sin60 },
+            direction: 60,
+          },
+          {
+            id: 'bottom-left',
+            offset: { x: -cos60, y: sin60 },
+            direction: 120,
+          },
+          { id: 'left', offset: { x: -r, y: 0 }, direction: 180 },
+          {
+            id: 'top-left',
+            offset: { x: -cos60, y: -sin60 },
+            direction: 240,
+          },
+          {
+            id: 'top-right',
+            offset: { x: cos60, y: -sin60 },
+            direction: 300,
+          },
+        ];
+      }
+    }
+
+    case 'cylinder':
+      return [
+        { id: 'top', offset: { x: 0, y: -shape.h / 2 }, direction: 270 },
+        { id: 'right', offset: { x: shape.w / 2, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: shape.h / 2 }, direction: 90 },
+        { id: 'left', offset: { x: -shape.w / 2, y: 0 }, direction: 180 },
+      ];
+
+    case 'triangle': {
+      const hw = shape.w / 2;
+      const hh = shape.h / 2;
+      const dir = shape.direction ?? 'up';
+      // Three vertices based on direction
+      switch (dir) {
+        case 'up':
+          return [
+            { id: 'top', offset: { x: 0, y: -hh }, direction: 270 },
+            { id: 'bottom-right', offset: { x: hw, y: hh }, direction: 30 },
+            { id: 'bottom-left', offset: { x: -hw, y: hh }, direction: 150 },
+            { id: 'bottom', offset: { x: 0, y: hh }, direction: 90 },
+          ];
+        case 'down':
+          return [
+            { id: 'top-left', offset: { x: -hw, y: -hh }, direction: 210 },
+            { id: 'top-right', offset: { x: hw, y: -hh }, direction: 330 },
+            { id: 'bottom', offset: { x: 0, y: hh }, direction: 90 },
+            { id: 'top', offset: { x: 0, y: -hh }, direction: 270 },
+          ];
+        case 'left':
+          return [
+            { id: 'left', offset: { x: -hw, y: 0 }, direction: 180 },
+            { id: 'top-right', offset: { x: hw, y: -hh }, direction: 330 },
+            { id: 'bottom-right', offset: { x: hw, y: hh }, direction: 30 },
+            { id: 'right', offset: { x: hw, y: 0 }, direction: 0 },
+          ];
+        case 'right':
+          return [
+            { id: 'top-left', offset: { x: -hw, y: -hh }, direction: 210 },
+            { id: 'right', offset: { x: hw, y: 0 }, direction: 0 },
+            { id: 'bottom-left', offset: { x: -hw, y: hh }, direction: 150 },
+            { id: 'left', offset: { x: -hw, y: 0 }, direction: 180 },
+          ];
+      }
+      break;
+    }
+
+    // Fallback for all remaining shapes: approximate as bounding-box midpoints
+    default: {
+      const bb = shapeBoundingBox(shape);
+      return [
+        { id: 'top', offset: { x: 0, y: -bb.hh }, direction: 270 },
+        { id: 'right', offset: { x: bb.hw, y: 0 }, direction: 0 },
+        { id: 'bottom', offset: { x: 0, y: bb.hh }, direction: 90 },
+        { id: 'left', offset: { x: -bb.hw, y: 0 }, direction: 180 },
+      ];
+    }
+  }
+}
+
+/**
+ * Get the effective ports for a node: explicit `node.ports` if set,
+ * otherwise the shape's default ports.
+ */
+export function getNodePorts(node: VizNode): NodePort[] {
+  return node.ports ?? getDefaultPorts(node.shape);
+}
+
+/**
+ * Find a port on a node by its id. Returns `undefined` if not found.
+ */
+export function findPort(node: VizNode, portId: string): NodePort | undefined {
+  return getNodePorts(node).find((p) => p.id === portId);
+}
+
+/**
+ * Resolve a port to an absolute position (node center + port offset).
+ * Returns `undefined` if the port id is not found.
+ */
+export function resolvePortPosition(
+  node: VizNode,
+  portId: string
+): Vec2 | undefined {
+  const port = findPort(node, portId);
+  if (!port) return undefined;
+  const pos = effectivePos(node);
+  return { x: pos.x + port.offset.x, y: pos.y + port.offset.y };
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Approximate half-width / half-height for shapes that have a bounding box. */
+function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
+  switch (shape.kind) {
+    case 'circle':
+      return { hw: shape.r, hh: shape.r };
+    case 'rect':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'diamond':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'ellipse':
+      return { hw: shape.rx, hh: shape.ry };
+    case 'hexagon':
+      return { hw: shape.r, hh: shape.r };
+    case 'cylinder':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'arc':
+      return { hw: shape.r, hh: shape.r };
+    case 'blockArrow':
+      return { hw: shape.length / 2, hh: shape.headWidth / 2 };
+    case 'callout':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'cloud':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'cross':
+      return { hw: shape.size / 2, hh: shape.size / 2 };
+    case 'cube':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'path':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'document':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'note':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'parallelogram':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'star':
+      return { hw: shape.outerR, hh: shape.outerR };
+    case 'trapezoid':
+      return {
+        hw: Math.max(shape.topW, shape.bottomW) / 2,
+        hh: shape.h / 2,
+      };
+    case 'triangle':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+  }
 }

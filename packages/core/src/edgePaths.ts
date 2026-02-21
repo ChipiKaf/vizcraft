@@ -8,7 +8,7 @@
  */
 
 import type { Vec2, VizNode, VizEdge, EdgeRouting } from './types';
-import { computeNodeAnchor, effectivePos } from './shapes';
+import { computeNodeAnchor, effectivePos, resolvePortPosition } from './shapes';
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -26,6 +26,10 @@ export interface EdgePathResult {
 /**
  * Compute anchor-resolved start/end points for an edge.
  *
+ * When an edge specifies `fromPort` / `toPort`, the endpoint is resolved
+ * to the port's absolute position. Otherwise the legacy `anchor` mode
+ * (`'center'` | `'boundary'`) is used.
+ *
  * This replicates the logic used internally by the core builder and
  * runtime patcher so that external renderers (e.g. React) can
  * resolve boundary anchors consistently.
@@ -39,8 +43,17 @@ export function computeEdgeEndpoints(
   const startPos = effectivePos(start);
   const endPos = effectivePos(end);
 
-  const startAnchor = computeNodeAnchor(start, endPos, anchor);
-  const endAnchor = computeNodeAnchor(end, startPos, anchor);
+  // Port-based resolution takes precedence over anchor mode.
+  const startAnchor = edge.fromPort
+    ? (resolvePortPosition(start, edge.fromPort) ??
+      computeNodeAnchor(start, endPos, anchor))
+    : computeNodeAnchor(start, endPos, anchor);
+
+  const endAnchor = edge.toPort
+    ? (resolvePortPosition(end, edge.toPort) ??
+      computeNodeAnchor(end, startPos, anchor))
+    : computeNodeAnchor(end, startPos, anchor);
+
   return { start: startAnchor, end: endAnchor };
 }
 

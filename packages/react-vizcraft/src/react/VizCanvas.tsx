@@ -545,6 +545,20 @@ function RenderNodeGroup({
         </text>
       )}
 
+      {/* Connection Ports (visible on hover via CSS) */}
+      {node.ports &&
+        node.ports.map((port) => (
+          <circle
+            key={port.id}
+            cx={pos.x + port.offset.x}
+            cy={pos.y + port.offset.y}
+            r={4}
+            className="viz-port"
+            data-node={node.id}
+            data-port={port.id}
+          />
+        ))}
+
       {/* Container children */}
       {children && children.length > 0 && (
         <g className="viz-container-children">

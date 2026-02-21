@@ -752,6 +752,129 @@ if (el) builder.mount(el);
 Marker colors automatically match the edge's stroke color. If you use `.stroke('#e74c3c')`, the marker will also be red — no extra config needed.
 :::
 
+### Connection Ports
+
+By default, edges connect to the nearest point on the node boundary. **Connection ports** let you control exactly _where_ on a node an edge attaches — think database connectors, circuit diagrams, or any scenario requiring precise anchor points.
+
+#### Mental model
+
+- Every shape has **default ports** (e.g. `top`, `right`, `bottom`, `left` for rectangles) — you can use them without any extra configuration.
+- You can define **explicit ports** with `.port(id, offset, direction?)` on the builder. Explicit ports replace the defaults entirely.
+- On edges, use `.fromPort(id)` / `.toPort(id)` to target a specific port. If the port isn't found, the edge falls back to the normal boundary intersection.
+
+export const portScene = viz()
+  .view(600, 300)
+  .node('server')
+  .at(120, 150)
+  .rect(100, 80, 8)
+  .label('Server')
+  .fill('#DBEAFE')
+  .stroke('#1D4ED8', 2)
+  .port('out-1', { x: 50, y: -20 })
+  .port('out-2', { x: 50, y: 20 })
+  .node('db')
+  .at(450, 80)
+  .cylinder(90, 60)
+  .label('DB')
+  .fill('#DCFCE7')
+  .stroke('#166534', 2)
+  .port('in', { x: -45, y: 0 })
+  .node('cache')
+  .at(450, 230)
+  .rect(90, 50, 8)
+  .label('Cache')
+  .fill('#FEF3C7')
+  .stroke('#92400E', 2)
+  .port('in', { x: -45, y: 0 })
+  .edge('server', 'db')
+  .fromPort('out-1')
+  .toPort('in')
+  .arrow()
+  .label('queries')
+  .edge('server', 'cache')
+  .fromPort('out-2')
+  .toPort('in')
+  .arrow()
+  .label('reads')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(600, 300);
+
+builder
+// Server with two output ports on the right side
+.node('server').at(120, 150).rect(100, 80, 8)
+.label('Server').fill('#DBEAFE').stroke('#1D4ED8', 2)
+.port('out-1', { x: 50, y: -20 })
+.port('out-2', { x: 50, y: 20 })
+// Database with an input port on the left
+.node('db').at(450, 80).cylinder(90, 60)
+.label('DB').fill('#DCFCE7').stroke('#166534', 2)
+.port('in', { x: -45, y: 0 })
+// Cache with an input port on the left
+.node('cache').at(450, 230).rect(90, 50, 8)
+.label('Cache').fill('#FEF3C7').stroke('#92400E', 2)
+.port('in', { x: -45, y: 0 })
+// Edges target specific ports
+.edge('server', 'db').fromPort('out-1').toPort('in').arrow().label('queries')
+.edge('server', 'cache').fromPort('out-2').toPort('in').arrow().label('reads')
+.done();
+
+const el = document.getElementById('viz-ports');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={portScene} style={{ height: '300px', width: '100%' }} />
+</CodePreview>
+
+#### Using default ports (no `.port()` needed)
+
+Every shape comes with default ports you can reference by name — no explicit port definitions required:
+
+```typescript
+// Rectangle default ports: 'top', 'right', 'bottom', 'left'
+builder
+  .node('A')
+  .at(100, 100)
+  .rect(80, 50)
+  .node('B')
+  .at(300, 100)
+  .rect(80, 50)
+  .edge('A', 'B')
+  .fromPort('right') // right side of A
+  .toPort('left') // left side of B
+  .arrow();
+```
+
+#### Builder API reference
+
+| Builder method (Node)          | Effect                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `.port(id, offset)`            | Add a named port at `offset` (`{ x, y }`) relative to the node center.                                |
+| `.port(id, offset, direction)` | Same, with an outgoing `direction` in degrees (0 = right, 90 = down). Used for tangent-aware routing. |
+
+| Builder method (Edge) | Effect                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `.fromPort(portId)`   | Connect from a specific port on the source node. Falls back to boundary if not found. |
+| `.toPort(portId)`     | Connect to a specific port on the target node. Falls back to boundary if not found.   |
+
+#### Rendering
+
+When a node has **explicit** ports (set via `.port()`), small circles are rendered at each port position. These are hidden by default and appear on hover — useful for visual debugging and interactive editors.
+
+| CSS class                         | Description                                     |
+| --------------------------------- | ----------------------------------------------- |
+| `.viz-port`                       | The port circle element (opacity 0 by default). |
+| `.viz-node-group:hover .viz-port` | Ports become visible on hover (opacity 1).      |
+
+Port elements carry `data-node` and `data-port` attributes for easy DOM querying.
+
+:::tip
+For the full type reference (including default ports per shape and utility functions), see [NodePort](./types#nodeport).
+:::
+
 ## Animations
 
 For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:

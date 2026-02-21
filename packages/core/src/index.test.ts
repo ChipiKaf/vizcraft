@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { viz } from './index';
+import {
+  viz,
+  getDefaultPorts,
+  getNodePorts,
+  findPort,
+  resolvePortPosition,
+} from './index';
+import type { VizNode } from './index';
 
 describe('vizcraft core', () => {
   it('exports viz builder', () => {
@@ -1972,6 +1979,477 @@ describe('vizcraft core', () => {
         /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
       );
       expect(labels).toHaveLength(3);
+    });
+  });
+
+  // ─── Connection Ports ──────────────────────────────────────────────────────
+
+  describe('connection ports', () => {
+    // ── Default Ports ──
+
+    describe('getDefaultPorts', () => {
+      it('returns 4 ports for a circle shape', () => {
+        const ports = getDefaultPorts({ kind: 'circle', r: 30 });
+        expect(ports).toHaveLength(4);
+        expect(ports.map((p) => p.id)).toEqual([
+          'top',
+          'right',
+          'bottom',
+          'left',
+        ]);
+        // Verify offsets are on the circle boundary
+        expect(ports[0]!.offset).toEqual({ x: 0, y: -30 });
+        expect(ports[1]!.offset).toEqual({ x: 30, y: 0 });
+        expect(ports[2]!.offset).toEqual({ x: 0, y: 30 });
+        expect(ports[3]!.offset).toEqual({ x: -30, y: 0 });
+      });
+
+      it('returns 4 ports for a rect shape', () => {
+        const ports = getDefaultPorts({ kind: 'rect', w: 120, h: 60 });
+        expect(ports).toHaveLength(4);
+        expect(ports[0]!.offset).toEqual({ x: 0, y: -30 }); // top
+        expect(ports[1]!.offset).toEqual({ x: 60, y: 0 }); // right
+        expect(ports[2]!.offset).toEqual({ x: 0, y: 30 }); // bottom
+        expect(ports[3]!.offset).toEqual({ x: -60, y: 0 }); // left
+      });
+
+      it('returns 4 ports for a diamond shape', () => {
+        const ports = getDefaultPorts({ kind: 'diamond', w: 80, h: 80 });
+        expect(ports).toHaveLength(4);
+        expect(ports.map((p) => p.id)).toEqual([
+          'top',
+          'right',
+          'bottom',
+          'left',
+        ]);
+      });
+
+      it('returns 4 ports for an ellipse shape', () => {
+        const ports = getDefaultPorts({ kind: 'ellipse', rx: 50, ry: 30 });
+        expect(ports).toHaveLength(4);
+        expect(ports[0]!.offset).toEqual({ x: 0, y: -30 }); // top
+        expect(ports[1]!.offset).toEqual({ x: 50, y: 0 }); // right
+      });
+
+      it('returns 6 ports for a pointy-top hexagon', () => {
+        const ports = getDefaultPorts({
+          kind: 'hexagon',
+          r: 40,
+          orientation: 'pointy',
+        });
+        expect(ports).toHaveLength(6);
+        expect(ports.map((p) => p.id)).toEqual([
+          'top',
+          'top-right',
+          'bottom-right',
+          'bottom',
+          'bottom-left',
+          'top-left',
+        ]);
+      });
+
+      it('returns 6 ports for a flat-top hexagon', () => {
+        const ports = getDefaultPorts({
+          kind: 'hexagon',
+          r: 40,
+          orientation: 'flat',
+        });
+        expect(ports).toHaveLength(6);
+        expect(ports.map((p) => p.id)).toEqual([
+          'right',
+          'bottom-right',
+          'bottom-left',
+          'left',
+          'top-left',
+          'top-right',
+        ]);
+      });
+
+      it('returns 4 ports for triangle shapes', () => {
+        const ports = getDefaultPorts({
+          kind: 'triangle',
+          w: 80,
+          h: 60,
+          direction: 'up',
+        });
+        expect(ports.length).toBeGreaterThanOrEqual(3);
+        expect(ports.map((p) => p.id)).toContain('top');
+        expect(ports.map((p) => p.id)).toContain('bottom');
+      });
+
+      it('returns fallback ports for shapes without explicit port definitions', () => {
+        // e.g. cloud, note, etc.
+        const ports = getDefaultPorts({ kind: 'cloud', w: 100, h: 60 });
+        expect(ports).toHaveLength(4);
+        expect(ports.map((p) => p.id)).toEqual([
+          'top',
+          'right',
+          'bottom',
+          'left',
+        ]);
+      });
+
+      it('each port has a direction', () => {
+        const ports = getDefaultPorts({ kind: 'rect', w: 100, h: 50 });
+        ports.forEach((p) => {
+          expect(p.direction).toBeDefined();
+          expect(typeof p.direction).toBe('number');
+        });
+      });
+    });
+
+    // ── getNodePorts / findPort / resolvePortPosition ──
+
+    describe('getNodePorts', () => {
+      it('returns explicit ports when set on the node', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 100, y: 100 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+          ports: [{ id: 'custom', offset: { x: 10, y: -25 }, direction: 270 }],
+        };
+        const ports = getNodePorts(node);
+        expect(ports).toHaveLength(1);
+        expect(ports[0]!.id).toBe('custom');
+      });
+
+      it('falls back to default ports when none are set', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 100, y: 100 },
+          shape: { kind: 'circle', r: 20 },
+        };
+        const ports = getNodePorts(node);
+        expect(ports).toHaveLength(4);
+      });
+    });
+
+    describe('findPort', () => {
+      it('finds an explicit port by id', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+          ports: [{ id: 'out', offset: { x: 50, y: 0 }, direction: 0 }],
+        };
+        const port = findPort(node, 'out');
+        expect(port).toBeDefined();
+        expect(port!.id).toBe('out');
+      });
+
+      it('finds a default port when no explicit ports are set', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+        };
+        const port = findPort(node, 'top');
+        expect(port).toBeDefined();
+        expect(port!.offset.y).toBe(-25);
+      });
+
+      it('returns undefined for a non-existent port', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+        };
+        expect(findPort(node, 'does-not-exist')).toBeUndefined();
+      });
+    });
+
+    describe('resolvePortPosition', () => {
+      it('resolves to absolute position (node center + offset)', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 200, y: 300 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+          ports: [{ id: 'right', offset: { x: 50, y: 0 } }],
+        };
+        const pos = resolvePortPosition(node, 'right');
+        expect(pos).toEqual({ x: 250, y: 300 });
+      });
+
+      it('resolves using runtime position when available', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 100, y: 100 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+          runtime: { x: 200, y: 200 },
+          ports: [{ id: 'top', offset: { x: 0, y: -25 } }],
+        };
+        const pos = resolvePortPosition(node, 'top');
+        expect(pos).toEqual({ x: 200, y: 175 });
+      });
+
+      it('returns undefined for a non-existent port', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'circle', r: 20 },
+        };
+        expect(resolvePortPosition(node, 'nope')).toBeUndefined();
+      });
+    });
+
+    // ── Builder API ──
+
+    describe('builder .port()', () => {
+      it('adds explicit ports to a node via the builder', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .port('top', { x: 0, y: -30 }, 270)
+          .port('bottom', { x: 0, y: 30 }, 90)
+          .port('left', { x: -60, y: 0 }, 180)
+          .port('right', { x: 60, y: 0 }, 0)
+          .build();
+
+        const node = scene.nodes[0]!;
+        expect(node.ports).toHaveLength(4);
+        expect(node.ports![0]).toEqual({
+          id: 'top',
+          offset: { x: 0, y: -30 },
+          direction: 270,
+        });
+      });
+
+      it('chains with other node builder methods', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .port('out', { x: 60, y: 0 })
+          .label('Process')
+          .fill('#ccc')
+          .build();
+
+        const node = scene.nodes[0]!;
+        expect(node.ports).toHaveLength(1);
+        expect(node.label?.text).toBe('Process');
+        expect(node.style?.fill).toBe('#ccc');
+      });
+    });
+
+    describe('builder .fromPort() / .toPort()', () => {
+      it('sets fromPort and toPort on the edge', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .port('right', { x: 60, y: 0 })
+          .node('b')
+          .at(400, 100)
+          .rect(120, 60)
+          .port('left', { x: -60, y: 0 })
+          .edge('a', 'b')
+          .fromPort('right')
+          .toPort('left')
+          .arrow()
+          .build();
+
+        const edge = scene.edges[0]!;
+        expect(edge.fromPort).toBe('right');
+        expect(edge.toPort).toBe('left');
+      });
+
+      it('chains with other edge builder methods', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .node('b')
+          .at(400, 100)
+          .rect(120, 60)
+          .edge('a', 'b')
+          .fromPort('bottom')
+          .toPort('top')
+          .curved()
+          .stroke('#f00')
+          .arrow()
+          .build();
+
+        const edge = scene.edges[0]!;
+        expect(edge.fromPort).toBe('bottom');
+        expect(edge.toPort).toBe('top');
+        expect(edge.routing).toBe('curved');
+        expect(edge.style?.stroke).toBe('#f00');
+      });
+    });
+
+    // ── SVG Rendering ──
+
+    describe('SVG rendering with ports', () => {
+      it('renders port circles in SVG when explicit ports are defined', () => {
+        const svgStr = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .port('top', { x: 0, y: -30 })
+          .port('right', { x: 60, y: 0 })
+          .svg();
+
+        // Should have viz-port circles with data-port attributes
+        const portMatches = svgStr.match(
+          /class="viz-port"[^>]*data-port="[^"]+"/g
+        );
+        expect(portMatches).toHaveLength(2);
+        expect(svgStr).toContain('data-port="top"');
+        expect(svgStr).toContain('data-port="right"');
+      });
+
+      it('does not render port circles when no explicit ports are defined', () => {
+        const svgStr = viz().node('a').at(100, 100).rect(120, 60).svg();
+
+        // The CSS will contain '.viz-port' rules, but there should be no
+        // actual port circle elements in the SVG markup.
+        expect(svgStr).not.toContain('data-viz-role="port"');
+      });
+
+      it('port circles are positioned correctly in SVG', () => {
+        const svgStr = viz()
+          .node('a')
+          .at(200, 300)
+          .rect(120, 60)
+          .port('right', { x: 60, y: 0 })
+          .svg();
+
+        // cx=200+60=260, cy=300+0=300
+        expect(svgStr).toContain('cx="260"');
+        expect(svgStr).toContain('cy="300"');
+      });
+    });
+
+    // ── Port-aware Edge Endpoints ──
+
+    describe('port-aware edge endpoints', () => {
+      it('edges use port positions when fromPort/toPort are set', () => {
+        const svgStr = viz()
+          .view(800, 600)
+          .node('a')
+          .at(100, 300)
+          .rect(120, 60)
+          .port('right', { x: 60, y: 0 })
+          .node('b')
+          .at(500, 300)
+          .rect(120, 60)
+          .port('left', { x: -60, y: 0 })
+          .edge('a', 'b')
+          .fromPort('right')
+          .toPort('left')
+          .svg();
+
+        // The edge path should start near x=160 (100+60) and end near x=440 (500-60)
+        const pathMatch = svgStr.match(/<path[^>]*d="M\s+([\d.]+)\s+([\d.]+)/);
+        expect(pathMatch).toBeTruthy();
+        const startX = parseFloat(pathMatch![1]!);
+        expect(startX).toBeCloseTo(160, 0);
+      });
+
+      it('edge uses default port when port id matches a default port name', () => {
+        // No explicit ports, but default 'right' port should work on rect
+        const svgStr = viz()
+          .view(800, 600)
+          .node('a')
+          .at(100, 300)
+          .rect(120, 60)
+          .node('b')
+          .at(500, 300)
+          .rect(120, 60)
+          .edge('a', 'b')
+          .fromPort('right')
+          .toPort('left')
+          .svg();
+
+        const pathMatch = svgStr.match(/<path[^>]*d="M\s+([\d.]+)\s+([\d.]+)/);
+        expect(pathMatch).toBeTruthy();
+        // Default right port for rect(120,60) at (100,300) = x: 100+60 = 160
+        const startX = parseFloat(pathMatch![1]!);
+        expect(startX).toBeCloseTo(160, 0);
+      });
+
+      it('falls back to boundary anchor when port id is not found', () => {
+        const svgBoundary = viz()
+          .view(800, 600)
+          .node('a')
+          .at(100, 300)
+          .rect(120, 60)
+          .node('b')
+          .at(500, 300)
+          .rect(120, 60)
+          .edge('a', 'b')
+          .svg();
+
+        const svgWithBadPort = viz()
+          .view(800, 600)
+          .node('a')
+          .at(100, 300)
+          .rect(120, 60)
+          .node('b')
+          .at(500, 300)
+          .rect(120, 60)
+          .edge('a', 'b')
+          .fromPort('nonexistent')
+          .svg();
+
+        // Both should produce the same path since the bad port falls back to boundary
+        const pathBoundary = svgBoundary.match(
+          /<path[^>]*d="M\s+([\d.]+)\s+([\d.]+)/
+        );
+        const pathBadPort = svgWithBadPort.match(
+          /<path[^>]*d="M\s+([\d.]+)\s+([\d.]+)/
+        );
+        expect(pathBoundary).toBeTruthy();
+        expect(pathBadPort).toBeTruthy();
+        // Should use the same start position (boundary anchor)
+        expect(parseFloat(pathBadPort![1]!)).toBeCloseTo(
+          parseFloat(pathBoundary![1]!),
+          1
+        );
+      });
+
+      it('supports mixing port and boundary endpoints', () => {
+        // Only fromPort set, toPort uses boundary
+        const svgStr = viz()
+          .view(800, 600)
+          .node('a')
+          .at(100, 300)
+          .rect(120, 60)
+          .port('bottom', { x: 0, y: 30 })
+          .node('b')
+          .at(100, 500)
+          .circle(30)
+          .edge('a', 'b')
+          .fromPort('bottom')
+          .arrow()
+          .svg();
+
+        const pathMatch = svgStr.match(/<path[^>]*d="M\s+([\d.]+)\s+([\d.]+)/);
+        expect(pathMatch).toBeTruthy();
+        // Start should be at (100, 330) — the bottom port of node a
+        const startX = parseFloat(pathMatch![1]!);
+        const startY = parseFloat(pathMatch![2]!);
+        expect(startX).toBeCloseTo(100, 0);
+        expect(startY).toBeCloseTo(330, 0);
+      });
+    });
+
+    // ── Port CSS ──
+
+    describe('port CSS', () => {
+      it('svg() includes port CSS rules', () => {
+        const svgStr = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(120, 60)
+          .port('top', { x: 0, y: -30 })
+          .svg();
+
+        expect(svgStr).toContain('.viz-port');
+        expect(svgStr).toContain('opacity: 0');
+        expect(svgStr).toContain('.viz-node-group:hover .viz-port');
+      });
     });
   });
 });

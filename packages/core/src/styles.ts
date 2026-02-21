@@ -82,4 +82,18 @@ export const DEFAULT_VIZ_CSS = `
   fill: #F59E0B;
   transition: cx 0.3s ease-out, cy 0.3s ease-out;
 }
+
+/* Connection ports (hidden by default, shown on node hover) */
+.viz-port {
+  fill: #3B82F6;
+  stroke: white;
+  stroke-width: 1.5;
+  opacity: 0;
+  pointer-events: all;
+  cursor: crosshair;
+  transition: opacity 0.15s ease-out;
+}
+.viz-node-group:hover .viz-port {
+  opacity: 1;
+}
 `;

@@ -328,6 +328,17 @@ interface NodeBuilder {
   animateTo(props: AnimatableProps, opts: TweenOptions): NodeBuilder;
   data(payload: unknown): NodeBuilder;
   onClick(handler: (id: string, node: VizNode) => void): NodeBuilder;
+  /**
+   * Define a named connection port on the node.
+   * @param id   Unique port id (e.g. `'top'`, `'out-1'`)
+   * @param offset Position relative to the node center `{ x, y }`
+   * @param direction Optional outgoing tangent in degrees (0=right, 90=down, 180=left, 270=up)
+   */
+  port(
+    id: string,
+    offset: { x: number; y: number },
+    direction?: number
+  ): NodeBuilder;
   container(config?: ContainerConfig): NodeBuilder;
   parent(parentId: string): NodeBuilder;
   done(): VizBuilder;
@@ -366,6 +377,10 @@ interface EdgeBuilder {
   markerEnd(type: EdgeMarkerType): EdgeBuilder;
   /** Set the marker type at the start (source) of the edge. */
   markerStart(type: EdgeMarkerType): EdgeBuilder;
+  /** Connect the edge to a specific port on the source node. */
+  fromPort(portId: string): EdgeBuilder;
+  /** Connect the edge to a specific port on the target node. */
+  toPort(portId: string): EdgeBuilder;
   connect(anchor: 'center' | 'boundary'): EdgeBuilder;
   /** Sets the fill color of the edge path. */
   fill(color: string): EdgeBuilder;
@@ -1342,6 +1357,25 @@ class VizBuilderImpl implements VizBuilder {
         label.remove();
       }
 
+      // Ports — render small circles at each explicit port position.
+      // Remove stale ports first, then recreate from current spec.
+      const oldPorts = group.querySelectorAll('[data-viz-role="port"]');
+      oldPorts.forEach((el) => el.remove());
+
+      if (node.ports && node.ports.length > 0) {
+        node.ports.forEach((port) => {
+          const portEl = document.createElementNS(svgNS, 'circle');
+          portEl.setAttribute('cx', String(x + port.offset.x));
+          portEl.setAttribute('cy', String(y + port.offset.y));
+          portEl.setAttribute('r', '4');
+          portEl.setAttribute('class', 'viz-port');
+          portEl.setAttribute('data-viz-role', 'port');
+          portEl.setAttribute('data-node', node.id);
+          portEl.setAttribute('data-port', port.id);
+          group!.appendChild(portEl);
+        });
+      }
+
       // Container children
       const children = childrenByParentDOM.get(node.id);
       if (children && children.length > 0) {
@@ -1693,6 +1727,15 @@ class VizBuilderImpl implements VizBuilder {
         content += `<text x="${lx}" y="${ly}" class="${labelClass}" data-viz-role="node-label"${labelAttrs}>${node.label.text}</text>`;
       }
 
+      // Ports (small circles on the shape boundary, hidden by default, shown on hover via CSS)
+      if (node.ports && node.ports.length > 0) {
+        node.ports.forEach((port) => {
+          const px = x + port.offset.x;
+          const py = y + port.offset.y;
+          content += `<circle cx="${px}" cy="${py}" r="4" class="viz-port" data-viz-role="port" data-node="${node.id}" data-port="${port.id}" />`;
+        });
+      }
+
       // Container children
       const children = childrenByParent.get(node.id);
       if (children && children.length > 0) {
@@ -2014,6 +2057,18 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  port(
+    id: string,
+    offset: { x: number; y: number },
+    direction?: number
+  ): NodeBuilder {
+    if (!this.nodeDef.ports) {
+      this.nodeDef.ports = [];
+    }
+    this.nodeDef.ports.push({ id, offset, direction });
+    return this;
+  }
+
   parent(parentId: string): NodeBuilder {
     this.nodeDef.parentId = parentId;
     return this;
@@ -2136,6 +2191,16 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   connect(anchor: 'center' | 'boundary'): EdgeBuilder {
     this.edgeDef.anchor = anchor;
+    return this;
+  }
+
+  fromPort(portId: string): EdgeBuilder {
+    this.edgeDef.fromPort = portId;
+    return this;
+  }
+
+  toPort(portId: string): EdgeBuilder {
+    this.edgeDef.toPort = portId;
     return this;
   }
 

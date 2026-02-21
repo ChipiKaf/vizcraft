@@ -335,6 +335,21 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     } else {
       group.removeAttribute('transform');
     }
+
+    // Port positions follow the node
+    if (node.ports) {
+      const portEls = group.querySelectorAll<SVGCircleElement>(
+        '[data-viz-role="port"]'
+      );
+      portEls.forEach((portEl) => {
+        const portId = portEl.getAttribute('data-port');
+        const port = node.ports!.find((p) => p.id === portId);
+        if (port) {
+          portEl.setAttribute('cx', String(x + port.offset.x));
+          portEl.setAttribute('cy', String(y + port.offset.y));
+        }
+      });
+    }
   }
 
   // Edges: patch endpoints + runtime props (opacity, strokeDashoffset) + label + hit.

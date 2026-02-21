@@ -102,6 +102,34 @@ export interface ContainerConfig {
   headerHeight?: number;
 }
 
+/**
+ * A named connection port (anchor point) on a node.
+ *
+ * Ports let edges connect to specific positions on a shape rather than
+ * the generic boundary intersection.
+ */
+export interface NodePort {
+  /** Unique port id within the node (e.g. `'top'`, `'left'`, `'out-1'`). */
+  id: string;
+  /**
+   * Position **relative to the node center** (absolute pixel offset).
+   *
+   * For example, on a 120×60 rect centered at the node's `pos`:
+   * - top port: `{ x: 0, y: -30 }`
+   * - right port: `{ x: 60, y: 0 }`
+   */
+  offset: Vec2;
+  /**
+   * Optional direction hint for edge routing (outgoing tangent angle in **degrees**).
+   *
+   * - `0` = right
+   * - `90` = down
+   * - `180` = left
+   * - `270` = up
+   */
+  direction?: number;
+}
+
 export interface VizNode {
   id: string;
   pos: Vec2;
@@ -118,6 +146,18 @@ export interface VizNode {
   data?: unknown; // User payload
   onClick?: (id: string, node: VizNode) => void;
   animations?: VizAnimSpec[];
+
+  /**
+   * Named connection ports on this node.
+   *
+   * When an edge references a port via `fromPort` / `toPort`, the endpoint
+   * is resolved to `node.pos + port.offset` instead of the generic
+   * boundary intersection.
+   *
+   * If omitted, default ports for the node's shape are available automatically
+   * (see `getDefaultPorts`). Explicit ports override defaults entirely.
+   */
+  ports?: NodePort[];
 
   /** If set, this node is a child of the node with this id. */
   parentId?: string;
@@ -175,6 +215,10 @@ export interface VizEdge {
   markerEnd?: EdgeMarkerType;
   /** Marker at the source (start) of the edge. */
   markerStart?: EdgeMarkerType;
+  /** Port id on the source node. When set, the edge starts at the port's position instead of the boundary. */
+  fromPort?: string;
+  /** Port id on the target node. When set, the edge ends at the port's position instead of the boundary. */
+  toPort?: string;
   anchor?: 'center' | 'boundary';
   /** Per-edge visual styling. Overrides the CSS defaults when set. */
   style?: {

@@ -42,6 +42,7 @@ A node in the scene graph.
 - `data?: unknown` — your payload.
 - `parentId?: string` — parent container node id (makes this node a child of that container).
 - `container?: ContainerConfig` — marks this node as a container and configures grouping behaviour.
+- `ports?: NodePort[]` — explicit connection ports. When set, edges can target specific ports via `fromPort` / `toPort`. When omitted, every shape provides sensible default ports (see [NodePort](#nodeport)).
 
 ---
 
@@ -64,6 +65,8 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 
 - `id: string` — unique id (commonly `"a->b"`).
 - `from: string` / `to: string` — node ids.
+- `fromPort?: string` — connect from a specific port on the source node (by port `id`).
+- `toPort?: string` — connect to a specific port on the target node (by port `id`).
 - `routing?: 'straight' | 'curved' | 'orthogonal'` — path routing algorithm (default `'straight'`).
 - `waypoints?: Vec2[]` — intermediate points the edge must pass through.
 - `markerEnd?: EdgeMarkerType` — marker/arrowhead at the target end of the edge.
@@ -112,6 +115,43 @@ A text label rendered on an edge path.
 | `className?` | `string`                    | Optional CSS class applied to the `<text>` element.                                                                                              |
 | `dx?`        | `number`                    | Horizontal offset (SVG `dx` attribute).                                                                                                          |
 | `dy?`        | `number`                    | Vertical offset (SVG `dy` attribute). Defaults to `-10` to sit above the path.                                                                   |
+
+---
+
+## NodePort {#nodeport}
+
+A named connection point on a node. Ports let edges attach to precise positions rather than the generic boundary intersection.
+
+**Shape**
+
+- `id: string` — unique identifier within the node (e.g. `'top'`, `'right'`, `'in-1'`).
+- `offset: Vec2` — position relative to the node center (`{ x, y }`).
+- `direction?: number` — outgoing angle in degrees (0 = right, 90 = down, 180 = left, 270 = up). Used for tangent-aware edge routing.
+
+### Default ports
+
+Every built-in shape provides default ports automatically — you don't need to declare ports for common cases:
+
+| Shape                                              | Default ports              | Ids                                                                     |
+| -------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `rect`, `circle`, `diamond`, `ellipse`, `cylinder` | 4 (bounding-box midpoints) | `top`, `right`, `bottom`, `left`                                        |
+| `hexagon` (pointy)                                 | 6 (vertices)               | `top`, `top-right`, `bottom-right`, `bottom`, `bottom-left`, `top-left` |
+| `hexagon` (flat)                                   | 6 (vertices)               | `right`, `top-right`, `top-left`, `left`, `bottom-left`, `bottom-right` |
+| `triangle`                                         | 3–4 (varies by direction)  | e.g. `apex`, `base-left`, `base-right`, `base-mid`                      |
+| All others (fallback)                              | 4 (bounding-box midpoints) | `top`, `right`, `bottom`, `left`                                        |
+
+When you set `ports` explicitly on a `VizNode`, they **replace** the defaults entirely.
+
+### Port utility functions
+
+Import from `vizcraft`:
+
+| Function              | Signature                                                  | Description                                                       |
+| --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| `getDefaultPorts`     | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                       |
+| `getNodePorts`        | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                |
+| `findPort`            | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.              |
+| `resolvePortPosition` | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset). |
 
 ---
 

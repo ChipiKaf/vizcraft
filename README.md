@@ -128,6 +128,7 @@ b.node('n1')
  .label('Text', { dy: 5 }) // Label with offset
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
+ .port('out', { x: 50, y: 0 }) // Named connection port
  .container(config?)     // Mark as container / group node
  .parent('containerId')  // Make child of a container
 ```
@@ -185,6 +186,17 @@ b.edge('a', 'b').markerStart('diamondOpen').markerEnd('arrow')  // UML aggregati
 b.edge('a', 'b').arrow('both')                              // Bidirectional arrows
 b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow')   // Association
 b.edge('a', 'b').markerEnd('bar')                           // ER cardinality
+
+// Connection ports — edges attach to specific points on nodes
+b.node('srv').at(100, 100).rect(80, 60)
+ .port('out-1', { x: 40, y: -15 })
+ .port('out-2', { x: 40, y: 15 })
+b.node('db').at(400, 100).cylinder(80, 60)
+ .port('in', { x: -40, y: 0 })
+b.edge('srv', 'db').fromPort('out-1').toPort('in').arrow()
+
+// Default ports (no .port() needed) — every shape has built-in ports
+b.edge('a', 'b').fromPort('right').toPort('left').arrow()
 ```
 
 | Method | Description |
@@ -198,6 +210,8 @@ b.edge('a', 'b').markerEnd('bar')                           // ER cardinality
 | `.arrow([enabled])` | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
 | `.markerEnd(type)` | Set marker type at the target end (see `EdgeMarkerType`). |
 | `.markerStart(type)` | Set marker type at the source end (see `EdgeMarkerType`). |
+| `.fromPort(portId)` | Connect from a specific named port on the source node. |
+| `.toPort(portId)` | Connect to a specific named port on the target node. |
 | `.stroke(color, width?)` | Set stroke color and optional width. |
 | `.fill(color)` | Set fill color. |
 | `.opacity(value)` | Set opacity (0–1). |
