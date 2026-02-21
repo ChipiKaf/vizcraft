@@ -1422,6 +1422,27 @@ describe('vizcraft core', () => {
       expect(pathMatch![0]).toContain('stroke: #ff0000');
       expect(pathMatch![0]).toContain('stroke-width: 3');
       expect(pathMatch![0]).toContain('fill: blue');
+      // color must match stroke so marker fill="currentColor" inherits edge color
+      expect(pathMatch![0]).toContain('color: #ff0000');
+    });
+
+    it('arrowhead inherits edge stroke color via currentColor', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#e74c3c')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      // color is set to match stroke so the marker's fill="currentColor" resolves correctly
+      expect(pathMatch![0]).toContain('color: #e74c3c');
+      expect(pathMatch![0]).toContain('stroke: #e74c3c');
     });
 
     it('edge without style does not add inline stroke/fill styles', () => {

@@ -213,7 +213,10 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     line.setAttribute('d', edgePath.d);
 
     // Per-edge style overrides (inline style wins over CSS class defaults)
-    if (edge.style?.stroke !== undefined) line.style.stroke = edge.style.stroke;
+    if (edge.style?.stroke !== undefined) {
+      line.style.stroke = edge.style.stroke;
+      line.style.color = edge.style.stroke;
+    }
     if (edge.style?.strokeWidth !== undefined)
       line.style.strokeWidth = String(edge.style.strokeWidth);
     if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;

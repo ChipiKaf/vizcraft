@@ -221,6 +221,7 @@ export function VizCanvas(props: VizCanvasProps) {
                   }
                   style={{
                     stroke: edge.style?.stroke,
+                    color: edge.style?.stroke,
                     strokeWidth: edge.style?.strokeWidth,
                     fill: edge.style?.fill,
                     opacity: edge.style?.opacity,

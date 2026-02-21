@@ -868,9 +868,14 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       // Per-edge style overrides (inline style wins over CSS class defaults)
-      if (edge.style?.stroke !== undefined)
+      if (edge.style?.stroke !== undefined) {
         line.style.stroke = edge.style.stroke;
-      else line.style.removeProperty('stroke');
+        // Also set color so marker fill="currentColor" inherits the edge stroke
+        line.style.color = edge.style.stroke;
+      } else {
+        line.style.removeProperty('stroke');
+        line.style.removeProperty('color');
+      }
       if (edge.style?.strokeWidth !== undefined)
         line.style.strokeWidth = String(edge.style.strokeWidth);
       else line.style.removeProperty('stroke-width');
@@ -1331,7 +1336,7 @@ class VizBuilderImpl implements VizBuilder {
 
       let edgeInlineStyle = lineRuntimeStyle;
       if (edge.style?.stroke !== undefined)
-        edgeInlineStyle += `stroke: ${edge.style.stroke}; `;
+        edgeInlineStyle += `stroke: ${edge.style.stroke}; color: ${edge.style.stroke}; `;
       if (edge.style?.strokeWidth !== undefined)
         edgeInlineStyle += `stroke-width: ${edge.style.strokeWidth}; `;
       if (edge.style?.fill !== undefined)
