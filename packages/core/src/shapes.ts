@@ -4,7 +4,7 @@ export type AnchorMode = 'center' | 'boundary';
 
 export interface ShapeBehavior<K extends NodeShape['kind']> {
   kind: K;
-  tagName: 'circle' | 'rect' | 'polygon' | 'g' | 'ellipse';
+  tagName: 'circle' | 'rect' | 'polygon' | 'g' | 'ellipse' | 'path';
   applyGeometry(
     el: SVGElement,
     shape: Extract<NodeShape, { kind: K }>,
@@ -262,6 +262,51 @@ const ellipseBehavior: ShapeBehavior<'ellipse'> = {
   },
 };
 
+function arcPathD(
+  shape: Extract<NodeShape, { kind: 'arc' }>,
+  pos: Vec2
+): string {
+  const toRad = Math.PI / 180;
+  const s = shape.startAngle * toRad;
+  const e = shape.endAngle * toRad;
+  const r = shape.r;
+  const sx = pos.x + r * Math.cos(s);
+  const sy = pos.y + r * Math.sin(s);
+  const ex = pos.x + r * Math.cos(e);
+  const ey = pos.y + r * Math.sin(e);
+  const sweep = shape.endAngle - shape.startAngle;
+  const largeArc = ((sweep % 360) + 360) % 360 > 180 ? 1 : 0;
+  const closed = shape.closed !== false;
+  if (closed) {
+    return `M ${pos.x} ${pos.y} L ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey} Z`;
+  }
+  return `M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey}`;
+}
+
+const arcBehavior: ShapeBehavior<'arc'> = {
+  kind: 'arc',
+  tagName: 'path',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('d', arcPathD(shape, pos));
+  },
+  svgMarkup(shape, pos, attrs) {
+    const d = arcPathD(shape, pos);
+    return `<path d="${d}" class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    // Approximate as circumscribed circle
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const dist = Math.hypot(dx, dy) || 1;
+    const scale = shape.r / dist;
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -271,6 +316,7 @@ const shapeBehaviorRegistry: {
   cylinder: cylinderBehavior,
   hexagon: hexagonBehavior,
   ellipse: ellipseBehavior,
+  arc: arcBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {

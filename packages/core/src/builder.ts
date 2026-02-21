@@ -164,6 +164,12 @@ interface NodeBuilder {
   cylinder(w: number, h: number, arcHeight?: number): NodeBuilder;
   hexagon(r: number, orientation?: 'pointy' | 'flat'): NodeBuilder;
   ellipse(rx: number, ry: number): NodeBuilder;
+  arc(
+    r: number,
+    startAngle: number,
+    endAngle: number,
+    closed?: boolean
+  ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
@@ -1367,6 +1373,16 @@ class NodeBuilderImpl implements NodeBuilder {
 
   ellipse(rx: number, ry: number): NodeBuilder {
     this.nodeDef.shape = { kind: 'ellipse', rx, ry };
+    return this;
+  }
+
+  arc(
+    r: number,
+    startAngle: number,
+    endAngle: number,
+    closed?: boolean
+  ): NodeBuilder {
+    this.nodeDef.shape = { kind: 'arc', r, startAngle, endAngle, closed };
     return this;
   }
 

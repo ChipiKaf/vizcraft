@@ -364,6 +364,23 @@ function RenderShape({ node }: { node: VizNode }) {
           className="viz-node-shape"
         />
       );
+    case 'arc': {
+      const toRad = Math.PI / 180;
+      const s = shape.startAngle * toRad;
+      const e = shape.endAngle * toRad;
+      const r = shape.r;
+      const sx = x + r * Math.cos(s);
+      const sy = y + r * Math.sin(s);
+      const ex = x + r * Math.cos(e);
+      const ey = y + r * Math.sin(e);
+      const sweep = shape.endAngle - shape.startAngle;
+      const largeArc = ((sweep % 360) + 360) % 360 > 180 ? 1 : 0;
+      const closed = shape.closed !== false;
+      const d = closed
+        ? `M ${x} ${y} L ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey} Z`
+        : `M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey}`;
+      return <path d={d} className="viz-node-shape" />;
+    }
     default:
       return null;
   }

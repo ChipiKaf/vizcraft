@@ -40,7 +40,7 @@ export const edgesScene = edgesBuilder
   .done();
 
 export const shapesScene = viz()
-  .view(600, 300)
+  .view(700, 420)
   .node('circ')
   .at(60, 80)
   .circle(30)
@@ -62,20 +62,36 @@ export const shapesScene = viz()
   .fill('#fab387')
   .label('cylinder')
   .node('hex')
-  .at(120, 220)
+  .at(100, 210)
   .hexagon(40)
   .fill('#cba6f7')
   .label('hexagon')
   .node('hexf')
-  .at(260, 220)
+  .at(240, 210)
   .hexagon(40, 'flat')
   .fill('#f5c2e7')
   .label('hex (flat)')
   .node('ell')
-  .at(430, 220)
+  .at(410, 210)
   .ellipse(65, 35)
   .fill('#89dceb')
   .label('ellipse')
+  .node('pie')
+  .at(140, 330)
+  .arc(40, 180, 360)
+  .fill('#f38ba8')
+  .label('arc (half)', { dy: 50 })
+  .node('quarter')
+  .at(320, 330)
+  .arc(40, 0, 90)
+  .fill('#fab387')
+  .label('arc (quarter)', { dy: 50 })
+  .node('open')
+  .at(510, 330)
+  .arc(40, 45, 315, false)
+  .fill('none')
+  .stroke('#a6e3a1', 3)
+  .label('arc (open)', { dy: 50 })
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -123,7 +139,7 @@ Nodes are the primary entities in your graph. You can create them with \`.node(i
 
 ### Shapes
 
-VizCraft supports six built-in shapes:
+VizCraft supports seven built-in shapes:
 
 - `.circle(r)` — circle with radius `r`
 - `.rect(w, h, [rx])` — rectangle with optional corner radius
@@ -131,20 +147,24 @@ VizCraft supports six built-in shapes:
 - `.cylinder(w, h, [arcHeight])` — cylinder (the standard database / data-store symbol). `arcHeight` controls the top ellipse arc height (defaults to ~15 % of `h`)
 - `.hexagon(r, [orientation])` — regular hexagon with outer radius `r`. `orientation` is `'pointy'` (default, vertex at top) or `'flat'` (flat edge at top)
 - `.ellipse(rx, ry)` — ellipse / oval with independent horizontal and vertical radii
+- `.arc(r, startAngle, endAngle, [closed])` — arc / pie slice. Angles in degrees (0 = right, 90 = bottom). Defaults to a closed pie; pass `false` for an open arc
 
 <CodePreview code={`
 import { viz } from 'vizcraft';
 
-const builder = viz().view(600, 300);
+const builder = viz().view(700, 420);
 
 builder
 .node('circ').at(60, 80).circle(30).fill('#89b4fa').label('circle')
 .node('rec').at(180, 80).rect(80, 50, 8).fill('#a6e3a1').label('rect')
 .node('dia').at(310, 80).diamond(70, 70).fill('#f9e2af').label('diamond')
 .node('cyl').at(450, 80).cylinder(80, 60).fill('#fab387').label('cylinder')
-.node('hex').at(120, 220).hexagon(40).fill('#cba6f7').label('hexagon')
-.node('hexf').at(260, 220).hexagon(40, 'flat').fill('#f5c2e7').label('hex (flat)')
-.node('ell').at(430, 220).ellipse(65, 35).fill('#89dceb').label('ellipse')
+.node('hex').at(100, 210).hexagon(40).fill('#cba6f7').label('hexagon')
+.node('hexf').at(240, 210).hexagon(40, 'flat').fill('#f5c2e7').label('hex (flat)')
+.node('ell').at(410, 210).ellipse(65, 35).fill('#89dceb').label('ellipse')
+.node('pie').at(140, 330).arc(40, 180, 360).fill('#f38ba8').label('arc (half)', { dy: 50 })
+.node('quarter').at(320, 330).arc(40, 0, 90).fill('#fab387').label('arc (quarter)', { dy: 50 })
+.node('open').at(510, 330).arc(40, 45, 315, false).fill('none').stroke('#a6e3a1', 3).label('arc (open)', { dy: 50 })
 .done();
 
 const container = document.getElementById('viz-shapes');
@@ -153,7 +173,7 @@ if (container) builder.mount(container);
 
   <VizMount
     builder={shapesScene}
-    style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
+    style={{ height: '380px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
 

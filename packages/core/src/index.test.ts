@@ -255,4 +255,67 @@ describe('vizcraft core', () => {
       expect(edge.anchor).toBe('boundary');
     });
   });
+
+  describe('arc shape', () => {
+    it('creates a node with arc shape via .arc(r, start, end)', () => {
+      const scene = viz()
+        .node('half')
+        .at(100, 100)
+        .arc(50, 180, 360)
+        .fill('#cba6f7')
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.id).toBe('half');
+      expect(node.shape).toEqual({
+        kind: 'arc',
+        r: 50,
+        startAngle: 180,
+        endAngle: 360,
+        closed: undefined,
+      });
+      expect(node.style?.fill).toBe('#cba6f7');
+    });
+
+    it('creates a closed pie slice by default', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('pie')
+        .at(200, 150)
+        .arc(50, 0, 90)
+        .fill('#fab387')
+        .svg();
+
+      // Closed pie: path starts at center (M cx cy), then L to start, arc, then Z
+      expect(svg).toContain('<path');
+      expect(svg).toContain('M 200 150');
+      expect(svg).toContain('Z');
+    });
+
+    it('creates an open arc when closed=false', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('open')
+        .at(200, 150)
+        .arc(50, 0, 90, false)
+        .svg();
+
+      expect(svg).toContain('<path');
+      // Open arc should NOT start at center and should NOT close with Z
+      expect(svg).not.toContain('M 200 150');
+      expect(svg).not.toContain(' Z');
+    });
+
+    it('sets largeArc flag correctly for sweeps > 180°', () => {
+      const svg = viz()
+        .view(400, 300)
+        .node('big')
+        .at(200, 150)
+        .arc(50, 0, 270)
+        .svg();
+
+      // 270° sweep → largeArc = 1
+      expect(svg).toMatch(/A 50 50 0 1 1/);
+    });
+  });
 });
