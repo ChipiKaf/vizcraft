@@ -10,14 +10,18 @@ function colorToMarkerSuffix(color: string): string {
   return color.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-/** Return the marker id to use for a marker type with an optional custom stroke. */
+/** Return the marker id to use for a marker type with an optional custom stroke and position. */
 function markerIdFor(
   markerType: EdgeMarkerType,
-  stroke: string | undefined
+  stroke: string | undefined,
+  position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
   const base = `viz-${markerType}`;
-  return stroke ? `${base}-${colorToMarkerSuffix(stroke)}` : base;
+  const suffix = position === 'start' ? '-start' : '';
+  return stroke
+    ? `${base}${suffix}-${colorToMarkerSuffix(stroke)}`
+    : `${base}${suffix}`;
 }
 
 /**
@@ -37,7 +41,7 @@ function createMarkerContent(
     case 'arrowOpen': {
       const p = document.createElementNS(svgNS, 'polyline');
       p.setAttribute('points', '0,2 10,5 0,8');
-      p.setAttribute('fill', 'none');
+      p.setAttribute('fill', 'white');
       p.setAttribute('stroke', color);
       p.setAttribute('stroke-width', '1.5');
       p.setAttribute('stroke-linejoin', 'miter');
@@ -52,7 +56,7 @@ function createMarkerContent(
     case 'diamondOpen': {
       const p = document.createElementNS(svgNS, 'polygon');
       p.setAttribute('points', '0,5 5,2 10,5 5,8');
-      p.setAttribute('fill', 'none');
+      p.setAttribute('fill', 'white');
       p.setAttribute('stroke', color);
       p.setAttribute('stroke-width', '1.5');
       return p;
@@ -70,7 +74,7 @@ function createMarkerContent(
       c.setAttribute('cx', '5');
       c.setAttribute('cy', '5');
       c.setAttribute('r', '3');
-      c.setAttribute('fill', 'none');
+      c.setAttribute('fill', 'white');
       c.setAttribute('stroke', color);
       c.setAttribute('stroke-width', '1.5');
       return c;
@@ -96,12 +100,9 @@ function createMarkerContent(
       return l;
     }
     case 'halfArrow': {
-      const p = document.createElementNS(svgNS, 'polyline');
-      p.setAttribute('points', '0,5 10,2');
-      p.setAttribute('fill', 'none');
-      p.setAttribute('stroke', color);
-      p.setAttribute('stroke-width', '1.5');
-      p.setAttribute('stroke-linecap', 'round');
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '0,2 10,5 0,5');
+      p.setAttribute('fill', color);
       return p;
     }
     default:
@@ -116,9 +117,10 @@ function createMarkerContent(
 function ensureColoredMarker(
   svg: SVGSVGElement,
   color: string,
-  markerType: EdgeMarkerType = 'arrow'
+  markerType: EdgeMarkerType = 'arrow',
+  position: 'start' | 'end' = 'end'
 ): string {
-  const mid = markerIdFor(markerType, color);
+  const mid = markerIdFor(markerType, color, position);
   if (!mid) return '';
   if (!svg.querySelector(`#${CSS.escape(mid)}`)) {
     const defs = svg.querySelector('defs');
@@ -128,9 +130,12 @@ function ensureColoredMarker(
       m.setAttribute('viewBox', '0 0 10 10');
       m.setAttribute('markerWidth', '10');
       m.setAttribute('markerHeight', '10');
-      m.setAttribute('refX', '9');
+      m.setAttribute('refX', position === 'start' ? '1' : '9');
       m.setAttribute('refY', '5');
-      m.setAttribute('orient', 'auto');
+      m.setAttribute(
+        'orient',
+        position === 'start' ? 'auto-start-reverse' : 'auto'
+      );
       const content = createMarkerContent(markerType, color);
       if (content) {
         m.appendChild(content);
@@ -366,8 +371,8 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     // Update marker-end and marker-start to match edge stroke color
     if (edge.markerEnd && edge.markerEnd !== 'none') {
       const mid = edge.style?.stroke
-        ? ensureColoredMarker(ctx.svg, edge.style.stroke, edge.markerEnd)
-        : markerIdFor(edge.markerEnd, undefined);
+        ? ensureColoredMarker(ctx.svg, edge.style.stroke, edge.markerEnd, 'end')
+        : markerIdFor(edge.markerEnd, undefined, 'end');
       line.setAttribute('marker-end', `url(#${mid})`);
     } else {
       line.removeAttribute('marker-end');
@@ -375,8 +380,13 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
 
     if (edge.markerStart && edge.markerStart !== 'none') {
       const mid = edge.style?.stroke
-        ? ensureColoredMarker(ctx.svg, edge.style.stroke, edge.markerStart)
-        : markerIdFor(edge.markerStart, undefined);
+        ? ensureColoredMarker(
+            ctx.svg,
+            edge.style.stroke,
+            edge.markerStart,
+            'start'
+          )
+        : markerIdFor(edge.markerStart, undefined, 'start');
       line.setAttribute('marker-start', `url(#${mid})`);
     } else {
       line.removeAttribute('marker-start');

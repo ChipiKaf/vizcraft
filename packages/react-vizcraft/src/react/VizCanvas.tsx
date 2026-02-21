@@ -20,14 +20,18 @@ function colorToMarkerSuffix(color: string): string {
   return color.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-/** Return the marker id to use for a marker type with an optional custom stroke. */
+/** Return the marker id to use for a marker type with an optional custom stroke and position. */
 function markerIdFor(
   markerType: EdgeMarkerType,
-  stroke: string | undefined
+  stroke: string | undefined,
+  position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
   const base = `viz-${markerType}`;
-  return stroke ? `${base}-${colorToMarkerSuffix(stroke)}` : base;
+  const suffix = position === 'start' ? '-start' : '';
+  return stroke
+    ? `${base}${suffix}-${colorToMarkerSuffix(stroke)}`
+    : `${base}${suffix}`;
 }
 
 /** All possible marker types (excluding 'none'). */
@@ -143,14 +147,24 @@ function MarkerDefs({ color }: { color: string }) {
   const isDefault = color === 'currentColor';
   return (
     <>
-      {ALL_MARKER_TYPES.map((markerType) => {
-        const id = isDefault
-          ? `viz-${markerType}`
-          : `viz-${markerType}-${colorToMarkerSuffix(color)}`;
-        return (
-          <MarkerDef key={id} id={id} markerType={markerType} color={color} />
-        );
-      })}
+      {ALL_MARKER_TYPES.flatMap((markerType) =>
+        (['end', 'start'] as const).map((pos) => {
+          const base = `viz-${markerType}`;
+          const suffix = pos === 'start' ? '-start' : '';
+          const id = isDefault
+            ? `${base}${suffix}`
+            : `${base}${suffix}-${colorToMarkerSuffix(color)}`;
+          return (
+            <MarkerDef
+              key={id}
+              id={id}
+              markerType={markerType}
+              color={color}
+              position={pos}
+            />
+          );
+        })
+      )}
     </>
   );
 }
@@ -159,10 +173,12 @@ function MarkerDef({
   id,
   markerType,
   color,
+  position = 'end',
 }: {
   id: string;
   markerType: Exclude<EdgeMarkerType, 'none'>;
   color: string;
+  position?: 'start' | 'end';
 }) {
   const content = useMemo(() => {
     switch (markerType) {
@@ -172,7 +188,7 @@ function MarkerDef({
         return (
           <polyline
             points="0,2 10,5 0,8"
-            fill="none"
+            fill="white"
             stroke={color}
             strokeWidth="1.5"
             strokeLinejoin="miter"
@@ -184,7 +200,7 @@ function MarkerDef({
         return (
           <polygon
             points="0,5 5,2 10,5 5,8"
-            fill="none"
+            fill="white"
             stroke={color}
             strokeWidth="1.5"
           />
@@ -197,7 +213,7 @@ function MarkerDef({
             cx="5"
             cy="5"
             r="3"
-            fill="none"
+            fill="white"
             stroke={color}
             strokeWidth="1.5"
           />
@@ -217,15 +233,7 @@ function MarkerDef({
           />
         );
       case 'halfArrow':
-        return (
-          <polyline
-            points="0,5 10,2"
-            fill="none"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        );
+        return <polygon points="0,2 10,5 0,5" fill={color} />;
     }
   }, [markerType, color]);
 
@@ -235,9 +243,9 @@ function MarkerDef({
       viewBox="0 0 10 10"
       markerWidth="10"
       markerHeight="10"
-      refX="9"
-      refY="5"
-      orient="auto"
+      refX={position === 'start' ? 1 : 9}
+      refY={5}
+      orient={position === 'start' ? 'auto-start-reverse' : 'auto'}
     >
       {content}
     </marker>
@@ -361,12 +369,12 @@ export function VizCanvas(props: VizCanvasProps) {
                   className="viz-edge"
                   markerEnd={
                     edge.markerEnd && edge.markerEnd !== 'none'
-                      ? `url(#${markerIdFor(edge.markerEnd, edge.style?.stroke)})`
+                      ? `url(#${markerIdFor(edge.markerEnd, edge.style?.stroke, 'end')})`
                       : undefined
                   }
                   markerStart={
                     edge.markerStart && edge.markerStart !== 'none'
-                      ? `url(#${markerIdFor(edge.markerStart, edge.style?.stroke)})`
+                      ? `url(#${markerIdFor(edge.markerStart, edge.style?.stroke, 'start')})`
                       : undefined
                   }
                   style={{

@@ -1654,7 +1654,9 @@ describe('vizcraft core', () => {
 
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
-      expect(pathMatch![0]).toContain('marker-start="url(#viz-circleOpen)"');
+      expect(pathMatch![0]).toContain(
+        'marker-start="url(#viz-circleOpen-start)"'
+      );
       expect(pathMatch![0]).toContain('marker-end="url(#viz-arrow)"');
     });
 
@@ -1673,13 +1675,13 @@ describe('vizcraft core', () => {
         .svg();
 
       // Colored markers should exist
-      expect(svgStr).toContain('id="viz-diamond-_e74c3c"');
+      expect(svgStr).toContain('id="viz-diamond-start-_e74c3c"');
       expect(svgStr).toContain('id="viz-arrowOpen-_e74c3c"');
 
       // The path should reference the colored markers
       const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
       expect(pathMatch).toBeTruthy();
-      expect(pathMatch![0]).toContain('url(#viz-diamond-_e74c3c)');
+      expect(pathMatch![0]).toContain('url(#viz-diamond-start-_e74c3c)');
       expect(pathMatch![0]).toContain('url(#viz-arrowOpen-_e74c3c)');
     });
 

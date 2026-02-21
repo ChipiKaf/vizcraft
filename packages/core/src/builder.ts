@@ -34,17 +34,22 @@ function colorToMarkerSuffix(color: string): string {
   return color.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-/** Return the marker id to use for a marker type with an optional custom stroke. */
+/** Return the marker id to use for a marker type with an optional custom stroke and position. */
 function markerIdFor(
   markerType: EdgeMarkerType,
-  stroke: string | undefined
+  stroke: string | undefined,
+  position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
   const base = `viz-${markerType}`;
-  return stroke ? `${base}-${colorToMarkerSuffix(stroke)}` : base;
+  const suffix = position === 'start' ? '-start' : '';
+  return stroke
+    ? `${base}${suffix}-${colorToMarkerSuffix(stroke)}`
+    : `${base}${suffix}`;
 }
 
 /** @deprecated Use markerIdFor instead. Kept for backward compatibility. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function arrowMarkerIdFor(stroke: string | undefined): string {
   return markerIdFor('arrow', stroke);
 }
@@ -54,17 +59,21 @@ function arrowMarkerIdFor(stroke: string | undefined): string {
  * @param markerType The type of marker
  * @param color Fill color for the marker (or stroke for open markers)
  * @param id The marker element id
+ * @param position Whether this marker is used at the start or end of an edge
  */
 function generateMarkerSvg(
   markerType: EdgeMarkerType,
   color: string,
-  id: string
+  id: string,
+  position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
 
   // Common marker properties
   const viewBox = '0 0 10 10';
-  const refX = '9'; // Position on the edge line
+  // Start markers use refX=1 so they sit outside the node boundary;
+  // end markers use refX=9 so the tip aligns with the path endpoint.
+  const refX = position === 'start' ? '1' : '9';
   const refY = '5'; // Center vertically
   const markerWidth = '10';
   const markerHeight = '10';
@@ -78,8 +87,8 @@ function generateMarkerSvg(
       break;
 
     case 'arrowOpen':
-      // Open V-shape triangle
-      content = `<polyline points="0,2 10,5 0,8" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="miter" />`;
+      // Open V-shape triangle (white fill hides the edge line behind the marker)
+      content = `<polyline points="0,2 10,5 0,8" fill="white" stroke="${color}" stroke-width="1.5" stroke-linejoin="miter" />`;
       break;
 
     case 'diamond':
@@ -88,8 +97,8 @@ function generateMarkerSvg(
       break;
 
     case 'diamondOpen':
-      // Open diamond
-      content = `<polygon points="0,5 5,2 10,5 5,8" fill="none" stroke="${color}" stroke-width="1.5" />`;
+      // Open diamond (white fill hides the edge line behind the marker)
+      content = `<polygon points="0,5 5,2 10,5 5,8" fill="white" stroke="${color}" stroke-width="1.5" />`;
       break;
 
     case 'circle':
@@ -98,8 +107,8 @@ function generateMarkerSvg(
       break;
 
     case 'circleOpen':
-      // Open circle
-      content = `<circle cx="5" cy="5" r="3" fill="none" stroke="${color}" stroke-width="1.5" />`;
+      // Open circle (white fill hides the edge line behind the marker)
+      content = `<circle cx="5" cy="5" r="3" fill="white" stroke="${color}" stroke-width="1.5" />`;
       break;
 
     case 'square':
@@ -113,15 +122,16 @@ function generateMarkerSvg(
       break;
 
     case 'halfArrow':
-      // Single-wing arrow
-      content = `<polyline points="0,5 10,2" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />`;
+      // Single-sided arrow (top half of a filled triangle)
+      content = `<polygon points="0,2 10,5 0,5" fill="${color}" />`;
       break;
 
     default:
       return '';
   }
 
-  return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="auto">${content}</marker>`;
+  const orient = position === 'start' ? 'auto-start-reverse' : 'auto';
+  return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="${orient}">${content}</marker>`;
 }
 
 import type { AnimationSpec } from './anim/spec';
@@ -832,25 +842,36 @@ class VizBuilderImpl implements VizBuilder {
 
       // Default markers (using currentColor)
       allMarkerTypesList.forEach((markerType) => {
-        const mid = markerIdFor(markerType, undefined);
-        const markerEl = document.createElementNS(svgNS, 'marker');
-        markerEl.setAttribute('id', mid);
-        markerEl.setAttribute('viewBox', '0 0 10 10');
-        markerEl.setAttribute('markerWidth', '10');
-        markerEl.setAttribute('markerHeight', '10');
-        markerEl.setAttribute('refX', '9');
-        markerEl.setAttribute('refY', '5');
-        markerEl.setAttribute('orient', 'auto');
-        // Parse the SVG content string into a temporary element
-        const tmp = document.createElementNS(svgNS, 'svg');
-        tmp.innerHTML = generateMarkerSvg(markerType, 'currentColor', mid);
-        const parsed = tmp.querySelector('marker');
-        if (parsed) {
-          while (parsed.firstChild) {
-            markerEl.appendChild(parsed.firstChild);
+        // Generate both end (refX=9) and start (refX=1) variants
+        for (const pos of ['end', 'start'] as const) {
+          const mid = markerIdFor(markerType, undefined, pos);
+          const markerEl = document.createElementNS(svgNS, 'marker');
+          markerEl.setAttribute('id', mid);
+          markerEl.setAttribute('viewBox', '0 0 10 10');
+          markerEl.setAttribute('markerWidth', '10');
+          markerEl.setAttribute('markerHeight', '10');
+          markerEl.setAttribute('refX', pos === 'start' ? '1' : '9');
+          markerEl.setAttribute('refY', '5');
+          markerEl.setAttribute(
+            'orient',
+            pos === 'start' ? 'auto-start-reverse' : 'auto'
+          );
+          // Parse the SVG content string into a temporary element
+          const tmp = document.createElementNS(svgNS, 'svg');
+          tmp.innerHTML = generateMarkerSvg(
+            markerType,
+            'currentColor',
+            mid,
+            pos
+          );
+          const parsed = tmp.querySelector('marker');
+          if (parsed) {
+            while (parsed.firstChild) {
+              markerEl.appendChild(parsed.firstChild);
+            }
           }
+          defs.appendChild(markerEl);
         }
-        defs.appendChild(markerEl);
       });
 
       // Per-color markers for edges with custom stroke
@@ -860,24 +881,29 @@ class VizBuilderImpl implements VizBuilder {
       });
       uniqueEdgeStrokeColors.forEach((color) => {
         allMarkerTypesList.forEach((markerType) => {
-          const mid = markerIdFor(markerType, color);
-          const markerEl = document.createElementNS(svgNS, 'marker');
-          markerEl.setAttribute('id', mid);
-          markerEl.setAttribute('viewBox', '0 0 10 10');
-          markerEl.setAttribute('markerWidth', '10');
-          markerEl.setAttribute('markerHeight', '10');
-          markerEl.setAttribute('refX', '9');
-          markerEl.setAttribute('refY', '5');
-          markerEl.setAttribute('orient', 'auto');
-          const tmp = document.createElementNS(svgNS, 'svg');
-          tmp.innerHTML = generateMarkerSvg(markerType, color, mid);
-          const parsed = tmp.querySelector('marker');
-          if (parsed) {
-            while (parsed.firstChild) {
-              markerEl.appendChild(parsed.firstChild);
+          for (const pos of ['end', 'start'] as const) {
+            const mid = markerIdFor(markerType, color, pos);
+            const markerEl = document.createElementNS(svgNS, 'marker');
+            markerEl.setAttribute('id', mid);
+            markerEl.setAttribute('viewBox', '0 0 10 10');
+            markerEl.setAttribute('markerWidth', '10');
+            markerEl.setAttribute('markerHeight', '10');
+            markerEl.setAttribute('refX', pos === 'start' ? '1' : '9');
+            markerEl.setAttribute('refY', '5');
+            markerEl.setAttribute(
+              'orient',
+              pos === 'start' ? 'auto-start-reverse' : 'auto'
+            );
+            const tmp = document.createElementNS(svgNS, 'svg');
+            tmp.innerHTML = generateMarkerSvg(markerType, color, mid, pos);
+            const parsed = tmp.querySelector('marker');
+            if (parsed) {
+              while (parsed.firstChild) {
+                markerEl.appendChild(parsed.firstChild);
+              }
             }
+            defs.appendChild(markerEl);
           }
-          defs.appendChild(markerEl);
         });
       });
 
@@ -1028,7 +1054,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Update marker-end
       if (edge.markerEnd && edge.markerEnd !== 'none') {
-        const mid = markerIdFor(edge.markerEnd, edge.style?.stroke);
+        const mid = markerIdFor(edge.markerEnd, edge.style?.stroke, 'end');
         line.setAttribute('marker-end', `url(#${mid})`);
       } else {
         line.removeAttribute('marker-end');
@@ -1036,7 +1062,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Update marker-start
       if (edge.markerStart && edge.markerStart !== 'none') {
-        const mid = markerIdFor(edge.markerStart, edge.style?.stroke);
+        const mid = markerIdFor(edge.markerStart, edge.style?.stroke, 'start');
         line.setAttribute('marker-start', `url(#${mid})`);
       } else {
         line.removeAttribute('marker-start');
@@ -1452,11 +1478,21 @@ class VizBuilderImpl implements VizBuilder {
       'halfArrow',
     ];
 
-    // Default markers (using currentColor)
+    // Default markers (using currentColor) — both end and start variants
     allMarkerTypes.forEach((markerType) => {
-      const id = markerIdFor(markerType, undefined);
-      markerDefinitions.add(id);
-      svgContent += generateMarkerSvg(markerType, 'currentColor', id);
+      // End variant (refX=9)
+      const endId = markerIdFor(markerType, undefined, 'end');
+      markerDefinitions.add(endId);
+      svgContent += generateMarkerSvg(markerType, 'currentColor', endId, 'end');
+      // Start variant (refX=1)
+      const startId = markerIdFor(markerType, undefined, 'start');
+      markerDefinitions.add(startId);
+      svgContent += generateMarkerSvg(
+        markerType,
+        'currentColor',
+        startId,
+        'start'
+      );
     });
 
     // Per-color markers for edges with custom stroke
@@ -1467,10 +1503,15 @@ class VizBuilderImpl implements VizBuilder {
 
     uniqueSvgStrokeColors.forEach((color) => {
       allMarkerTypes.forEach((markerType) => {
-        const id = markerIdFor(markerType, color);
-        if (!markerDefinitions.has(id)) {
-          markerDefinitions.add(id);
-          svgContent += generateMarkerSvg(markerType, color, id);
+        const endId = markerIdFor(markerType, color, 'end');
+        if (!markerDefinitions.has(endId)) {
+          markerDefinitions.add(endId);
+          svgContent += generateMarkerSvg(markerType, color, endId, 'end');
+        }
+        const startId = markerIdFor(markerType, color, 'start');
+        if (!markerDefinitions.has(startId)) {
+          markerDefinitions.add(startId);
+          svgContent += generateMarkerSvg(markerType, color, startId, 'start');
         }
       });
     });
@@ -1516,12 +1557,12 @@ class VizBuilderImpl implements VizBuilder {
 
       const markerEnd =
         edge.markerEnd && edge.markerEnd !== 'none'
-          ? `marker-end="url(#${markerIdFor(edge.markerEnd, edge.style?.stroke)})"`
+          ? `marker-end="url(#${markerIdFor(edge.markerEnd, edge.style?.stroke, 'end')})"`
           : '';
 
       const markerStart =
         edge.markerStart && edge.markerStart !== 'none'
-          ? `marker-start="url(#${markerIdFor(edge.markerStart, edge.style?.stroke)})"`
+          ? `marker-start="url(#${markerIdFor(edge.markerStart, edge.style?.stroke, 'start')})"`
           : '';
 
       const endpoints = computeEdgeEndpoints(start, end, edge);
