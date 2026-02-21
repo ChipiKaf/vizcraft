@@ -826,86 +826,69 @@ class VizBuilderImpl implements VizBuilder {
       style.textContent = DEFAULT_VIZ_CSS;
       svg.appendChild(style);
 
-      // Defs — marker definitions for all marker types
+      // Defs — marker definitions only for marker types/positions actually used
       const defs = document.createElementNS(svgNS, 'defs');
 
-      const allMarkerTypesList: EdgeMarkerType[] = [
-        'arrow',
-        'arrowOpen',
-        'diamond',
-        'diamondOpen',
-        'circle',
-        'circleOpen',
-        'square',
-        'bar',
-        'halfArrow',
-      ];
-
-      // Default markers (using currentColor)
-      allMarkerTypesList.forEach((markerType) => {
-        // Generate both end and start variants (start uses orient=auto-start-reverse)
-        for (const pos of ['end', 'start'] as const) {
-          const mid = markerIdFor(markerType, undefined, pos);
-          const markerEl = document.createElementNS(svgNS, 'marker');
-          markerEl.setAttribute('id', mid);
-          markerEl.setAttribute('viewBox', '0 0 10 10');
-          markerEl.setAttribute('markerWidth', '10');
-          markerEl.setAttribute('markerHeight', '10');
-          markerEl.setAttribute('refX', '9');
-          markerEl.setAttribute('refY', '5');
-          markerEl.setAttribute(
-            'orient',
-            pos === 'start' ? 'auto-start-reverse' : 'auto'
-          );
-          // Parse the SVG content string into a temporary element
-          const tmp = document.createElementNS(svgNS, 'svg');
-          tmp.innerHTML = generateMarkerSvg(
-            markerType,
-            'currentColor',
-            mid,
-            pos
-          );
-          const parsed = tmp.querySelector('marker');
-          if (parsed) {
-            while (parsed.firstChild) {
-              markerEl.appendChild(parsed.firstChild);
-            }
+      // Collect the set of (markerType, color, position) tuples actually needed
+      // and pre-generate their SVG content strings.
+      const neededMarkers = new Set<string>();
+      const markerSvgById = new Map<string, string>();
+      edges.forEach((e) => {
+        const stroke = e.style?.stroke;
+        if (e.markerEnd && e.markerEnd !== 'none') {
+          const mid = markerIdFor(e.markerEnd, stroke, 'end');
+          if (!neededMarkers.has(mid)) {
+            neededMarkers.add(mid);
+            markerSvgById.set(
+              mid,
+              generateMarkerSvg(
+                e.markerEnd,
+                stroke ?? 'currentColor',
+                mid,
+                'end'
+              )
+            );
           }
-          defs.appendChild(markerEl);
+        }
+        if (e.markerStart && e.markerStart !== 'none') {
+          const mid = markerIdFor(e.markerStart, stroke, 'start');
+          if (!neededMarkers.has(mid)) {
+            neededMarkers.add(mid);
+            markerSvgById.set(
+              mid,
+              generateMarkerSvg(
+                e.markerStart,
+                stroke ?? 'currentColor',
+                mid,
+                'start'
+              )
+            );
+          }
         }
       });
 
-      // Per-color markers for edges with custom stroke
-      const uniqueEdgeStrokeColors = new Set<string>();
-      edges.forEach((e) => {
-        if (e.style?.stroke) uniqueEdgeStrokeColors.add(e.style.stroke);
-      });
-      uniqueEdgeStrokeColors.forEach((color) => {
-        allMarkerTypesList.forEach((markerType) => {
-          for (const pos of ['end', 'start'] as const) {
-            const mid = markerIdFor(markerType, color, pos);
-            const markerEl = document.createElementNS(svgNS, 'marker');
-            markerEl.setAttribute('id', mid);
-            markerEl.setAttribute('viewBox', '0 0 10 10');
-            markerEl.setAttribute('markerWidth', '10');
-            markerEl.setAttribute('markerHeight', '10');
-            markerEl.setAttribute('refX', '9');
-            markerEl.setAttribute('refY', '5');
-            markerEl.setAttribute(
-              'orient',
-              pos === 'start' ? 'auto-start-reverse' : 'auto'
-            );
-            const tmp = document.createElementNS(svgNS, 'svg');
-            tmp.innerHTML = generateMarkerSvg(markerType, color, mid, pos);
-            const parsed = tmp.querySelector('marker');
-            if (parsed) {
-              while (parsed.firstChild) {
-                markerEl.appendChild(parsed.firstChild);
-              }
-            }
-            defs.appendChild(markerEl);
+      neededMarkers.forEach((mid) => {
+        const markerEl = document.createElementNS(svgNS, 'marker');
+        markerEl.setAttribute('id', mid);
+        markerEl.setAttribute('viewBox', '0 0 10 10');
+        markerEl.setAttribute('markerWidth', '10');
+        markerEl.setAttribute('markerHeight', '10');
+        markerEl.setAttribute('refX', '9');
+        markerEl.setAttribute('refY', '5');
+        const isStart = mid.includes('-start');
+        markerEl.setAttribute(
+          'orient',
+          isStart ? 'auto-start-reverse' : 'auto'
+        );
+        const tmp = document.createElementNS(svgNS, 'svg');
+        tmp.innerHTML = markerSvgById.get(mid) ?? '';
+        const parsed = tmp.querySelector('marker');
+        if (parsed) {
+          while (parsed.firstChild) {
+            markerEl.appendChild(parsed.firstChild);
           }
-        });
+        }
+        defs.appendChild(markerEl);
       });
 
       svg.appendChild(defs);
@@ -1465,56 +1448,34 @@ class VizBuilderImpl implements VizBuilder {
     svgContent += `
         <defs>`;
 
-    // Collect all marker types and colors used
+    // Only generate marker defs for types/positions actually used by edges
     const markerDefinitions = new Set<string>();
-    const allMarkerTypes: EdgeMarkerType[] = [
-      'arrow',
-      'arrowOpen',
-      'diamond',
-      'diamondOpen',
-      'circle',
-      'circleOpen',
-      'square',
-      'bar',
-      'halfArrow',
-    ];
-
-    // Default markers (using currentColor) — both end and start variants
-    allMarkerTypes.forEach((markerType) => {
-      // End variant
-      const endId = markerIdFor(markerType, undefined, 'end');
-      markerDefinitions.add(endId);
-      svgContent += generateMarkerSvg(markerType, 'currentColor', endId, 'end');
-      // Start variant (orient=auto-start-reverse flips the marker)
-      const startId = markerIdFor(markerType, undefined, 'start');
-      markerDefinitions.add(startId);
-      svgContent += generateMarkerSvg(
-        markerType,
-        'currentColor',
-        startId,
-        'start'
-      );
-    });
-
-    // Per-color markers for edges with custom stroke
-    const uniqueSvgStrokeColors = new Set<string>();
     edges.forEach((e) => {
-      if (e.style?.stroke) uniqueSvgStrokeColors.add(e.style.stroke);
-    });
-
-    uniqueSvgStrokeColors.forEach((color) => {
-      allMarkerTypes.forEach((markerType) => {
-        const endId = markerIdFor(markerType, color, 'end');
-        if (!markerDefinitions.has(endId)) {
-          markerDefinitions.add(endId);
-          svgContent += generateMarkerSvg(markerType, color, endId, 'end');
+      const stroke = e.style?.stroke;
+      if (e.markerEnd && e.markerEnd !== 'none') {
+        const mid = markerIdFor(e.markerEnd, stroke, 'end');
+        if (!markerDefinitions.has(mid)) {
+          markerDefinitions.add(mid);
+          svgContent += generateMarkerSvg(
+            e.markerEnd,
+            stroke ?? 'currentColor',
+            mid,
+            'end'
+          );
         }
-        const startId = markerIdFor(markerType, color, 'start');
-        if (!markerDefinitions.has(startId)) {
-          markerDefinitions.add(startId);
-          svgContent += generateMarkerSvg(markerType, color, startId, 'start');
+      }
+      if (e.markerStart && e.markerStart !== 'none') {
+        const mid = markerIdFor(e.markerStart, stroke, 'start');
+        if (!markerDefinitions.has(mid)) {
+          markerDefinitions.add(mid);
+          svgContent += generateMarkerSvg(
+            e.markerStart,
+            stroke ?? 'currentColor',
+            mid,
+            'start'
+          );
         }
-      });
+      }
     });
 
     svgContent += `

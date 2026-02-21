@@ -1598,7 +1598,7 @@ describe('vizcraft core', () => {
       expect(scene.edges[0]!.markerEnd).toBe('none');
     });
 
-    it('svg() generates marker definitions for all marker types', () => {
+    it('svg() generates marker defs only for marker types actually used', () => {
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1610,16 +1610,12 @@ describe('vizcraft core', () => {
         .markerEnd('diamond')
         .svg();
 
-      // Should contain marker defs for all types
-      expect(svgStr).toContain('id="viz-arrow"');
-      expect(svgStr).toContain('id="viz-arrowOpen"');
+      // Should contain the marker def actually used
       expect(svgStr).toContain('id="viz-diamond"');
-      expect(svgStr).toContain('id="viz-diamondOpen"');
-      expect(svgStr).toContain('id="viz-circle"');
-      expect(svgStr).toContain('id="viz-circleOpen"');
-      expect(svgStr).toContain('id="viz-square"');
-      expect(svgStr).toContain('id="viz-bar"');
-      expect(svgStr).toContain('id="viz-halfArrow"');
+      // Should NOT contain marker defs for unused types
+      expect(svgStr).not.toContain('id="viz-arrow"');
+      expect(svgStr).not.toContain('id="viz-arrowOpen"');
+      expect(svgStr).not.toContain('id="viz-circle"');
     });
 
     it('markerEnd renders in the SVG path for non-arrow types', () => {
@@ -1685,7 +1681,7 @@ describe('vizcraft core', () => {
       expect(pathMatch![0]).toContain('url(#viz-arrowOpen-_e74c3c)');
     });
 
-    it('all marker types produce valid SVG content in defs', () => {
+    it('all used marker types produce valid SVG content in defs', () => {
       const markerTypes = [
         'arrow',
         'arrowOpen',
@@ -1698,6 +1694,7 @@ describe('vizcraft core', () => {
         'halfArrow',
       ] as const;
 
+      // Each edge needs a unique id so they don't overwrite each other
       const svgStr = viz()
         .node('a')
         .at(50, 50)
@@ -1705,8 +1702,24 @@ describe('vizcraft core', () => {
         .node('b')
         .at(250, 50)
         .circle(10)
-        .edge('a', 'b')
-        .arrow()
+        .edge('a', 'b', 'e1')
+        .markerEnd('arrow')
+        .edge('a', 'b', 'e2')
+        .markerEnd('arrowOpen')
+        .edge('a', 'b', 'e3')
+        .markerEnd('diamond')
+        .edge('a', 'b', 'e4')
+        .markerEnd('diamondOpen')
+        .edge('a', 'b', 'e5')
+        .markerEnd('circle')
+        .edge('a', 'b', 'e6')
+        .markerEnd('circleOpen')
+        .edge('a', 'b', 'e7')
+        .markerEnd('square')
+        .edge('a', 'b', 'e8')
+        .markerEnd('bar')
+        .edge('a', 'b', 'e9')
+        .markerEnd('halfArrow')
         .svg();
 
       markerTypes.forEach((type) => {
