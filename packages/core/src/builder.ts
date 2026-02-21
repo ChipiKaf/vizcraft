@@ -232,6 +232,12 @@ interface EdgeBuilder {
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder;
   arrow(enabled?: boolean): EdgeBuilder;
   connect(anchor: 'center' | 'boundary'): EdgeBuilder;
+  /** Sets the fill color of the edge path. */
+  fill(color: string): EdgeBuilder;
+  /** Sets the stroke color and optional width of the edge path. */
+  stroke(color: string, width?: number): EdgeBuilder;
+  /** Sets the opacity of the edge. */
+  opacity(value: number): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
@@ -861,6 +867,14 @@ class VizBuilderImpl implements VizBuilder {
         line.removeAttribute('marker-end');
       }
 
+      // Per-edge style overrides (inline attrs override CSS defaults)
+      setSvgAttributes(line, {
+        stroke: edge.style?.stroke,
+        'stroke-width': edge.style?.strokeWidth,
+        fill: edge.style?.fill,
+        opacity: edge.style?.opacity,
+      });
+
       const oldHit =
         group.querySelector('[data-viz-role="edge-hit"]') ||
         group.querySelector('.viz-edge-hit');
@@ -1309,7 +1323,14 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
-      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
+
+      const edgeStyleAttrs = svgAttributeString({
+        stroke: edge.style?.stroke,
+        'stroke-width': edge.style?.strokeWidth,
+        fill: edge.style?.fill,
+        opacity: edge.style?.opacity,
+      });
+      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd}${edgeStyleAttrs} style="${lineRuntimeStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Label
       if (edge.label) {
@@ -1844,6 +1865,31 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   connect(anchor: 'center' | 'boundary'): EdgeBuilder {
     this.edgeDef.anchor = anchor;
+    return this;
+  }
+
+  fill(color: string): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      fill: color,
+    };
+    return this;
+  }
+
+  stroke(color: string, width?: number): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      stroke: color,
+      strokeWidth: width ?? this.edgeDef.style?.strokeWidth,
+    };
+    return this;
+  }
+
+  opacity(value: number): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      opacity: value,
+    };
     return this;
   }
 

@@ -212,6 +212,19 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     // Path
     line.setAttribute('d', edgePath.d);
 
+    // Per-edge style overrides (inline attrs override CSS defaults)
+    const styleProps: [string, string | number | undefined][] = [
+      ['stroke', edge.style?.stroke],
+      ['stroke-width', edge.style?.strokeWidth],
+      ['fill', edge.style?.fill],
+      ['opacity', edge.style?.opacity],
+    ];
+    for (const [attr, val] of styleProps) {
+      if (val !== undefined) {
+        line.setAttribute(attr, String(val));
+      }
+    }
+
     const hit = ctx.edgeHitsById.get(edge.id);
     if (hit) {
       hit.setAttribute('d', edgePath.d);

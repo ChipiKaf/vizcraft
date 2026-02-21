@@ -144,6 +144,13 @@ export interface VizEdge {
   runtime?: VizRuntimeEdgeProps;
   markerEnd?: 'arrow' | 'none';
   anchor?: 'center' | 'boundary';
+  /** Per-edge visual styling. Overrides the CSS defaults when set. */
+  style?: {
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
+    opacity?: number;
+  };
   className?: string;
   hitArea?: number; // width in px
   data?: unknown;

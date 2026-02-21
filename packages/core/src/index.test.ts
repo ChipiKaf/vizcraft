@@ -1325,5 +1325,120 @@ describe('vizcraft core', () => {
       expect(edge.label?.text).toBe('test');
       expect(edge.className).toBe('my-edge');
     });
+
+    it('edge .stroke() sets style.stroke on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000')
+        .build();
+      expect(scene.edges[0]!.style?.stroke).toBe('#ff0000');
+    });
+
+    it('edge .stroke() with width sets both stroke and strokeWidth', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('red', 3)
+        .build();
+      expect(scene.edges[0]!.style?.stroke).toBe('red');
+      expect(scene.edges[0]!.style?.strokeWidth).toBe(3);
+    });
+
+    it('edge .fill() sets style.fill on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .fill('blue')
+        .build();
+      expect(scene.edges[0]!.style?.fill).toBe('blue');
+    });
+
+    it('edge .opacity() sets style.opacity on the scene edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .opacity(0.5)
+        .build();
+      expect(scene.edges[0]!.style?.opacity).toBe(0.5);
+    });
+
+    it('edge style methods chain together', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000', 3)
+        .fill('none')
+        .opacity(0.8)
+        .build();
+      const style = scene.edges[0]!.style!;
+      expect(style.stroke).toBe('#ff0000');
+      expect(style.strokeWidth).toBe(3);
+      expect(style.fill).toBe('none');
+      expect(style.opacity).toBe(0.8);
+    });
+
+    it('per-edge style renders as inline SVG attributes in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ff0000', 3)
+        .fill('blue')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('stroke="#ff0000"');
+      expect(pathMatch![0]).toContain('stroke-width="3"');
+      expect(pathMatch![0]).toContain('fill="blue"');
+    });
+
+    it('edge without style does not add inline stroke/fill attributes', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .svg();
+
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      // No inline stroke or fill when no style is set (CSS defaults apply)
+      expect(pathMatch![0]).not.toContain('stroke=');
+      expect(pathMatch![0]).not.toContain('fill=');
+    });
   });
 });
