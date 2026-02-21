@@ -312,18 +312,54 @@ and `.via(x, y)` to add intermediate waypoints.
 
 export const edgeRoutingScene = viz()
   .view(600, 260)
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').arrow().label('straight')
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').curved().arrow().label('curved')
-  .node('a3').at(50, 220).circle(22).label('E')
-  .node('b3').at(250, 220).circle(22).label('F')
-  .edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
-  .node('c1').at(370, 60).circle(22).label('G')
-  .node('d1').at(560, 220).circle(22).label('H')
-  .edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint')
+  .node('a1')
+  .at(50, 60)
+  .circle(22)
+  .label('A')
+  .node('b1')
+  .at(250, 60)
+  .circle(22)
+  .label('B')
+  .edge('a1', 'b1')
+  .arrow()
+  .label('straight')
+  .node('a2')
+  .at(50, 140)
+  .circle(22)
+  .label('C')
+  .node('b2')
+  .at(250, 140)
+  .circle(22)
+  .label('D')
+  .edge('a2', 'b2')
+  .curved()
+  .arrow()
+  .label('curved')
+  .node('a3')
+  .at(50, 220)
+  .circle(22)
+  .label('E')
+  .node('b3')
+  .at(250, 220)
+  .circle(22)
+  .label('F')
+  .edge('a3', 'b3')
+  .orthogonal()
+  .arrow()
+  .label('orthogonal')
+  .node('c1')
+  .at(370, 60)
+  .circle(22)
+  .label('G')
+  .node('d1')
+  .at(560, 220)
+  .circle(22)
+  .label('H')
+  .edge('c1', 'd1')
+  .curved()
+  .via(460, 60)
+  .arrow()
+  .label('waypoint')
   .done();
 
 <CodePreview code={`
@@ -332,22 +368,22 @@ import { viz } from 'vizcraft';
 const builder = viz().view(600, 260);
 
 builder
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').arrow().label('straight')
-  // Curved edge
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').curved().arrow().label('curved')
-  // Orthogonal edge
-  .node('a3').at(50, 220).circle(22).label('E')
-  .node('b3').at(250, 220).circle(22).label('F')
-  .edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
-  // Curved with waypoint
-  .node('c1').at(370, 60).circle(22).label('G')
-  .node('d1').at(560, 220).circle(22).label('H')
-  .edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint')
-  .done();
+.node('a1').at(50, 60).circle(22).label('A')
+.node('b1').at(250, 60).circle(22).label('B')
+.edge('a1', 'b1').arrow().label('straight')
+// Curved edge
+.node('a2').at(50, 140).circle(22).label('C')
+.node('b2').at(250, 140).circle(22).label('D')
+.edge('a2', 'b2').curved().arrow().label('curved')
+// Orthogonal edge
+.node('a3').at(50, 220).circle(22).label('E')
+.node('b3').at(250, 220).circle(22).label('F')
+.edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
+// Curved with waypoint
+.node('c1').at(370, 60).circle(22).label('G')
+.node('d1').at(560, 220).circle(22).label('H')
+.edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint')
+.done();
 
 const el = document.getElementById('viz-edge-routing');
 if (el) builder.mount(el);
@@ -356,13 +392,13 @@ if (el) builder.mount(el);
   <VizMount builder={edgeRoutingScene} style={{ height: '260px', width: '100%' }} />
 </CodePreview>
 
-| Builder method | Effect |
-| --- | --- |
-| `.straight()` | Straight line routing (default). |
-| `.curved()` | Smooth bezier curve. |
-| `.orthogonal()` | Right-angle (elbow) connectors. |
-| `.routing(mode)` | Set routing mode programmatically (`'straight'`, `'curved'`, or `'orthogonal'`). |
-| `.via(x, y)` | Add an intermediate waypoint. Chain multiple `.via()` calls for multi-segment paths. |
+| Builder method   | Effect                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `.straight()`    | Straight line routing (default).                                                     |
+| `.curved()`      | Smooth bezier curve.                                                                 |
+| `.orthogonal()`  | Right-angle (elbow) connectors.                                                      |
+| `.routing(mode)` | Set routing mode programmatically (`'straight'`, `'curved'`, or `'orthogonal'`).     |
+| `.via(x, y)`     | Add an intermediate waypoint. Chain multiple `.via()` calls for multi-segment paths. |
 
 ## Animations
 
