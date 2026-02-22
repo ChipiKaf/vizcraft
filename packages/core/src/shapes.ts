@@ -30,8 +30,7 @@ export function effectivePos(node: VizNode): Vec2 {
 }
 
 export function effectiveShape(node: VizNode): NodeShape {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shape = { ...node.shape } as any;
+  const shape = { ...node.shape };
   if (node.runtime?.width !== undefined) {
     if ('w' in shape) shape.w = node.runtime.width;
     if ('rx' in shape && shape.kind === 'ellipse') {
