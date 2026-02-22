@@ -28,6 +28,7 @@ import {
 } from './runtimePatcher';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
+import { renderSvgText } from './textUtils';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -1298,17 +1299,22 @@ class VizBuilderImpl implements VizBuilder {
       const allLabels = collectEdgeLabels(edge);
       allLabels.forEach((lbl, idx) => {
         const pos = resolveEdgeLabelPosition(lbl, edgePath);
-        const text = document.createElementNS(svgNS, 'text');
-        text.setAttribute('x', String(pos.x));
-        text.setAttribute('y', String(pos.y));
-        text.setAttribute('class', `viz-edge-label ${lbl.className || ''}`);
-        text.setAttribute('data-viz-role', 'edge-label');
-        text.setAttribute('data-label-index', String(idx));
-        text.setAttribute('data-label-position', lbl.position);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.textContent = lbl.text;
-        group.appendChild(text);
+        const labelClass = `viz-edge-label ${lbl.className || ''}`;
+
+        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.text, {
+          className: labelClass,
+          textAnchor: 'middle',
+          dominantBaseline: 'middle',
+          maxWidth: lbl.maxWidth,
+          lineHeight: lbl.lineHeight,
+          verticalAlign: lbl.verticalAlign,
+          overflow: lbl.overflow,
+        }).replace(
+          '<text ',
+          `<text data-viz-role="edge-label" data-label-index="${idx}" data-label-position="${lbl.position}" `
+        );
+
+        group.insertAdjacentHTML('beforeend', edgeLabelSvg);
       });
     });
 
@@ -1486,11 +1492,8 @@ class VizBuilderImpl implements VizBuilder {
           '[data-viz-role="node-label"]'
         ) as SVGTextElement | null) ||
         (group.querySelector('.viz-node-label') as SVGTextElement | null);
-      if (!label && node.label) {
-        label = document.createElementNS(svgNS, 'text');
-        label.setAttribute('class', 'viz-node-label');
-        label.setAttribute('data-viz-role', 'node-label');
-        group.appendChild(label);
+      if (label) {
+        label.remove();
       }
 
       if (node.label) {
@@ -1509,24 +1512,22 @@ class VizBuilderImpl implements VizBuilder {
           lx = x + (node.label.dx || 0);
         }
 
-        label!.setAttribute('x', String(lx));
-        label!.setAttribute('y', String(ly));
-        label!.setAttribute('text-anchor', node.label.textAnchor || 'middle');
-        label!.setAttribute(
-          'dominant-baseline',
-          node.label.dominantBaseline || 'middle'
-        );
-        label!.setAttribute(
-          'class',
-          `viz-node-label ${node.label.className || ''}`
-        );
-        label!.setAttribute('data-viz-role', 'node-label');
-        setSvgAttributes(label!, {
+        const labelClass = `viz-node-label ${node.label.className || ''}`;
+
+        const nodeLabelSvg = renderSvgText(lx, ly, node.label.text, {
+          className: labelClass,
           fill: node.label.fill,
-          'font-size': node.label.fontSize,
-          'font-weight': node.label.fontWeight,
-        });
-        label!.textContent = node.label.text;
+          fontSize: node.label.fontSize,
+          fontWeight: node.label.fontWeight,
+          textAnchor: node.label.textAnchor || 'middle',
+          dominantBaseline: node.label.dominantBaseline || 'middle',
+          maxWidth: node.label.maxWidth,
+          lineHeight: node.label.lineHeight,
+          verticalAlign: node.label.verticalAlign,
+          overflow: node.label.overflow,
+        }).replace('<text ', '<text data-viz-role="node-label" ');
+
+        group.insertAdjacentHTML('beforeend', nodeLabelSvg);
       } else if (label) {
         label.remove();
       }
@@ -1790,7 +1791,24 @@ class VizBuilderImpl implements VizBuilder {
       allLabels.forEach((lbl, idx) => {
         const pos = resolveEdgeLabelPosition(lbl, edgePath);
         const labelClass = `viz-edge-label ${lbl.className || ''}`;
-        svgContent += `<text x="${pos.x}" y="${pos.y}" class="${labelClass}" data-viz-role="edge-label" data-label-index="${idx}" data-label-position="${lbl.position}" text-anchor="middle" dominant-baseline="middle">${lbl.text}</text>`;
+
+        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.text, {
+          className: labelClass,
+          textAnchor: 'middle',
+          dominantBaseline: 'middle',
+          maxWidth: lbl.maxWidth,
+          lineHeight: lbl.lineHeight,
+          verticalAlign: lbl.verticalAlign,
+          overflow: lbl.overflow,
+        });
+
+        // Inject the role/position/idx data attributes.
+        // It's a bit hacky on the output string, but works.
+        const augmentedSvg = edgeLabelSvg.replace(
+          '<text ',
+          `<text data-viz-role="edge-label" data-label-index="${idx}" data-label-position="${lbl.position}" `
+        );
+        svgContent += augmentedSvg;
       });
       svgContent += '</g>';
     });
@@ -1895,14 +1913,25 @@ class VizBuilderImpl implements VizBuilder {
         }
 
         const labelClass = `viz-node-label ${node.label.className || ''}`;
-        const labelAttrs = svgAttributeString({
+
+        const nodeLabelSvg = renderSvgText(lx, ly, node.label.text, {
+          className: labelClass,
           fill: node.label.fill,
-          'font-size': node.label.fontSize,
-          'font-weight': node.label.fontWeight,
-          'text-anchor': node.label.textAnchor || 'middle',
-          'dominant-baseline': node.label.dominantBaseline || 'middle',
+          fontSize: node.label.fontSize,
+          fontWeight: node.label.fontWeight,
+          textAnchor: node.label.textAnchor || 'middle',
+          dominantBaseline: node.label.dominantBaseline || 'middle',
+          maxWidth: node.label.maxWidth,
+          lineHeight: node.label.lineHeight,
+          verticalAlign: node.label.verticalAlign,
+          overflow: node.label.overflow,
         });
-        content += `<text x="${lx}" y="${ly}" class="${labelClass}" data-viz-role="node-label"${labelAttrs}>${node.label.text}</text>`;
+
+        const augmentedSvg = nodeLabelSvg.replace(
+          '<text ',
+          '<text data-viz-role="node-label" '
+        );
+        content += augmentedSvg;
       }
 
       // Ports (small circles on the shape boundary, hidden by default, shown on hover via CSS)

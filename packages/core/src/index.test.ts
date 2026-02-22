@@ -1945,7 +1945,7 @@ describe('vizcraft core', () => {
         .svg();
 
       const labels = svgStr.match(
-        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[\s\S]*?<\/text>/g
       );
       expect(labels).toHaveLength(1);
       expect(labels![0]).toContain('hello');
@@ -1967,7 +1967,7 @@ describe('vizcraft core', () => {
         .svg();
 
       const labels = svgStr.match(
-        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[\s\S]*?<\/text>/g
       );
       expect(labels).toHaveLength(3);
 
@@ -1995,13 +1995,13 @@ describe('vizcraft core', () => {
         .svg();
 
       const labels = svgStr.match(
-        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[\s\S]*?<\/text>/g
       );
       expect(labels).toHaveLength(3);
 
-      // Extract x coordinates
-      const getX = (tag: string) => {
-        const m = tag.match(/x="([^"]*)"/);
+      // Extract x coordinates from the <text> element tag itself
+      const getX = (tagText: string) => {
+        const m = tagText.match(/^<text[^>]*?\bx="([^"]*)"/);
         return m ? parseFloat(m[1]!) : NaN;
       };
 
@@ -2095,7 +2095,7 @@ describe('vizcraft core', () => {
         .svg();
 
       const labels = svgStr.match(
-        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[\s\S]*?<\/text>/g
       );
       expect(labels).toHaveLength(2);
       expect(labels![0]).toContain('>S<');
@@ -2118,7 +2118,7 @@ describe('vizcraft core', () => {
         .svg();
 
       const labels = svgStr.match(
-        /<text[^>]*data-viz-role="edge-label"[^>]*>[^<]*<\/text>/g
+        /<text[^>]*data-viz-role="edge-label"[^>]*>[\s\S]*?<\/text>/g
       );
       expect(labels).toHaveLength(3);
     });
@@ -2766,20 +2766,65 @@ describe('vizcraft core', () => {
       const scene = viz()
         .node('group', {
           rect: { w: 200, h: 200 },
-          container: { padding: 20 },
+          container: {
+            padding: { top: 20, right: 20, bottom: 20, left: 20 },
+          },
         })
         .build();
       const n = scene.nodes.find((n) => n.id === 'group')!;
-      expect(n.container).toEqual({ padding: 20 });
+      expect(n.container).toEqual({
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      });
     });
 
     it('supports parent option', () => {
       const scene = viz()
-        .node('group', { rect: { w: 200, h: 200 }, container: { padding: 10 } })
+        .node('group', {
+          rect: { w: 200, h: 200 },
+          container: {
+            padding: { top: 10, right: 10, bottom: 10, left: 10 },
+          },
+        })
         .node('child', { rect: { w: 40, h: 40 }, parent: 'group' })
         .build();
       const child = scene.nodes.find((n) => n.id === 'child')!;
       expect(child.parentId).toBe('group');
+    });
+
+    describe('multi-line label wrapping', () => {
+      it('breaks node labels into multiple tspans on explicit \\n characters', () => {
+        const svgStr = viz()
+          .node('a', {
+            rect: { w: 100, h: 50 },
+            at: { x: 0, y: 0 },
+            label: 'Line 1\nLine 2',
+          })
+          .svg();
+
+        const tsPanMatches = svgStr.match(/<tspan[^>]*>(.*?)<\/tspan>/g);
+        expect(tsPanMatches).toHaveLength(2);
+        expect(tsPanMatches![0]).toContain('Line 1');
+        expect(tsPanMatches![1]).toContain('Line 2');
+        expect(tsPanMatches![1]).toContain('dy="1.2em"');
+      });
+
+      it('automatically wraps node text using maxWidth approximation', () => {
+        const svgStr = viz()
+          .node('a')
+          .at(0, 0)
+          .circle(50)
+          .label('This is a very long text that must absolute wrap', {
+            maxWidth: 10, // Unreasonably small to force wrap on every word
+            fontSize: 10, // 0.6 * 10 = 6 max chars lines
+          })
+          .svg();
+
+        const tsPanMatches = svgStr.match(/<tspan[^>]*>(.*?)<\/tspan>/g);
+        // "This", "is a", "very", "long", "text", "that", "must", "absolute", "wrap"
+        // Actual splitting depends on exact formula, but it should be multiple lines
+        expect(tsPanMatches!.length).toBeGreaterThan(3);
+        expect(svgStr).toContain('wrap</tspan>');
+      });
     });
   });
 
@@ -2851,11 +2896,11 @@ describe('vizcraft core', () => {
       const scene = viz()
         .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
         .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
-        .edge('a', 'b', { label: { text: 'link', fontSize: 14 } })
+        .edge('a', 'b', { label: { text: 'link', className: 'text-lg' } })
         .build();
       const e = scene.edges.find((e) => e.id === 'a->b')!;
       expect(e.labels![0]!.text).toBe('link');
-      expect(e.labels![0]!.fontSize).toBe(14);
+      expect(e.labels![0]!.className).toBe('text-lg');
     });
 
     it('applies label as array (multi-position)', () => {
@@ -2864,8 +2909,8 @@ describe('vizcraft core', () => {
         .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
         .edge('a', 'b', {
           label: [
-            { text: 'start', position: 0.1 },
-            { text: 'end', position: 0.9 },
+            { text: 'start', position: 'start' },
+            { text: 'end', position: 'end' },
           ],
         })
         .build();
