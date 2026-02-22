@@ -6,6 +6,7 @@ export * from './overlays';
 export * from './overlayBuilder';
 export * from './edgePaths';
 export * from './edgeLabels';
+export * from './edgeStyles';
 export {
   getDefaultPorts,
   getNodePorts,

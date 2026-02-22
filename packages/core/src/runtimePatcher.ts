@@ -2,6 +2,7 @@ import type { VizScene, EdgeMarkerType } from './types';
 import { applyShapeGeometry, effectivePos } from './shapes';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
+import { resolveDasharray } from './edgeStyles';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -382,6 +383,8 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     if (edge.style?.fill !== undefined) line.style.fill = edge.style.fill;
     if (edge.style?.opacity !== undefined)
       line.style.opacity = String(edge.style.opacity);
+    if (edge.style?.strokeDasharray !== undefined)
+      line.style.strokeDasharray = resolveDasharray(edge.style.strokeDasharray);
 
     // Update marker-end and marker-start to match edge stroke color
     if (edge.markerEnd && edge.markerEnd !== 'none') {
