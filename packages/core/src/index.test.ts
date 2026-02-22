@@ -2594,4 +2594,480 @@ describe('vizcraft core', () => {
       });
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Declarative Options Overloads — node(id, opts) & edge(from, to, opts)
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('declarative node(id, opts) overload', () => {
+    it('creates a node with rect shape and position', () => {
+      const scene = viz()
+        .node('a', { at: { x: 100, y: 200 }, rect: { w: 120, h: 60 } })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'a')!;
+      expect(n.pos).toEqual({ x: 100, y: 200 });
+      expect(n.shape).toEqual({ kind: 'rect', w: 120, h: 60 });
+    });
+
+    it('creates a node with circle shape', () => {
+      const scene = viz()
+        .node('c', { circle: { r: 25 } })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'c')!;
+      expect(n.shape).toEqual({ kind: 'circle', r: 25 });
+    });
+
+    it('applies fill and stroke string', () => {
+      const scene = viz()
+        .node('s', { rect: { w: 50, h: 30 }, fill: 'red', stroke: 'blue' })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 's')!;
+      expect(n.style?.fill).toBe('red');
+      expect(n.style?.stroke).toBe('blue');
+    });
+
+    it('applies stroke as object with color and width', () => {
+      const scene = viz()
+        .node('sw', {
+          rect: { w: 50, h: 30 },
+          stroke: { color: '#000', width: 3 },
+        })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'sw')!;
+      expect(n.style?.stroke).toBe('#000');
+      expect(n.style?.strokeWidth).toBe(3);
+    });
+
+    it('applies opacity', () => {
+      const scene = viz()
+        .node('o', { rect: { w: 50, h: 30 }, opacity: 0.5 })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'o')!;
+      expect(n.style?.opacity).toBe(0.5);
+    });
+
+    it('applies className', () => {
+      const scene = viz()
+        .node('cls', { rect: { w: 50, h: 30 }, className: 'my-class' })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'cls')!;
+      expect(n.className).toBe('my-class');
+    });
+
+    it('applies label as string', () => {
+      const scene = viz()
+        .node('lbl', { rect: { w: 80, h: 40 }, label: 'Hello' })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'lbl')!;
+      expect(n.label?.text).toBe('Hello');
+    });
+
+    it('applies label as object with options', () => {
+      const scene = viz()
+        .node('lbl2', {
+          rect: { w: 80, h: 40 },
+          label: { text: 'World', fontSize: 18, fill: 'white' },
+        })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'lbl2')!;
+      expect(n.label?.text).toBe('World');
+      expect(n.label?.fontSize).toBe(18);
+      expect(n.label?.fill).toBe('white');
+    });
+
+    it('applies data', () => {
+      const payload = { foo: 'bar' };
+      const scene = viz()
+        .node('d', { rect: { w: 50, h: 30 }, data: payload })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'd')!;
+      expect(n.data).toBe(payload);
+    });
+
+    it('applies onClick', () => {
+      const handler = () => {};
+      const scene = viz()
+        .node('click', { rect: { w: 50, h: 30 }, onClick: handler })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'click')!;
+      expect(n.onClick).toBe(handler);
+    });
+
+    it('applies ports', () => {
+      const scene = viz()
+        .node('p', {
+          rect: { w: 80, h: 40 },
+          ports: [
+            { id: 'top', offset: { x: 0, y: -20 } },
+            { id: 'bottom', offset: { x: 0, y: 20 }, direction: 270 },
+          ],
+        })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'p')!;
+      expect(n.ports).toHaveLength(2);
+      expect(n.ports![0]!.id).toBe('top');
+      expect(n.ports![1]!.id).toBe('bottom');
+      expect(n.ports![1]!.direction).toBe(270);
+    });
+
+    it('returns VizBuilder so additional nodes can be chained', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 80, h: 40 } })
+        .node('b', { circle: { r: 20 } })
+        .build();
+      expect(scene.nodes).toHaveLength(2);
+      expect(scene.nodes.find((n) => n.id === 'a')!.shape.kind).toBe('rect');
+      expect(scene.nodes.find((n) => n.id === 'b')!.shape.kind).toBe('circle');
+    });
+
+    it('supports diamond shape', () => {
+      const scene = viz()
+        .node('d', { diamond: { w: 60, h: 40 } })
+        .build();
+      expect(scene.nodes.find((n) => n.id === 'd')!.shape).toEqual({
+        kind: 'diamond',
+        w: 60,
+        h: 40,
+      });
+    });
+
+    it('supports cylinder shape', () => {
+      const scene = viz()
+        .node('c', { cylinder: { w: 60, h: 80, arcHeight: 10 } })
+        .build();
+      const shape = scene.nodes.find((n) => n.id === 'c')!.shape;
+      expect(shape.kind).toBe('cylinder');
+    });
+
+    it('supports star shape', () => {
+      const scene = viz()
+        .node('s', { star: { points: 5, outerR: 30 } })
+        .build();
+      const shape = scene.nodes.find((n) => n.id === 's')!.shape;
+      expect(shape.kind).toBe('star');
+    });
+
+    it('supports triangle shape', () => {
+      const scene = viz()
+        .node('t', { triangle: { w: 40, h: 40, direction: 'up' } })
+        .build();
+      const shape = scene.nodes.find((n) => n.id === 't')!.shape;
+      expect(shape.kind).toBe('triangle');
+    });
+
+    it('supports hexagon shape', () => {
+      const scene = viz()
+        .node('h', { hexagon: { r: 30, orientation: 'flat' } })
+        .build();
+      const shape = scene.nodes.find((n) => n.id === 'h')!.shape;
+      expect(shape.kind).toBe('hexagon');
+    });
+
+    it('supports container option', () => {
+      const scene = viz()
+        .node('group', {
+          rect: { w: 200, h: 200 },
+          container: { padding: 20 },
+        })
+        .build();
+      const n = scene.nodes.find((n) => n.id === 'group')!;
+      expect(n.container).toEqual({ padding: 20 });
+    });
+
+    it('supports parent option', () => {
+      const scene = viz()
+        .node('group', { rect: { w: 200, h: 200 }, container: { padding: 10 } })
+        .node('child', { rect: { w: 40, h: 40 }, parent: 'group' })
+        .build();
+      const child = scene.nodes.find((n) => n.id === 'child')!;
+      expect(child.parentId).toBe('group');
+    });
+  });
+
+  describe('declarative edge(from, to, opts) overload', () => {
+    it('creates an edge with default id', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { arrow: true })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e).toBeDefined();
+      expect(e.markerEnd).toBe('arrow');
+    });
+
+    it('creates an edge with custom id', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { id: 'my-edge', arrow: true })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'my-edge')!;
+      expect(e).toBeDefined();
+    });
+
+    it('applies stroke as string', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { stroke: 'red' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.style?.stroke).toBe('red');
+    });
+
+    it('applies stroke as object', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { stroke: { color: '#333', width: 2 } })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.style?.stroke).toBe('#333');
+      expect(e.style?.strokeWidth).toBe(2);
+    });
+
+    it('applies dash pattern', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { dash: 'dashed' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.style?.strokeDasharray).toBe('dashed');
+    });
+
+    it('applies label as string', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { label: 'connects' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.labels).toHaveLength(1);
+      expect(e.labels![0]!.text).toBe('connects');
+    });
+
+    it('applies label as object', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { label: { text: 'link', fontSize: 14 } })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.labels![0]!.text).toBe('link');
+      expect(e.labels![0]!.fontSize).toBe(14);
+    });
+
+    it('applies label as array (multi-position)', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', {
+          label: [
+            { text: 'start', position: 0.1 },
+            { text: 'end', position: 0.9 },
+          ],
+        })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.labels).toHaveLength(2);
+      expect(e.labels![0]!.text).toBe('start');
+      expect(e.labels![1]!.text).toBe('end');
+    });
+
+    it('applies arrow: "both"', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { arrow: 'both' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.markerStart).toBe('arrow');
+      expect(e.markerEnd).toBe('arrow');
+    });
+
+    it('applies routing', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 200 } })
+        .edge('a', 'b', { routing: 'orthogonal' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.routing).toBe('orthogonal');
+    });
+
+    it('applies opacity and fill', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { opacity: 0.3, fill: 'green' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.style?.opacity).toBe(0.3);
+      expect(e.style?.fill).toBe('green');
+    });
+
+    it('applies fromPort and toPort', () => {
+      const scene = viz()
+        .node('a', {
+          rect: { w: 80, h: 40 },
+          at: { x: 0, y: 0 },
+          ports: [{ id: 'right', offset: { x: 40, y: 0 } }],
+        })
+        .node('b', {
+          rect: { w: 80, h: 40 },
+          at: { x: 200, y: 0 },
+          ports: [{ id: 'left', offset: { x: -40, y: 0 } }],
+        })
+        .edge('a', 'b', { fromPort: 'right', toPort: 'left' })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.fromPort).toBe('right');
+      expect(e.toPort).toBe('left');
+    });
+
+    it('applies hitArea', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { hitArea: 20 })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.hitArea).toBe(20);
+    });
+
+    it('applies data and onClick', () => {
+      const handler = () => {};
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { data: { weight: 10 }, onClick: handler })
+        .build();
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.data).toEqual({ weight: 10 });
+      expect(e.onClick).toBe(handler);
+    });
+
+    it('returns VizBuilder so additional edges can be chained', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 50, h: 30 }, at: { x: 0, y: 0 } })
+        .node('b', { rect: { w: 50, h: 30 }, at: { x: 200, y: 0 } })
+        .node('c', { rect: { w: 50, h: 30 }, at: { x: 100, y: 200 } })
+        .edge('a', 'b', { arrow: true })
+        .edge('b', 'c', { arrow: true, dash: 'dotted' })
+        .build();
+      expect(scene.edges).toHaveLength(2);
+    });
+  });
+
+  describe('mixed fluent + declarative usage', () => {
+    it('can mix declarative nodes with fluent edges', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 80, h: 40 }, at: { x: 0, y: 0 }, label: 'A' })
+        .node('b', { rect: { w: 80, h: 40 }, at: { x: 200, y: 0 }, label: 'B' })
+        .edge('a', 'b')
+        .arrow()
+        .stroke('red')
+        .build();
+      expect(scene.nodes).toHaveLength(2);
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.markerEnd).toBe('arrow');
+      expect(e.style?.stroke).toBe('red');
+    });
+
+    it('can mix fluent nodes with declarative edges', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .rect(80, 40)
+        .label('A')
+        .node('b')
+        .at(200, 0)
+        .rect(80, 40)
+        .label('B')
+        .edge('a', 'b', { arrow: true, stroke: 'blue' })
+        .build();
+      expect(scene.nodes).toHaveLength(2);
+      const e = scene.edges.find((e) => e.id === 'a->b')!;
+      expect(e.markerEnd).toBe('arrow');
+      expect(e.style?.stroke).toBe('blue');
+    });
+
+    it('can chain from NodeBuilder to declarative edge', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .rect(80, 40)
+        .node('b', { rect: { w: 80, h: 40 }, at: { x: 200, y: 0 } })
+        .edge('a', 'b', { arrow: true })
+        .build();
+      expect(scene.nodes).toHaveLength(2);
+      expect(scene.edges).toHaveLength(1);
+    });
+
+    it('can chain from EdgeBuilder to declarative node', () => {
+      const scene = viz()
+        .node('a', { rect: { w: 80, h: 40 }, at: { x: 0, y: 0 } })
+        .edge('a', 'b')
+        .arrow()
+        .node('b', { rect: { w: 80, h: 40 }, at: { x: 200, y: 0 } })
+        .build();
+      expect(scene.nodes).toHaveLength(2);
+      expect(scene.edges).toHaveLength(1);
+    });
+
+    it('fully declarative graph builds correctly', () => {
+      const scene = viz()
+        .node('start', {
+          circle: { r: 20 },
+          at: { x: 100, y: 50 },
+          fill: '#4CAF50',
+          label: 'Start',
+        })
+        .node('process', {
+          rect: { w: 120, h: 60 },
+          at: { x: 100, y: 180 },
+          fill: '#2196F3',
+          stroke: { color: '#1565C0', width: 2 },
+          label: { text: 'Process', fontSize: 14, fill: 'white' },
+        })
+        .node('end', {
+          diamond: { w: 80, h: 60 },
+          at: { x: 100, y: 330 },
+          fill: '#FF9800',
+          label: 'End?',
+        })
+        .edge('start', 'process', { arrow: true, stroke: '#666' })
+        .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' })
+        .build();
+
+      expect(scene.nodes).toHaveLength(3);
+      expect(scene.edges).toHaveLength(2);
+      expect(scene.nodes.find((n) => n.id === 'start')!.shape.kind).toBe(
+        'circle'
+      );
+      expect(scene.nodes.find((n) => n.id === 'process')!.shape.kind).toBe(
+        'rect'
+      );
+      expect(scene.nodes.find((n) => n.id === 'end')!.shape.kind).toBe(
+        'diamond'
+      );
+    });
+
+    it('svg() works with fully declarative graph', () => {
+      const svgStr = viz()
+        .node('a', {
+          rect: { w: 80, h: 40 },
+          at: { x: 50, y: 50 },
+          fill: 'red',
+        })
+        .node('b', { circle: { r: 20 }, at: { x: 200, y: 50 }, fill: 'blue' })
+        .edge('a', 'b', { arrow: true })
+        .svg();
+      expect(svgStr).toContain('<svg');
+      expect(svgStr).toContain('</svg>');
+      expect(svgStr).toContain('fill="red"');
+      expect(svgStr).toContain('fill="blue"');
+    });
+  });
 });

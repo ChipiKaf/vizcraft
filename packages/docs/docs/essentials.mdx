@@ -24,6 +24,30 @@ export const gridScene = gridBuilder
   .diamond(60, 60)
   .done();
 
+export const declarativeScene = viz()
+  .view(500, 250)
+  .node('start', {
+    circle: { r: 22 },
+    at: { x: 80, y: 125 },
+    fill: '#4CAF50',
+    label: 'Start',
+  })
+  .node('process', {
+    rect: { w: 110, h: 50 },
+    at: { x: 250, y: 125 },
+    fill: '#2196F3',
+    stroke: { color: '#1565C0', width: 2 },
+    label: { text: 'Process', fontSize: 13, fill: 'white' },
+  })
+  .node('end', {
+    diamond: { w: 70, h: 50 },
+    at: { x: 420, y: 125 },
+    fill: '#FF9800',
+    label: 'End?',
+  })
+  .edge('start', 'process', { arrow: true, stroke: '#666' })
+  .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' });
+
 export const edgesBuilder = viz().view(500, 200);
 export const edgesScene = edgesBuilder
   .node('A')
@@ -198,6 +222,140 @@ if (container) builder.mount(container);
     style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
+
+## Declarative Options Overloads
+
+Instead of chaining many fluent methods, you can also pass an **options object** as the second argument to `.node()` or the third argument to `.edge()`. This configures the element in a single call and returns the `VizBuilder` so you can continue adding more elements.
+
+```typescript
+// Fluent style
+viz()
+  .node('a')
+  .at(100, 100)
+  .rect(80, 40)
+  .fill('steelblue')
+  .label('A')
+  .edge('a', 'b')
+  .arrow()
+  .stroke('red')
+  .build();
+
+// Declarative style — same result
+viz()
+  .node('a', {
+    at: { x: 100, y: 100 },
+    rect: { w: 80, h: 40 },
+    fill: 'steelblue',
+    label: 'A',
+  })
+  .edge('a', 'b', { arrow: true, stroke: 'red' })
+  .build();
+```
+
+:::tip
+**When to use which?** Use declarative options when you know all the properties up-front (e.g. from data). Use fluent chaining when you want to add properties conditionally or need the intermediate `NodeBuilder` / `EdgeBuilder`.
+:::
+
+### `node(id, opts: NodeOptions)`
+
+Returns **`VizBuilder`** (not `NodeBuilder`), so you can chain the next element immediately.
+
+| Option                         | Type                                | Maps to                           |
+| ------------------------------ | ----------------------------------- | --------------------------------- |
+| `at`                           | `{ x, y }`                          | `.at(x, y)`                       |
+| `cell`                         | `{ col, row, align? }`              | `.cell(col, row, align)`          |
+| `circle`, `rect`, `diamond`, … | shape params                        | `.circle(r)`, `.rect(w, h)`, etc. |
+| `fill`                         | `string`                            | `.fill(color)`                    |
+| `stroke`                       | `string \| { color, width? }`       | `.stroke(color, width)`           |
+| `opacity`                      | `number`                            | `.opacity(n)`                     |
+| `className`                    | `string`                            | `.class(name)`                    |
+| `label`                        | `string \| { text, …labelOpts }`    | `.label(text, opts)`              |
+| `ports`                        | `Array<{ id, offset, direction? }>` | `.port(id, offset, dir)`          |
+| `container`                    | `ContainerConfig`                   | `.container(config)`              |
+| `parent`                       | `string`                            | `.parent(id)`                     |
+| `data`                         | `unknown`                           | `.data(value)`                    |
+| `onClick`                      | `(id, node) => void`                | `.onClick(fn)`                    |
+
+### `edge(from, to, opts: EdgeOptions)`
+
+Returns **`VizBuilder`** (not `EdgeBuilder`).
+
+| Option                      | Type                                           | Maps to                                   |
+| --------------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `id`                        | `string`                                       | custom edge id                            |
+| `routing`                   | `EdgeRouting`                                  | `.routing(type)`                          |
+| `waypoints`                 | `Vec2[]`                                       | `.via(x, y)` per waypoint                 |
+| `arrow`                     | `boolean \| 'both' \| 'start' \| 'end'`        | `.arrow(value)`                           |
+| `markerStart` / `markerEnd` | `EdgeMarkerType`                               | `.markerStart(type)` / `.markerEnd(type)` |
+| `stroke`                    | `string \| { color, width? }`                  | `.stroke(color, width)`                   |
+| `fill`                      | `string`                                       | `.fill(color)`                            |
+| `opacity`                   | `number`                                       | `.opacity(n)`                             |
+| `dash`                      | `'dashed' \| 'dotted' \| 'dash-dot' \| string` | `.dash(value)`                            |
+| `className`                 | `string`                                       | `.class(name)`                            |
+| `anchor`                    | `'center' \| 'boundary'`                       | `.connect(anchor)`                        |
+| `fromPort` / `toPort`       | `string`                                       | `.fromPort(id)` / `.toPort(id)`           |
+| `label`                     | `string \| labelObj \| labelObj[]`             | `.label(text, opts)`                      |
+| `hitArea`                   | `number`                                       | `.hitArea(width)`                         |
+| `data`                      | `unknown`                                      | `.data(value)`                            |
+| `onClick`                   | `(id, edge) => void`                           | `.onClick(fn)`                            |
+
+### Live example
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+.view(500, 250)
+.node('start', {
+circle: { r: 22 },
+at: { x: 80, y: 125 },
+fill: '#4CAF50',
+label: 'Start',
+})
+.node('process', {
+rect: { w: 110, h: 50 },
+at: { x: 250, y: 125 },
+fill: '#2196F3',
+stroke: { color: '#1565C0', width: 2 },
+label: { text: 'Process', fontSize: 13, fill: 'white' },
+})
+.node('end', {
+diamond: { w: 70, h: 50 },
+at: { x: 420, y: 125 },
+fill: '#FF9800',
+label: 'End?',
+})
+.edge('start', 'process', { arrow: true, stroke: '#666' })
+.edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' });
+
+const el = document.getElementById('viz-container');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={declarativeScene} style={{ height: '250px', width: '100%' }} />
+</CodePreview>
+
+You can freely mix both styles in the same graph — use declarative calls for data-driven elements and fluent chaining when you need conditional logic.
+
+### Re-opening a declarative node or edge
+
+Because `node(id, opts)` returns `VizBuilder`, you no longer have the `NodeBuilder` for further chaining. If you need to go back and add more properties later, just call `.node(id)` again **without** options — this re-opens the same node and returns its `NodeBuilder`:
+
+```typescript
+viz()
+  .node('a', { rect: { w: 80, h: 40 }, fill: 'blue', at: { x: 100, y: 100 } })
+  // ... other nodes / edges ...
+  .node('a') // re-opens 'a' → returns NodeBuilder
+  .label('Hello') // continue editing the same node
+  .stroke('red')
+  .build();
+```
+
+The same applies to edges — calling `.edge(from, to)` or `.edge(from, to, id)` for an existing edge id will return its `EdgeBuilder` so you can keep editing it.
+
+:::info
+This works because the builder stores nodes and edges by id internally. A second call with the same id reuses the existing definition rather than creating a new one. All properties — whether set declaratively or via chaining — accumulate on the same object.
+:::
 
 ## Nodes
 
@@ -551,13 +709,13 @@ if (el) builder.mount(el);
   <VizMount builder={edgeStyleScene} style={{ height: '220px', width: '100%' }} />
 </CodePreview>
 
-| Builder method           | Effect                                               |
-| ------------------------ | ---------------------------------------------------- |
-| `.stroke(color, width?)` | Set stroke color and optional width (overrides CSS). |
-| `.fill(color)`           | Set fill color (overrides CSS default of `none`).    |
-| `.opacity(value)`        | Set opacity 0–1 (overrides CSS).                     |
-| `.dashed()`              | Dashed stroke (`8, 4`).                              |
-| `.dotted()`              | Dotted stroke (`2, 4`).                              |
+| Builder method           | Effect                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `.stroke(color, width?)` | Set stroke color and optional width (overrides CSS).                                    |
+| `.fill(color)`           | Set fill color (overrides CSS default of `none`).                                       |
+| `.opacity(value)`        | Set opacity 0–1 (overrides CSS).                                                        |
+| `.dashed()`              | Dashed stroke (`8, 4`).                                                                 |
+| `.dotted()`              | Dotted stroke (`2, 4`).                                                                 |
 | `.dash(pattern)`         | Custom SVG dasharray, or preset name (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`). |
 
 :::tip
@@ -578,21 +736,70 @@ Preset names resolve to standard SVG `stroke-dasharray` values, or pass any cust
 
 export const edgeDashScene = viz()
   .view(600, 240)
-  .node('a1').at(50, 40).circle(18).label('A')
-  .node('b1').at(250, 40).circle(18).label('B')
-  .edge('a1', 'b1').dashed().stroke('#e74c3c').arrow().label('dashed')
-  .node('a2').at(50, 120).circle(18).label('C')
-  .node('b2').at(250, 120).circle(18).label('D')
-  .edge('a2', 'b2').dotted().stroke('#2ecc71').arrow().label('dotted')
-  .node('c1').at(350, 40).circle(18).label('E')
-  .node('d1').at(560, 40).circle(18).label('F')
-  .edge('c1', 'd1').dash('dash-dot').stroke('#3498db').arrow().label('dash-dot')
-  .node('c2').at(350, 120).circle(18).label('G')
-  .node('d2').at(560, 120).circle(18).label('H')
-  .edge('c2', 'd2').dash('12, 3, 3, 3').stroke('#9b59b6').arrow().label('custom')
-  .node('a3').at(50, 200).circle(18).label('I')
-  .node('b3').at(250, 200).circle(18).label('J')
-  .edge('a3', 'b3').stroke('#6c7086').arrow().label('solid (default)')
+  .node('a1')
+  .at(50, 40)
+  .circle(18)
+  .label('A')
+  .node('b1')
+  .at(250, 40)
+  .circle(18)
+  .label('B')
+  .edge('a1', 'b1')
+  .dashed()
+  .stroke('#e74c3c')
+  .arrow()
+  .label('dashed')
+  .node('a2')
+  .at(50, 120)
+  .circle(18)
+  .label('C')
+  .node('b2')
+  .at(250, 120)
+  .circle(18)
+  .label('D')
+  .edge('a2', 'b2')
+  .dotted()
+  .stroke('#2ecc71')
+  .arrow()
+  .label('dotted')
+  .node('c1')
+  .at(350, 40)
+  .circle(18)
+  .label('E')
+  .node('d1')
+  .at(560, 40)
+  .circle(18)
+  .label('F')
+  .edge('c1', 'd1')
+  .dash('dash-dot')
+  .stroke('#3498db')
+  .arrow()
+  .label('dash-dot')
+  .node('c2')
+  .at(350, 120)
+  .circle(18)
+  .label('G')
+  .node('d2')
+  .at(560, 120)
+  .circle(18)
+  .label('H')
+  .edge('c2', 'd2')
+  .dash('12, 3, 3, 3')
+  .stroke('#9b59b6')
+  .arrow()
+  .label('custom')
+  .node('a3')
+  .at(50, 200)
+  .circle(18)
+  .label('I')
+  .node('b3')
+  .at(250, 200)
+  .circle(18)
+  .label('J')
+  .edge('a3', 'b3')
+  .stroke('#6c7086')
+  .arrow()
+  .label('solid (default)')
   .done();
 
 <CodePreview code={`
