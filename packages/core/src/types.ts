@@ -141,6 +141,34 @@ export interface NodePort {
   direction?: number;
 }
 
+export interface SceneChanges {
+  added: {
+    nodes: string[];
+    edges: string[];
+  };
+  removed: {
+    nodes: string[];
+    edges: string[];
+  };
+  updated: {
+    nodes: string[];
+    edges: string[];
+  };
+}
+
+export interface VizSceneMutator {
+  addNode(node: VizNode): void;
+  removeNode(id: string): void;
+  updateNode(id: string, patch: Partial<VizNode>): void;
+
+  addEdge(edge: VizEdge): void;
+  removeEdge(id: string): void;
+  updateEdge(id: string, patch: Partial<VizEdge>): void;
+
+  onChange(cb: (changes: SceneChanges) => void): () => void;
+  commit(container: HTMLElement): void;
+}
+
 export interface VizNode {
   id: string;
   pos: Vec2;
