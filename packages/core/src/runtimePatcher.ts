@@ -1,5 +1,5 @@
 import type { VizScene, EdgeMarkerType } from './types';
-import { applyShapeGeometry, effectivePos } from './shapes';
+import { applyShapeGeometry, effectivePos, effectiveShape } from './shapes';
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 import { resolveDasharray } from './edgeStyles';
@@ -271,20 +271,21 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     }
 
     // Geometry
-    applyShapeGeometry(shape, node.shape, { x, y });
+    const finalShape = effectiveShape(node);
+    applyShapeGeometry(shape, finalShape, { x, y });
 
     // Container header line (update position if present)
     if (
       node.container?.headerHeight &&
-      'w' in node.shape &&
-      'h' in node.shape
+      'w' in finalShape &&
+      'h' in finalShape
     ) {
       const headerLine = group.querySelector<SVGLineElement>(
         '[data-viz-role="container-header"]'
       );
       if (headerLine) {
-        const sw = (node.shape as { w: number }).w;
-        const sh = (node.shape as { h: number }).h;
+        const sw = (finalShape as { w: number }).w;
+        const sh = (finalShape as { h: number }).h;
         const headerY = y - sh / 2 + node.container.headerHeight;
         headerLine.setAttribute('x1', String(x - sw / 2));
         headerLine.setAttribute('y1', String(headerY));
@@ -300,8 +301,8 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       let ly = y + (node.label.dy || 0);
 
       // Container header label centering
-      if (node.container?.headerHeight && 'h' in node.shape && !node.label.dy) {
-        const sh = (node.shape as { h: number }).h;
+      if (node.container?.headerHeight && 'h' in finalShape && !node.label.dy) {
+        const sh = (finalShape as { h: number }).h;
         ly = y - sh / 2 + node.container.headerHeight / 2;
         lx = x + (node.label.dx || 0);
       }
