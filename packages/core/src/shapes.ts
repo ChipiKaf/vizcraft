@@ -32,20 +32,22 @@ export function effectivePos(node: VizNode): Vec2 {
 export function effectiveShape(node: VizNode): NodeShape {
   const shape = { ...node.shape };
   if (node.runtime?.width !== undefined) {
-    if ('w' in shape) shape.w = node.runtime.width;
+    if ('w' in shape) (shape as { w: number }).w = node.runtime.width;
     if ('rx' in shape && shape.kind === 'ellipse') {
-      shape.rx = node.runtime.width / 2;
+      (shape as { rx: number }).rx = node.runtime.width / 2;
     }
   }
   if (node.runtime?.height !== undefined) {
-    if ('h' in shape) shape.h = node.runtime.height;
+    if ('h' in shape) (shape as { h: number }).h = node.runtime.height;
     if ('ry' in shape && shape.kind === 'ellipse') {
-      shape.ry = node.runtime.height / 2;
+      (shape as { ry: number }).ry = node.runtime.height / 2;
     }
   }
   if (node.runtime?.radius !== undefined) {
-    if ('r' in shape) shape.r = node.runtime.radius;
-    if ('outerR' in shape) shape.outerR = node.runtime.radius;
+    if ('r' in shape) (shape as { r: number }).r = node.runtime.radius;
+    if ('outerR' in shape) {
+      (shape as { outerR: number }).outerR = node.runtime.radius;
+    }
   }
   return shape as NodeShape;
 }
