@@ -161,7 +161,7 @@ export const shapesScene = viz()
   .at(560, 680)
   .path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100)
   .fill('#f5c2e7')
-  .label('path (pentagon)')
+  .label('path (pentagon)', { maxWidth: 80 })
   .node('par')
   .at(140, 790)
   .parallelogram(120, 55)
@@ -181,7 +181,7 @@ export const shapesScene = viz()
   .at(140, 900)
   .triangle(80, 70)
   .fill('#f38ba8')
-  .label('triangle')
+  .label('triangle', { dy: 15 })
   .done();
 
 Learn the basics of creating scenes with VizCraft.
@@ -409,11 +409,11 @@ builder
 .node('cub').at(350, 570).cube(80, 60, 20).fill('#89b4fa').label('cube')
 .node('doc').at(560, 570).document(100, 70).fill('#f9e2af').label('document')
 .node('nt').at(350, 680).note(110, 70).fill('#94e2d5').label('note')
-.node('pth').at(560, 680).path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100).fill('#f5c2e7').label('path (pentagon)')
+.node('pth').at(560, 680).path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100).fill('#f5c2e7').label('path (pentagon)', { maxWidth: 80 })
 .node('par').at(140, 790).parallelogram(120, 55).fill('#cba6f7').label('parallelogram')
 .node('str').at(350, 790).star(5, 40).fill('#f9e2af').label('star')
 .node('trp').at(560, 790).trapezoid(80, 120, 55).fill('#fab387').label('trapezoid')
-.node('tri').at(140, 900).triangle(80, 70).fill('#f38ba8').label('triangle')
+.node('tri').at(140, 900).triangle(80, 70).fill('#f38ba8').label('triangle', { dy: 15 })
 .done();
 
 const container = document.getElementById('viz-shapes');
