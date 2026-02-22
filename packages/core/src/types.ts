@@ -245,6 +245,140 @@ export interface VizEdge {
   waypoints?: Vec2[];
 }
 
+// ---------------------------------------------------------------------------
+// Declarative options overloads
+// ---------------------------------------------------------------------------
+
+/**
+ * Options object for `viz().node(id, opts)`.
+ * Configures a node in a single declarative call instead of method chaining.
+ */
+export interface NodeOptions {
+  /** Position (`{ x, y }`). */
+  at?: { x: number; y: number };
+  /** Grid cell (alternative to `at`). */
+  cell?: { col: number; row: number; align?: 'center' | 'start' | 'end' };
+
+  // --- Shape (pick exactly one) ---
+  circle?: { r: number };
+  rect?: { w: number; h: number; rx?: number };
+  diamond?: { w: number; h: number };
+  cylinder?: { w: number; h: number; arcHeight?: number };
+  hexagon?: { r: number; orientation?: 'pointy' | 'flat' };
+  ellipse?: { rx: number; ry: number };
+  arc?: {
+    r: number;
+    startAngle: number;
+    endAngle: number;
+    closed?: boolean;
+  };
+  blockArrow?: {
+    length: number;
+    bodyWidth: number;
+    headWidth: number;
+    headLength: number;
+    direction?: 'right' | 'left' | 'up' | 'down';
+  };
+  callout?: {
+    w: number;
+    h: number;
+    rx?: number;
+    pointerSide?: 'bottom' | 'top' | 'left' | 'right';
+    pointerHeight?: number;
+    pointerWidth?: number;
+    pointerPosition?: number;
+  };
+  cloud?: { w: number; h: number };
+  cross?: { size: number; barWidth?: number };
+  cube?: { w: number; h: number; depth?: number };
+  path?: { d: string; w: number; h: number };
+  document?: { w: number; h: number; waveHeight?: number };
+  note?: { w: number; h: number; foldSize?: number };
+  parallelogram?: { w: number; h: number; skew?: number };
+  star?: { points: number; outerR: number; innerR?: number };
+  trapezoid?: { topW: number; bottomW: number; h: number };
+  triangle?: {
+    w: number;
+    h: number;
+    direction?: 'up' | 'down' | 'left' | 'right';
+  };
+
+  // --- Styling ---
+  fill?: string;
+  /** Stroke color, or `{ color, width }`. */
+  stroke?: string | { color: string; width?: number };
+  opacity?: number;
+  className?: string;
+
+  // --- Label ---
+  /** Plain string or full label options. */
+  label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
+
+  // --- Extras ---
+  data?: unknown;
+  onClick?: (id: string, node: VizNode) => void;
+
+  // --- Ports ---
+  ports?: Array<{
+    id: string;
+    offset: { x: number; y: number };
+    direction?: number;
+  }>;
+
+  // --- Containment ---
+  container?: ContainerConfig;
+  parent?: string;
+}
+
+/**
+ * Options object for `viz().edge(from, to, opts)`.
+ * Configures an edge in a single declarative call instead of method chaining.
+ */
+export interface EdgeOptions {
+  /** Custom edge id (defaults to `"from->to"`). */
+  id?: string;
+
+  // --- Routing ---
+  routing?: EdgeRouting;
+  waypoints?: Vec2[];
+
+  // --- Markers ---
+  /** Convenience for arrow markers. `true` = markerEnd arrow, `'both'` = both ends. */
+  arrow?: boolean | 'both' | 'start' | 'end';
+  markerStart?: EdgeMarkerType;
+  markerEnd?: EdgeMarkerType;
+
+  // --- Style ---
+  /** Stroke color, or `{ color, width }`. */
+  stroke?: string | { color: string; width?: number };
+  fill?: string;
+  opacity?: number;
+  /** Dash pattern preset or custom SVG dasharray string. */
+  dash?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
+  className?: string;
+
+  // --- Anchor ---
+  anchor?: 'center' | 'boundary';
+
+  // --- Ports ---
+  fromPort?: string;
+  toPort?: string;
+
+  // --- Labels ---
+  /** Single label string, a label object, or an array of multi-position labels. */
+  label?:
+    | string
+    | ({ text: string } & Partial<Omit<EdgeLabel, 'text'>>)
+    | Array<{ text: string } & Partial<Omit<EdgeLabel, 'text'>>>;
+
+  // --- Hit area ---
+  hitArea?: number;
+
+  // --- Extras ---
+  data?: unknown;
+  onClick?: (id: string, edge: VizEdge) => void;
+}
+
 /**
  * Overlay kind -> params mapping.
  *

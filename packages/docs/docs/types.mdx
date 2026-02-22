@@ -319,3 +319,50 @@ These are the low-level interfaces the player uses to read/write properties.
 
 - `AnimationHostAdapter` — must implement `get(target, prop)` and `set(target, prop, value)`.
 - `RegistrableAdapter` — optional capability that exposes `register(kind, prop, { get, set })`.
+
+---
+
+## NodeOptions
+
+Options object accepted by `viz().node(id, opts)`. Configures a node declaratively in a single call.
+
+**Key properties**
+
+- `at?: { x: number; y: number }` — position.
+- `cell?: { col: number; row: number; align?: 'center' | 'start' | 'end' }` — grid cell.
+- Shape (pick one): `circle`, `rect`, `diamond`, `cylinder`, `hexagon`, `ellipse`, `arc`, `blockArrow`, `callout`, `cloud`, `cross`, `cube`, `path`, `document`, `note`, `parallelogram`, `star`, `trapezoid`, `triangle` — each accepts the same params as the corresponding fluent method.
+- `fill?: string` — fill color.
+- `stroke?: string | { color: string; width?: number }` — stroke color or stroke with width.
+- `opacity?: number` — opacity.
+- `className?: string` — CSS class.
+- `label?: string | { text: string; fontSize?: number; fill?: string; … }` — label text or label with options.
+- `ports?: Array<{ id: string; offset: { x: number; y: number }; direction?: number }>` — connection ports.
+- `container?: ContainerConfig` — marks this node as a container.
+- `parent?: string` — parent container node id.
+- `data?: unknown` — custom payload.
+- `onClick?: (id: string, node: VizNode) => void` — click handler.
+
+---
+
+## EdgeOptions
+
+Options object accepted by `viz().edge(from, to, opts)`. Configures an edge declaratively in a single call.
+
+**Key properties**
+
+- `id?: string` — custom edge id (defaults to `"from->to"`).
+- `routing?: EdgeRouting` — routing algorithm.
+- `waypoints?: Vec2[]` — intermediate waypoints.
+- `arrow?: boolean | 'both' | 'start' | 'end'` — arrow markers.
+- `markerStart? / markerEnd?: EdgeMarkerType` — explicit marker types.
+- `stroke?: string | { color: string; width?: number }` — stroke color or stroke with width.
+- `fill?: string` — fill color.
+- `opacity?: number` — opacity.
+- `dash?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string` — dash pattern.
+- `className?: string` — CSS class.
+- `anchor?: 'center' | 'boundary'` — connection anchor mode.
+- `fromPort? / toPort?: string` — port ids for edge endpoints.
+- `label?: string | labelObj | labelObj[]` — single or multi-position labels.
+- `hitArea?: number` — invisible hit-area width.
+- `data?: unknown` — custom payload.
+- `onClick?: (id: string, edge: VizEdge) => void` — click handler.

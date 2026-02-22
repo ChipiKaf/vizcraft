@@ -24,6 +24,31 @@ export const gridScene = gridBuilder
   .diamond(60, 60)
   .done();
 
+export const declarativeScene = viz()
+  .view(500, 250)
+  .node('start', {
+    circle: { r: 22 },
+    at: { x: 80, y: 125 },
+    fill: '#4CAF50',
+    label: 'Start',
+  })
+  .node('process', {
+    rect: { w: 110, h: 50 },
+    at: { x: 250, y: 125 },
+    fill: '#2196F3',
+    stroke: { color: '#1565C0', width: 2 },
+    label: { text: 'Process', fontSize: 13, fill: 'white' },
+  })
+  .node('end', {
+    diamond: { w: 70, h: 50 },
+    at: { x: 420, y: 125 },
+    fill: '#FF9800',
+    label: 'End?',
+  })
+  .edge('start', 'process', { arrow: true, stroke: '#666' })
+  .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' })
+  .done();
+
 export const edgesBuilder = viz().view(500, 200);
 export const edgesScene = edgesBuilder
   .node('A')
@@ -198,6 +223,109 @@ if (container) builder.mount(container);
     style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
   />
 </CodePreview>
+
+## Declarative Options Overloads
+
+Instead of chaining many fluent methods, you can pass an **options object** as the second argument to `.node()` or the third argument to `.edge()`. This configures the element in a single call and returns the `VizBuilder` so you can continue adding more elements.
+
+```typescript
+// Fluent style
+viz()
+  .node('a').at(100, 100).rect(80, 40).fill('steelblue').label('A')
+  .edge('a', 'b').arrow().stroke('red')
+  .build();
+
+// Declarative style — same result
+viz()
+  .node('a', { at: { x: 100, y: 100 }, rect: { w: 80, h: 40 }, fill: 'steelblue', label: 'A' })
+  .edge('a', 'b', { arrow: true, stroke: 'red' })
+  .build();
+```
+
+:::tip
+**When to use which?** Use declarative options when you know all the properties up-front (e.g. from data). Use fluent chaining when you want to add properties conditionally or need the intermediate `NodeBuilder` / `EdgeBuilder`.
+:::
+
+### `node(id, opts: NodeOptions)`
+
+Returns **`VizBuilder`** (not `NodeBuilder`), so you can chain the next element immediately.
+
+| Option | Type | Maps to |
+| --- | --- | --- |
+| `at` | `{ x, y }` | `.at(x, y)` |
+| `cell` | `{ col, row, align? }` | `.cell(col, row, align)` |
+| `circle`, `rect`, `diamond`, … | shape params | `.circle(r)`, `.rect(w, h)`, etc. |
+| `fill` | `string` | `.fill(color)` |
+| `stroke` | `string \| { color, width? }` | `.stroke(color, width)` |
+| `opacity` | `number` | `.opacity(n)` |
+| `className` | `string` | `.class(name)` |
+| `label` | `string \| { text, …labelOpts }` | `.label(text, opts)` |
+| `ports` | `Array<{ id, offset, direction? }>` | `.port(id, offset, dir)` |
+| `container` | `ContainerConfig` | `.container(config)` |
+| `parent` | `string` | `.parent(id)` |
+| `data` | `unknown` | `.data(value)` |
+| `onClick` | `(id, node) => void` | `.onClick(fn)` |
+
+### `edge(from, to, opts: EdgeOptions)`
+
+Returns **`VizBuilder`** (not `EdgeBuilder`).
+
+| Option | Type | Maps to |
+| --- | --- | --- |
+| `id` | `string` | custom edge id |
+| `routing` | `EdgeRouting` | `.routing(type)` |
+| `waypoints` | `Vec2[]` | `.via(x, y)` per waypoint |
+| `arrow` | `boolean \| 'both' \| 'start' \| 'end'` | `.arrow(value)` |
+| `markerStart` / `markerEnd` | `EdgeMarkerType` | `.markerStart(type)` / `.markerEnd(type)` |
+| `stroke` | `string \| { color, width? }` | `.stroke(color, width)` |
+| `fill` | `string` | `.fill(color)` |
+| `opacity` | `number` | `.opacity(n)` |
+| `dash` | `'dashed' \| 'dotted' \| 'dash-dot' \| string` | `.dash(value)` |
+| `className` | `string` | `.class(name)` |
+| `anchor` | `'center' \| 'boundary'` | `.connect(anchor)` |
+| `fromPort` / `toPort` | `string` | `.fromPort(id)` / `.toPort(id)` |
+| `label` | `string \| labelObj \| labelObj[]` | `.label(text, opts)` |
+| `hitArea` | `number` | `.hitArea(width)` |
+| `data` | `unknown` | `.data(value)` |
+| `onClick` | `(id, edge) => void` | `.onClick(fn)` |
+
+### Live example
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(500, 250)
+  .node('start', {
+    circle: { r: 22 },
+    at: { x: 80, y: 125 },
+    fill: '#4CAF50',
+    label: 'Start',
+  })
+  .node('process', {
+    rect: { w: 110, h: 50 },
+    at: { x: 250, y: 125 },
+    fill: '#2196F3',
+    stroke: { color: '#1565C0', width: 2 },
+    label: { text: 'Process', fontSize: 13, fill: 'white' },
+  })
+  .node('end', {
+    diamond: { w: 70, h: 50 },
+    at: { x: 420, y: 125 },
+    fill: '#FF9800',
+    label: 'End?',
+  })
+  .edge('start', 'process', { arrow: true, stroke: '#666' })
+  .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' });
+
+const el = document.getElementById('viz-container');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={declarativeScene} style={{ height: '250px', width: '100%' }} />
+</CodePreview>
+
+You can freely mix both styles in the same graph — use declarative calls for data-driven elements and fluent chaining when you need conditional logic.
 
 ## Nodes
 

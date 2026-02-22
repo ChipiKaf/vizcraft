@@ -92,6 +92,25 @@ b.view(width, height) // Set the coordinate space
   .edge(from, to); // Start defining an edge
 ```
 
+### Declarative Options Overloads
+
+You can also configure nodes and edges in a single declarative call by passing an options object:
+
+```typescript
+// Declarative — pass all options at once, returns VizBuilder
+b.node('a', {
+  at: { x: 100, y: 100 },
+  rect: { w: 80, h: 40 },
+  fill: 'steelblue',
+  label: 'A',
+})
+  .node('b', { circle: { r: 20 }, at: { x: 300, y: 100 }, label: 'B' })
+  .edge('a', 'b', { arrow: true, stroke: 'red', dash: 'dashed' })
+  .build();
+```
+
+Both `NodeOptions` and `EdgeOptions` types are exported for full type-safety. See the [Essentials docs](https://vizcraft.dev/docs/essentials) for the complete options reference.
+
 ### Nodes
 
 Nodes are the primary entities in your graph. They can have shapes, labels, and styles.

@@ -12,6 +12,8 @@ import type {
   ContainerConfig,
   EdgeRouting,
   EdgeMarkerType,
+  NodeOptions,
+  EdgeOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { DEFAULT_VIZ_CSS } from './styles';
@@ -231,8 +233,14 @@ interface VizBuilder {
   ): VizBuilder;
   // Back-compat escape hatch (also covers non-augmented custom overlay ids)
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
+  /** Create a node and return the NodeBuilder for fluent chaining. */
   node(id: string): NodeBuilder;
+  /** Create a fully-configured node declaratively and return the parent VizBuilder. */
+  node(id: string, opts: NodeOptions): VizBuilder;
+  /** Create an edge and return the EdgeBuilder for fluent chaining. */
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  /** Create a fully-configured edge declaratively and return the parent VizBuilder. */
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
   build(): VizScene;
 
   // Internal helper for NodeBuilder to access grid config
@@ -346,7 +354,9 @@ interface NodeBuilder {
 
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
+  node(id: string, opts: NodeOptions): VizBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
   overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
   overlay<K extends OverlayId>(
     id: K,
@@ -410,7 +420,9 @@ interface EdgeBuilder {
 
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
+  node(id: string, opts: NodeOptions): VizBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
   overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
   overlay<K extends OverlayId>(
     id: K,
@@ -420,6 +432,137 @@ interface EdgeBuilder {
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
   svg(): string;
+}
+
+// ---------------------------------------------------------------------------
+// Declarative options helpers
+// ---------------------------------------------------------------------------
+
+/** Apply a `NodeOptions` object to a `NodeBuilder` (sugar over chaining). */
+function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
+  if (opts.at) nb.at(opts.at.x, opts.at.y);
+  if (opts.cell) nb.cell(opts.cell.col, opts.cell.row, opts.cell.align);
+
+  // Shape (first match wins)
+  if (opts.circle) nb.circle(opts.circle.r);
+  else if (opts.rect) nb.rect(opts.rect.w, opts.rect.h, opts.rect.rx);
+  else if (opts.diamond) nb.diamond(opts.diamond.w, opts.diamond.h);
+  else if (opts.cylinder)
+    nb.cylinder(opts.cylinder.w, opts.cylinder.h, opts.cylinder.arcHeight);
+  else if (opts.hexagon) nb.hexagon(opts.hexagon.r, opts.hexagon.orientation);
+  else if (opts.ellipse) nb.ellipse(opts.ellipse.rx, opts.ellipse.ry);
+  else if (opts.arc)
+    nb.arc(opts.arc.r, opts.arc.startAngle, opts.arc.endAngle, opts.arc.closed);
+  else if (opts.blockArrow)
+    nb.blockArrow(
+      opts.blockArrow.length,
+      opts.blockArrow.bodyWidth,
+      opts.blockArrow.headWidth,
+      opts.blockArrow.headLength,
+      opts.blockArrow.direction
+    );
+  else if (opts.callout)
+    nb.callout(opts.callout.w, opts.callout.h, {
+      rx: opts.callout.rx,
+      pointerSide: opts.callout.pointerSide,
+      pointerHeight: opts.callout.pointerHeight,
+      pointerWidth: opts.callout.pointerWidth,
+      pointerPosition: opts.callout.pointerPosition,
+    });
+  else if (opts.cloud) nb.cloud(opts.cloud.w, opts.cloud.h);
+  else if (opts.cross) nb.cross(opts.cross.size, opts.cross.barWidth);
+  else if (opts.cube) nb.cube(opts.cube.w, opts.cube.h, opts.cube.depth);
+  else if (opts.path) nb.path(opts.path.d, opts.path.w, opts.path.h);
+  else if (opts.document)
+    nb.document(opts.document.w, opts.document.h, opts.document.waveHeight);
+  else if (opts.note) nb.note(opts.note.w, opts.note.h, opts.note.foldSize);
+  else if (opts.parallelogram)
+    nb.parallelogram(
+      opts.parallelogram.w,
+      opts.parallelogram.h,
+      opts.parallelogram.skew
+    );
+  else if (opts.star)
+    nb.star(opts.star.points, opts.star.outerR, opts.star.innerR);
+  else if (opts.trapezoid)
+    nb.trapezoid(opts.trapezoid.topW, opts.trapezoid.bottomW, opts.trapezoid.h);
+  else if (opts.triangle)
+    nb.triangle(opts.triangle.w, opts.triangle.h, opts.triangle.direction);
+
+  // Styling
+  if (opts.fill) nb.fill(opts.fill);
+  if (opts.stroke) {
+    if (typeof opts.stroke === 'string') nb.stroke(opts.stroke);
+    else nb.stroke(opts.stroke.color, opts.stroke.width);
+  }
+  if (opts.opacity !== undefined) nb.opacity(opts.opacity);
+  if (opts.className) nb.class(opts.className);
+
+  // Label
+  if (opts.label) {
+    if (typeof opts.label === 'string') nb.label(opts.label);
+    else nb.label(opts.label.text, opts.label);
+  }
+
+  // Extras
+  if (opts.data !== undefined) nb.data(opts.data);
+  if (opts.onClick) nb.onClick(opts.onClick);
+
+  // Ports
+  if (opts.ports) {
+    for (const p of opts.ports) nb.port(p.id, p.offset, p.direction);
+  }
+
+  // Containment
+  if (opts.container) nb.container(opts.container);
+  if (opts.parent) nb.parent(opts.parent);
+}
+
+/** Apply an `EdgeOptions` object to an `EdgeBuilder` (sugar over chaining). */
+function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
+  // Routing
+  if (opts.routing) eb.routing(opts.routing);
+  if (opts.waypoints) {
+    for (const wp of opts.waypoints) eb.via(wp.x, wp.y);
+  }
+
+  // Markers
+  if (opts.arrow !== undefined) eb.arrow(opts.arrow);
+  if (opts.markerStart) eb.markerStart(opts.markerStart);
+  if (opts.markerEnd) eb.markerEnd(opts.markerEnd);
+
+  // Style
+  if (opts.stroke) {
+    if (typeof opts.stroke === 'string') eb.stroke(opts.stroke);
+    else eb.stroke(opts.stroke.color, opts.stroke.width);
+  }
+  if (opts.fill) eb.fill(opts.fill);
+  if (opts.opacity !== undefined) eb.opacity(opts.opacity);
+  if (opts.dash) eb.dash(opts.dash);
+  if (opts.className) eb.class(opts.className);
+
+  // Anchor & ports
+  if (opts.anchor) eb.connect(opts.anchor);
+  if (opts.fromPort) eb.fromPort(opts.fromPort);
+  if (opts.toPort) eb.toPort(opts.toPort);
+
+  // Labels
+  if (opts.label) {
+    if (typeof opts.label === 'string') {
+      eb.label(opts.label);
+    } else if (Array.isArray(opts.label)) {
+      for (const lbl of opts.label) eb.label(lbl.text, lbl);
+    } else {
+      eb.label(opts.label.text, opts.label);
+    }
+  }
+
+  // Hit area
+  if (opts.hitArea !== undefined) eb.hitArea(opts.hitArea);
+
+  // Extras
+  if (opts.data !== undefined) eb.data(opts.data);
+  if (opts.onClick) eb.onClick(opts.onClick);
 }
 
 class VizBuilderImpl implements VizBuilder {
@@ -501,12 +644,13 @@ class VizBuilderImpl implements VizBuilder {
 
   /**
    * Creates a node.
-   * @param id The ID of the node
-   * @returns The node builder
+   * - `node(id)` — returns NodeBuilder for fluent chaining
+   * - `node(id, opts)` — configures declaratively and returns VizBuilder
    */
-  node(id: string): NodeBuilder {
+  node(id: string): NodeBuilder;
+  node(id: string, opts: NodeOptions): VizBuilder;
+  node(id: string, opts?: NodeOptions): NodeBuilder | VizBuilder {
     if (!this._nodes.has(id)) {
-      // Set default position and shape
       this._nodes.set(id, {
         id,
         pos: { x: 0, y: 0 },
@@ -514,23 +658,37 @@ class VizBuilderImpl implements VizBuilder {
       });
       this._nodeOrder.push(id);
     }
-    return new NodeBuilderImpl(this, this._nodes.get(id)!); // The ! asserts that the node exists, because we just added it
+    const nb = new NodeBuilderImpl(this, this._nodes.get(id)!);
+    if (!opts) return nb;
+    applyNodeOptions(nb, opts);
+    return this;
   }
 
   /**
    * Creates an edge between two nodes.
-   * @param from The source node
-   * @param to The target node
-   * @param id The ID of the edge
-   * @returns The edge builder
+   * - `edge(from, to)` / `edge(from, to, id)` — returns EdgeBuilder for fluent chaining
+   * - `edge(from, to, opts)` — configures declaratively and returns VizBuilder
    */
-  edge(from: string, to: string, id?: string): EdgeBuilder {
-    const edgeId = id || `${from}->${to}`;
+  edge(from: string, to: string, id?: string): EdgeBuilder;
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+  edge(
+    from: string,
+    to: string,
+    idOrOpts?: string | EdgeOptions
+  ): EdgeBuilder | VizBuilder {
+    const isDeclarative =
+      idOrOpts !== undefined && typeof idOrOpts !== 'string';
+    const edgeId = isDeclarative
+      ? (idOrOpts as EdgeOptions).id || `${from}->${to}`
+      : (idOrOpts as string | undefined) || `${from}->${to}`;
     if (!this._edges.has(edgeId)) {
       this._edges.set(edgeId, { id: edgeId, from, to });
       this._edgeOrder.push(edgeId);
     }
-    return new EdgeBuilderImpl(this, this._edges.get(edgeId)!);
+    const eb = new EdgeBuilderImpl(this, this._edges.get(edgeId)!);
+    if (!isDeclarative) return eb;
+    applyEdgeOptions(eb, idOrOpts as EdgeOptions);
+    return this;
   }
 
   /**
@@ -2099,11 +2257,19 @@ class NodeBuilderImpl implements NodeBuilder {
   }
 
   // Chaining
-  node(id: string): NodeBuilder {
-    return this._builder.node(id);
+  node(id: string): NodeBuilder;
+  node(id: string, opts: NodeOptions): VizBuilder;
+  node(id: string, opts?: NodeOptions): NodeBuilder | VizBuilder {
+    return this._builder.node(id, opts as NodeOptions);
   }
-  edge(from: string, to: string, id?: string): EdgeBuilder {
-    return this._builder.edge(from, to, id);
+  edge(from: string, to: string, id?: string): EdgeBuilder;
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+  edge(
+    from: string,
+    to: string,
+    idOrOpts?: string | EdgeOptions
+  ): EdgeBuilder | VizBuilder {
+    return this._builder.edge(from, to, idOrOpts as string);
   }
   overlay<K extends OverlayId>(
     id: K,
@@ -2338,17 +2504,19 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   // Chaining
-  node(id: string): NodeBuilder {
-    return this.parent.node(id);
+  node(id: string): NodeBuilder;
+  node(id: string, opts: NodeOptions): VizBuilder;
+  node(id: string, opts?: NodeOptions): NodeBuilder | VizBuilder {
+    return this.parent.node(id, opts as NodeOptions);
   }
-  /**
-   * Defines an edge between two nodes.
-   * @param from id of the source node
-   * @param to id of the target node
-   * @param id (optional) id of the edge. If not provided, defaults to "from->to"
-   */
-  edge(from: string, to: string, id?: string): EdgeBuilder {
-    return this.parent.edge(from, to, id || `${from}->${to}`); // Default ID to from->to
+  edge(from: string, to: string, id?: string): EdgeBuilder;
+  edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+  edge(
+    from: string,
+    to: string,
+    idOrOpts?: string | EdgeOptions
+  ): EdgeBuilder | VizBuilder {
+    return this.parent.edge(from, to, idOrOpts as string);
   }
   overlay<K extends OverlayId>(
     id: K,
