@@ -29,6 +29,27 @@ export function effectivePos(node: VizNode): Vec2 {
   };
 }
 
+export function effectiveShape(node: VizNode): NodeShape {
+  const shape = { ...node.shape };
+  if (node.runtime?.width !== undefined) {
+    if ('w' in shape) shape.w = node.runtime.width;
+    if ('rx' in shape && shape.kind === 'ellipse') {
+      shape.rx = node.runtime.width / 2;
+    }
+  }
+  if (node.runtime?.height !== undefined) {
+    if ('h' in shape) shape.h = node.runtime.height;
+    if ('ry' in shape && shape.kind === 'ellipse') {
+      shape.ry = node.runtime.height / 2;
+    }
+  }
+  if (node.runtime?.radius !== undefined) {
+    if ('r' in shape) shape.r = node.runtime.radius;
+    if ('outerR' in shape) shape.outerR = node.runtime.radius;
+  }
+  return shape as NodeShape;
+}
+
 function diamondPoints(pos: Vec2, w: number, h: number): string {
   const hw = w / 2;
   const hh = h / 2;
@@ -1084,8 +1105,9 @@ export function computeNodeAnchor(
   if (anchor === 'center') {
     return { x: pos.x, y: pos.y };
   }
-  const behavior = getShapeBehavior(node.shape);
-  return behavior.anchorBoundary(pos, target, node.shape as never);
+  const shape = effectiveShape(node);
+  const behavior = getShapeBehavior(shape);
+  return behavior.anchorBoundary(pos, target, shape as never);
 }
 
 // ── Connection Ports ────────────────────────────────────────────────────────

@@ -94,6 +94,41 @@ describe('vizcraft core', () => {
     expect(spec.tweens[0]!.target).toBe('edge:e1');
   });
 
+  describe('resizeNode', () => {
+    it('sets the runtime dimensions and preserves existing runtime properties', () => {
+      const builder = viz();
+      builder.node('box').at(10, 10).rect(100, 50).class('test-node');
+
+      const scene1 = builder.build();
+      expect(scene1.nodes[0]!.runtime?.width).toBeUndefined();
+
+      // Apply some runtime properties like user might do before resizing
+      const node = builder.build().nodes.find((n) => n.id === 'box');
+      if (node) node.runtime = { opacity: 0.8 };
+
+      builder.resizeNode('box', { w: 200, h: 120 });
+
+      const scene2 = builder.build();
+      const patchedNode = scene2.nodes[0]!;
+      expect(patchedNode.runtime?.width).toBe(200);
+      expect(patchedNode.runtime?.height).toBe(120);
+      expect(patchedNode.runtime?.opacity).toBe(0.8);
+
+      // Verify geometry generation in patchRuntime context
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      const rect = container.querySelector('rect');
+      // Mount generates initial SVG, which might not reflect runtime shape yet if not patched.
+      // Call patchRuntime to apply runtime dimension overrides.
+      builder.patchRuntime(container);
+
+      expect(rect).not.toBeNull();
+      expect(rect?.getAttribute('width')).toBe('200');
+      expect(rect?.getAttribute('height')).toBe('120');
+    });
+  });
+
   describe('cylinder shape', () => {
     it('creates a node with cylinder shape via .cylinder(w, h)', () => {
       const scene = viz()

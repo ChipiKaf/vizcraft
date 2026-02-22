@@ -276,6 +276,14 @@ interface VizBuilder {
   play(container: HTMLElement, spec: AnimationSpec[]): PlaybackController;
 
   /**
+   * Resizes a node at runtime, overriding its initial shape dimensions.
+   */
+  resizeNode(
+    id: string,
+    dims: { w?: number; h?: number; r?: number }
+  ): VizBuilder;
+
+  /**
    * Applies runtime-only patches (node.runtime / edge.runtime) to the mounted SVG.
    * This avoids full DOM reconciliation and is intended for animation frame updates.
    */
@@ -924,6 +932,19 @@ class VizBuilderImpl implements VizBuilder {
     if (combined.tweens.length > 0) controller.play();
     autoplayControllerByContainer.set(container, controller);
     return controller;
+  }
+
+  resizeNode(
+    id: string,
+    dims: { w?: number; h?: number; r?: number }
+  ): VizBuilder {
+    const node = this._nodes.get(id);
+    if (!node) return this;
+    node.runtime = node.runtime || {};
+    if (dims.w !== undefined) node.runtime.width = dims.w;
+    if (dims.h !== undefined) node.runtime.height = dims.h;
+    if (dims.r !== undefined) node.runtime.radius = dims.r;
+    return this;
   }
 
   patchRuntime(container: HTMLElement) {

@@ -92,6 +92,9 @@ export type VizRuntimeNodeProps = Partial<{
   opacity: number;
   scale: number;
   rotation: number;
+  width: number;
+  height: number;
+  radius: number;
 }>;
 
 export type VizRuntimeEdgeProps = Partial<{
