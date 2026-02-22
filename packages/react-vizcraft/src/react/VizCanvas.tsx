@@ -387,7 +387,8 @@ export function VizCanvas(props: VizCanvasProps) {
                     fill: edge.style?.fill,
                     opacity: edge.style?.opacity,
                     strokeDasharray: edge.style?.strokeDasharray
-                      ? resolveDasharray(edge.style.strokeDasharray)
+                      ? resolveDasharray(edge.style.strokeDasharray) ||
+                        undefined
                       : undefined,
                   }}
                 />
