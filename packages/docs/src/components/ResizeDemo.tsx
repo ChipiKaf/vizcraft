@@ -30,8 +30,7 @@ export default function ResizeDemo() {
       .circle(20)
       .fill('#f9e2af')
       .edge('left', 'dynamic', { arrow: true })
-      .edge('dynamic', 'right', { arrow: true })
-      .done();
+      .edge('dynamic', 'right', { arrow: true });
 
     builder.mount(container);
     mountedRef.current = true;
