@@ -46,8 +46,7 @@ export const declarativeScene = viz()
     label: 'End?',
   })
   .edge('start', 'process', { arrow: true, stroke: '#666' })
-  .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' })
-  .done();
+  .edge('process', 'end', { arrow: true, dash: 'dashed', label: 'next' });
 
 export const edgesBuilder = viz().view(500, 200);
 export const edgesScene = edgesBuilder
