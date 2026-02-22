@@ -252,15 +252,7 @@ export function hitTest(
 ): HitResult {
   const { edgeTolerance = 5, portTolerance = 10 } = options;
 
-  // 1. Nodes (top-most first)
-  for (let i = scene.nodes.length - 1; i >= 0; i--) {
-    const node = scene.nodes[i]!;
-    if (hitTestNode(node, point)) {
-      return { type: 'node', id: node.id };
-    }
-  }
-
-  // 2. Ports (check all explicit ports of all nodes)
+  // 1. Ports (check all explicit ports of all nodes first)
   for (const node of scene.nodes) {
     if (!node.ports || node.ports.length === 0) continue;
     const pos = {
@@ -277,6 +269,14 @@ export function hitTest(
           position: portAbsPos,
         };
       }
+    }
+  }
+
+  // 2. Nodes (top-most first)
+  for (let i = scene.nodes.length - 1; i >= 0; i--) {
+    const node = scene.nodes[i]!;
+    if (hitTestNode(node, point)) {
+      return { type: 'node', id: node.id };
     }
   }
 
