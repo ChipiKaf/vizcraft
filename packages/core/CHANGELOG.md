@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.1.0
+
+### Minor Changes
+
+- [`86655bf`](https://github.com/ChipiKaf/vizcraft/commit/86655bf59c9641af18416b79d0775212a9ecd15e) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Added support for incremental scene updates, node resizing, JSON serialization/deserialization, viewport pan and zoom functionality, multi-line labels with text wrapping, declarative API options for nodes and edges, and custom dashed/dotted edge line styles.
+
 ## 1.0.0
 
 ### Major Changes
