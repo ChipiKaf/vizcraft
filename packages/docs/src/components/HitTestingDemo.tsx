@@ -80,10 +80,10 @@ export default function HitTestingDemo() {
       })
       .build();
 
-    setScene(s);
     if (mountRef.current) {
       builder.mount(mountRef.current);
     }
+    setScene(s);
 
     return () => {
       if (mountRef.current) mountRef.current.innerHTML = '';
@@ -91,12 +91,31 @@ export default function HitTestingDemo() {
   }, []);
 
   const getSceneCoord = (e: React.MouseEvent | React.PointerEvent) => {
-    if (!wrapperRef.current) return { x: 0, y: 0 };
-    const rect = wrapperRef.current.getBoundingClientRect();
-    // Assuming 1:1 scale no pan-zoom
+    if (!mountRef.current) return { x: 0, y: 0 };
+    const svg = mountRef.current.querySelector('svg');
+    if (!svg) return { x: 0, y: 0 };
+
+    const rect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+
+    // Calculate the scale and offset based on preserveAspectRatio="xMidYMid meet"
+    const scale = Math.min(
+      rect.width / viewBox.width,
+      rect.height / viewBox.height
+    );
+    const renderWidth = viewBox.width * scale;
+    const renderHeight = viewBox.height * scale;
+
+    // SVG is centered in the container
+    const offsetX = (rect.width - renderWidth) / 2;
+    const offsetY = (rect.height - renderHeight) / 2;
+
+    const mouseX = e.clientX - rect.left - offsetX;
+    const mouseY = e.clientY - rect.top - offsetY;
+
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: mouseX / scale,
+      y: mouseY / scale,
     };
   };
 
@@ -217,8 +236,6 @@ export default function HitTestingDemo() {
     viz().fromScene(displayScene).commit(mountRef.current);
   }, [scene, hoverResult, selectedItems]);
 
-  if (!scene) return null;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div
@@ -243,38 +260,74 @@ export default function HitTestingDemo() {
           style={{ width: '100%', height: '100%', position: 'absolute' }}
         />
 
-        {/* Draw selection rectangle overlay */}
-        {selection && selection.w > 0 && selection.h > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              left: selection.x,
-              top: selection.y,
-              width: selection.w,
-              height: selection.h,
-              backgroundColor: 'rgba(99, 102, 241, 0.2)',
-              border: '1px solid rgba(99, 102, 241, 0.8)',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
+        {/* Draw selection rectangle overlay (converted to viewBox space) */}
+        {selection &&
+          selection.w > 0 &&
+          selection.h > 0 &&
+          mountRef.current?.querySelector('svg') &&
+          (() => {
+            const svg = mountRef.current.querySelector('svg')!;
+            const rect = svg.getBoundingClientRect();
+            const viewBox = svg.viewBox.baseVal;
+            const scale = Math.min(
+              rect.width / viewBox.width,
+              rect.height / viewBox.height
+            );
+
+            const renderWidth = viewBox.width * scale;
+            const renderHeight = viewBox.height * scale;
+            const offsetX = (rect.width - renderWidth) / 2;
+            const offsetY = (rect.height - renderHeight) / 2;
+
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: selection.x * scale + offsetX,
+                  top: selection.y * scale + offsetY,
+                  width: selection.w * scale,
+                  height: selection.h * scale,
+                  backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                  border: '1px solid rgba(99, 102, 241, 0.8)',
+                  pointerEvents: 'none',
+                }}
+              />
+            );
+          })()}
 
         {/* Draw port hover dot indicator overlay */}
-        {hoverResult?.type === 'port' && (
-          <div
-            style={{
-              position: 'absolute',
-              left: hoverResult.position.x - 6,
-              top: hoverResult.position.y - 6,
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              backgroundColor: '#ef4444',
-              border: '2px solid white',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
+        {hoverResult?.type === 'port' &&
+          mountRef.current?.querySelector('svg') &&
+          (() => {
+            const svg = mountRef.current.querySelector('svg')!;
+            const rect = svg.getBoundingClientRect();
+            const viewBox = svg.viewBox.baseVal;
+            const scale = Math.min(
+              rect.width / viewBox.width,
+              rect.height / viewBox.height
+            );
+
+            const renderWidth = viewBox.width * scale;
+            const renderHeight = viewBox.height * scale;
+            const offsetX = (rect.width - renderWidth) / 2;
+            const offsetY = (rect.height - renderHeight) / 2;
+
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: hoverResult.position.x * scale + offsetX - 6,
+                  top: hoverResult.position.y * scale + offsetY - 6,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  backgroundColor: '#ef4444',
+                  border: '2px solid white',
+                  pointerEvents: 'none',
+                }}
+              />
+            );
+          })()}
       </div>
 
       <div
