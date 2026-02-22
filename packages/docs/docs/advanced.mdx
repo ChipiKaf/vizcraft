@@ -56,18 +56,18 @@ if (container) builder.mount(container);
 </CodePreview>
 
 :::info
-Interactive elements will automatically get \`cursor: pointer\` if an \`onClick\` handler is attached, but you can also enforce it via styles.
+Interactive elements will automatically get `cursor: pointer` if an `onClick` handler is attached, but you can also enforce it via styles.
 :::
 
 ## Runtime Node Resizing
 
-You can interactively change the width, height, and radius of a node at runtime without doing a full DOM reconciliation. Calling \`builder.resizeNode()\` followed by \`builder.patchRuntime()\` updates the SVG path and intelligently adjusts the geometric connection points of any edges pointing to or coming from that node.
+You can interactively change the width, height, and radius of a node at runtime without doing a full DOM reconciliation. Calling `builder.resizeNode()` followed by `builder.patchRuntime()` updates the SVG path and intelligently adjusts the geometric connection points of any edges pointing to or coming from that node.
 
 <CodePreview>
   <ResizeDemo />
 </CodePreview>
 
-\`\`\`ts
+```ts
 import { viz } from 'vizcraft';
 
 const builder = viz()
@@ -83,7 +83,7 @@ builder.mount(container);
 // Later, interactively resize node 'dynamic' and apply patches directly
 builder.resizeNode('dynamic', { w: 180, h: 80 });
 builder.patchRuntime(container);
-\`\`\`
+```
 
 # Viewport & Pan/Zoom
 
@@ -91,9 +91,9 @@ As your diagrams grow larger, a fixed-size SVG isn't always enough to comfortabl
 
 ## Enabling Pan & Zoom
 
-You can enable interactive pan and zoom across the \`VizScene\` by passing the \`panZoom: true\` flag in the mounting options.
+You can enable interactive pan and zoom across the `VizScene` by passing the `panZoom: true` flag in the mounting options.
 
-When \`panZoom\` is activated, interactions work out-of-the-box:
+When `panZoom` is activated, interactions work out-of-the-box:
 - **Scroll wheel / trackpad** to zoom in and out.
 - **Click and drag** on empty background space to pan the diagram.
 - **Double click** on empty background space to auto-fit the scene to the viewport.
@@ -132,7 +132,7 @@ When \`panZoom\` is activated, interactions work out-of-the-box:
   />
 </CodePreview>
 
-\`\`\`ts
+```ts
 import { viz } from 'vizcraft';
 
 const scene = viz()
@@ -148,13 +148,13 @@ const controller = scene.mount(document.getElementById('viz'), {
   maxZoom: 5,      // default
   initialZoom: 'fit' // default
 });
-\`\`\`
+```
 
 ## Programmatic Control
 
-When you mount a scene with \`panZoom: true\`, an initialized \`PanZoomController\` is returned. You can use this controller to implement external minimatrix navigation, target specific graph nodes, or reset views programmatically.
+When you mount a scene with `panZoom: true`, an initialized `PanZoomController` is returned. You can use this controller to implement external minimatrix navigation, target specific graph nodes, or reset views programmatically.
 
-\`\`\`ts
+```ts
 // Fit all elements neatly in the view
 controller.fitToContent(padding = 20);
 
@@ -172,4 +172,4 @@ controller.reset();
 const unsubscribe = controller.onChange(({ zoom, pan }) => {
   console.log('Scale:', zoom, 'Translation:', pan);
 });
-\`\`\`
+```
