@@ -60,6 +60,14 @@ export type NodeLabel = {
   fontWeight?: number | string;
   textAnchor?: 'start' | 'middle' | 'end';
   dominantBaseline?: string;
+  /** Maximum width for text wrapping (in px). If set, text wraps within this width. */
+  maxWidth?: number;
+  /** Line height multiplier (default: 1.2) */
+  lineHeight?: number;
+  /** Vertical alignment within the bounding box */
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  /** Text overflow behavior */
+  overflow?: 'visible' | 'ellipsis' | 'clip';
 };
 
 export type AnimationDuration = `${number}s`;
@@ -171,6 +179,14 @@ export interface EdgeLabel {
   className?: string;
   dx?: number;
   dy?: number;
+  /** Maximum width for text wrapping (in px). If set, text wraps within this width. */
+  maxWidth?: number;
+  /** Line height multiplier (default: 1.2) */
+  lineHeight?: number;
+  /** Vertical alignment within the bounding box */
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  /** Text overflow behavior */
+  overflow?: 'visible' | 'ellipsis' | 'clip';
 }
 
 /** Edge routing algorithm. */

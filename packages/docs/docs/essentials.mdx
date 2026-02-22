@@ -462,6 +462,74 @@ if (container) builder.mount(container);
   <VizMount builder={edgesScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
+export const multiLineLabelScene = viz()
+  .view(600, 260)
+  .node('n1')
+  .at(100, 60)
+  .rect(140, 80)
+  .label('Manual\nLine\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
+  .node('n2')
+  .at(300, 60)
+  .circle(50)
+  .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
+  .node('n3')
+  .at(500, 60)
+  .diamond(80, 80)
+  .label('Top Align\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 })
+  .edge('n1', 'n2')
+  .label('Edge\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
+  .arrow()
+  .edge('n2', 'n3')
+  .label('Long edge description\nwrapped\ninto three lines', { maxWidth: 80, fontSize: 10 })
+  .arrow()
+  .done();
+
+### Multi-Line Labels
+
+By default, SVG `<text>` elements do not support automatic wrapping or newline characters. VizCraft handles this for you automatically when you use `.label()`.
+
+You can break lines manually using the `\n` character, or you can let VizCraft automatically wrap words for you by specifying a `maxWidth` in the label options object. It does this by creating perfectly aligned `<tspan>` sub-elements.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(600, 160);
+
+builder
+  // 1. Manual \n breaks
+  .node('n1').at(100, 60).rect(140, 80)
+  .label('Manual\\nLine\\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
+
+  // 2. Auto word-wrap via maxWidth
+  .node('n2').at(300, 60).circle(50)
+  .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
+
+  // 3. Vertical Alignment
+  .node('n3').at(500, 60).diamond(80, 80)
+  .label('Top Align\\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 })
+
+  // Edge labels also support wrapping
+  .edge('n1', 'n2').arrow()
+  .label('Edge\\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
+  
+  .edge('n2', 'n3').arrow()
+  .label('Long edge description\\nwrapped\\ninto three lines', { maxWidth: 80, fontSize: 10 })
+  .done();
+
+const el = document.getElementById('viz-multiline-labels');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={multiLineLabelScene} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
+
+| Label Option      | Type                                       | Effect                                                                               |
+| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `maxWidth`        | \`number\`                                 | Triggers automatic word wrapping when the approximate text width exceeds this value. |
+| `lineHeight`      | \`number\`                                 | Vertical spacing multiplier between lines (default: \`1.2\`).                        |
+| `verticalAlign`   | \`'top' \| 'middle' \| 'bottom'\`          | Aligns the text block vertically relative to the node's center (default \`'middle'\`). |
+| `overflow`        | \`'visible' \| 'ellipsis' \| 'clip'\`      | Defines how to handle text that exceeds bounds after wrapping (basic support).       |
+
 ### Edge Routing
 
 Edges support three routing modes: **straight** (default), **curved** (smooth bezier), and **orthogonal** (right-angle elbows).
