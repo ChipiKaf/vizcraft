@@ -245,6 +245,10 @@ interface VizBuilder {
   edge(from: string, to: string, id?: string): EdgeBuilder;
   /** Create a fully-configured edge declaratively and return the parent VizBuilder. */
   edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+
+  /** Hydrates the builder from an existing VizScene. */
+  fromScene(scene: VizScene): VizBuilder;
+
   build(): VizScene;
 
   // Internal helper for NodeBuilder to access grid config
@@ -692,6 +696,51 @@ class VizBuilderImpl implements VizBuilder {
     const eb = new EdgeBuilderImpl(this, this._edges.get(edgeId)!);
     if (!isDeclarative) return eb;
     applyEdgeOptions(eb, idOrOpts as EdgeOptions);
+    return this;
+  }
+
+  /**
+   * Hydrates the builder from an existing VizScene.
+   * @param scene The scene to hydrate from
+   * @returns The builder
+   */
+  fromScene(scene: VizScene): VizBuilder {
+    if (scene.viewBox) {
+      this.view(scene.viewBox.w, scene.viewBox.h);
+    }
+    if (scene.grid) {
+      this.grid(scene.grid.cols, scene.grid.rows, scene.grid.padding);
+    }
+
+    this._nodes.clear();
+    this._nodeOrder = [];
+    this._edges.clear();
+    this._edgeOrder = [];
+    this._overlays = [];
+    this._animationSpecs = [];
+
+    if (scene.nodes) {
+      scene.nodes.forEach((n) => {
+        this._nodes.set(n.id, { ...n });
+        this._nodeOrder.push(n.id);
+      });
+    }
+
+    if (scene.edges) {
+      scene.edges.forEach((e) => {
+        this._edges.set(e.id, { ...e });
+        this._edgeOrder.push(e.id);
+      });
+    }
+
+    if (scene.overlays) {
+      this._overlays = [...scene.overlays];
+    }
+
+    if (scene.animationSpecs) {
+      this._animationSpecs = [...scene.animationSpecs];
+    }
+
     return this;
   }
 

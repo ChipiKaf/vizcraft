@@ -9,7 +9,44 @@ license: Complete terms in LICENSE.txt
 ## Embrace strictness
 
 - Keep code compatible with `strict: true` and `noUncheckedIndexedAccess`.
-- Don’t silence errors with broad `any` unless it’s an intentional escape hatch.
+- Do your best to avoid `any` types. Strongly favor generics and explicit types that have been properly set instead of silencing errors with broad `any`.
+
+## Aim for maintainability and avoid code duplication
+
+- Avoid having multiple places to maintain types that refer to the same thing.
+- If you have two related types where one builds upon the other, use TypeScript type utilities (`extends`, `Omit`, `Pick`, etc.) to unify them and maintain a single source of truth.
+
+**Example:**
+Instead of redefining shared fields:
+```typescript
+// ❌ Bad: Redundant fields
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+interface UserPreview {
+  id: string;
+  name: string;
+}
+```
+Use utility types to build on existing ones:
+```typescript
+// ✅ Good: Reusing existing types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// Unify types and avoid duplication
+type UserPreview = Pick<User, "id" | "name">;
+type UserCreationPayload = Omit<User, "id">;
+
+interface DetailedUser extends User {
+  address: string;
+}
+```
 
 ## Prefer discriminated unions for domain models
 
