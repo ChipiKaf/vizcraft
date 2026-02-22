@@ -14,8 +14,11 @@ import type {
   EdgeMarkerType,
   NodeOptions,
   EdgeOptions,
+  PanZoomOptions,
+  PanZoomController,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
+import { setupPanZoom } from './panZoom';
 import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
@@ -248,11 +251,11 @@ interface VizBuilder {
   _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
   svg(): string;
-  mount(container: HTMLElement): void;
+  mount(container: HTMLElement): PanZoomController | undefined;
   mount(
     container: HTMLElement,
-    opts: { autoplay?: boolean; css?: string | string[] }
-  ): void;
+    opts: { autoplay?: boolean; css?: string | string[] } & PanZoomOptions
+  ): PanZoomController | undefined;
 
   /**
    * Plays animation specs against a mounted container.
@@ -747,8 +750,8 @@ class VizBuilderImpl implements VizBuilder {
    */
   mount(
     container: HTMLElement,
-    opts?: { autoplay?: boolean; css?: string | string[] }
-  ) {
+    opts?: { autoplay?: boolean; css?: string | string[] } & PanZoomOptions
+  ): PanZoomController | undefined {
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
     this._mountedContainer = container;
@@ -757,6 +760,13 @@ class VizBuilderImpl implements VizBuilder {
     if (svg && opts?.css) this._injectCssIntoMountedSvg(svg, opts.css);
 
     if (opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
+
+    if (svg && opts?.panZoom) {
+      const viewport = svg.querySelector('.viz-viewport') as SVGGElement | null;
+      if (viewport) {
+        return setupPanZoom(svg, viewport, scene, opts);
+      }
+    }
   }
 
   private _injectCssIntoMountedSvg(svg: SVGSVGElement, css: string | string[]) {
@@ -1089,20 +1099,24 @@ class VizBuilderImpl implements VizBuilder {
       svg.appendChild(defs);
 
       // Layers
+      const viewport = document.createElementNS(svgNS, 'g');
+      viewport.setAttribute('class', 'viz-viewport');
+      svg.appendChild(viewport);
+
       const edgeLayer = document.createElementNS(svgNS, 'g');
       edgeLayer.setAttribute('class', 'viz-layer-edges');
       edgeLayer.setAttribute('data-viz-layer', 'edges');
-      svg.appendChild(edgeLayer);
+      viewport.appendChild(edgeLayer);
 
       const nodeLayer = document.createElementNS(svgNS, 'g');
       nodeLayer.setAttribute('class', 'viz-layer-nodes');
       nodeLayer.setAttribute('data-viz-layer', 'nodes');
-      svg.appendChild(nodeLayer);
+      viewport.appendChild(nodeLayer);
 
       const overlayLayer = document.createElementNS(svgNS, 'g');
       overlayLayer.setAttribute('class', 'viz-layer-overlays');
       overlayLayer.setAttribute('data-viz-layer', 'overlays');
-      svg.appendChild(overlayLayer);
+      viewport.appendChild(overlayLayer);
 
       container.appendChild(svg);
     }
