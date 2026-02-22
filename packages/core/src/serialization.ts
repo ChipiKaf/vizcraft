@@ -1,25 +1,14 @@
-import type { VizScene } from './types';
+import type { VizEdge, VizNode, VizScene } from './types';
 
 /**
  * Scene data structure that represents a serialised VizScene.
  * It purposely omits non-serializable properties (e.g., functions like `onClick`).
  */
-export interface SerializedScene {
+export interface SerializedScene extends Omit<VizScene, 'nodes' | 'edges'> {
   /** Schema version for forward compatibility */
   version: 'vizcraft/1';
-  viewBox: { w: number; h: number };
-  grid?: { cols: number; rows: number; padding: { x: number; y: number } };
-  // We use `any` or `Record<string, unknown>` for the collections to bypass
-  // strict types temporarily, but realistically they are just the raw arrays
-  // minus any function properties.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nodes: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  edges: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  overlays?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  animationSpecs?: any[];
+  nodes: Omit<VizNode, 'onClick'>[];
+  edges: Omit<VizEdge, 'onClick'>[];
 }
 
 /**
