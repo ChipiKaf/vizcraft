@@ -326,6 +326,10 @@ These are the low-level interfaces the player uses to read/write properties.
 
 Options object accepted by `viz().node(id, opts)`. Configures a node declaratively in a single call.
 
+:::tip Re-opening a node
+`node(id, opts)` returns `VizBuilder` (not `NodeBuilder`). To go back and add more properties to the same node later, call `.node(id)` **without** options — this re-opens the existing node and returns its `NodeBuilder` for further chaining. The builder stores nodes by id, so a second call reuses the same definition.
+:::
+
 **Key properties**
 
 - `at?: { x: number; y: number }` — position.
@@ -347,6 +351,10 @@ Options object accepted by `viz().node(id, opts)`. Configures a node declarative
 ## EdgeOptions
 
 Options object accepted by `viz().edge(from, to, opts)`. Configures an edge declaratively in a single call.
+
+:::tip Re-opening an edge
+`edge(from, to, opts)` returns `VizBuilder` (not `EdgeBuilder`). To continue editing the same edge, call `.edge(from, to)` or `.edge(from, to, id)` again without an options object — the existing edge definition is reused.
+:::
 
 **Key properties**
 
