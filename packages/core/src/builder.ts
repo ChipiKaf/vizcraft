@@ -16,6 +16,8 @@ import type {
   EdgeOptions,
   PanZoomOptions,
   PanZoomController,
+  VizSceneMutator,
+  SceneChanges,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -32,6 +34,25 @@ import {
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 import { renderSvgText } from './textUtils';
+import type { AnimationSpec } from './anim/spec';
+import {
+  buildAnimationSpec,
+  type AnimationBuilder,
+  type AnimatableProps,
+  type TweenOptions,
+} from './anim/animationBuilder';
+import {
+  createBuilderPlayback,
+  type PlaybackController,
+} from './anim/playback';
+import type { ExtendAdapter } from './anim/extendAdapter';
+import { getAdapterExtensions } from './anim/specExtensions';
+import {
+  applyShapeGeometry,
+  effectivePos,
+  getShapeBehavior,
+  shapeSvgMarkup,
+} from './shapes';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -154,33 +175,12 @@ function generateMarkerSvg(
   return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="${orient}">${content}</marker>`;
 }
 
-import type { AnimationSpec } from './anim/spec';
-import {
-  buildAnimationSpec,
-  type AnimationBuilder,
-  type AnimatableProps,
-  type TweenOptions,
-} from './anim/animationBuilder';
-import {
-  createBuilderPlayback,
-  type PlaybackController,
-} from './anim/playback';
-import type { ExtendAdapter } from './anim/extendAdapter';
-import { getAdapterExtensions } from './anim/specExtensions';
-
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
 
 const autoplayControllerByContainer = new WeakMap<
   HTMLElement,
   PlaybackController
 >();
-
-import {
-  applyShapeGeometry,
-  effectivePos,
-  getShapeBehavior,
-  shapeSvgMarkup,
-} from './shapes';
 
 type SvgAttrValue = string | number | undefined;
 
@@ -213,9 +213,7 @@ function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
     .map(([k, v]) => [`--viz-anim-${k}`, String(v)] as [string, string]);
 }
 
-import type { VizSceneMutator, SceneChanges } from './types';
-
-interface VizBuilder extends VizSceneMutator {
+export interface VizBuilder extends VizSceneMutator {
   view(w: number, h: number): VizBuilder;
   grid(
     cols: number,
