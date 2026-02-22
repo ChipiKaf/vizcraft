@@ -309,6 +309,13 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
 
       label.setAttribute('x', String(lx));
       label.setAttribute('y', String(ly));
+
+      // SVG text wrapping uses <tspan> which have hardcoded `x` coords.
+      // We must sync the x value so multi-line text follows the animation horizontally.
+      const tspans = label.querySelectorAll('tspan');
+      for (let i = 0; i < tspans.length; i++) {
+        tspans[i]?.setAttribute('x', String(lx));
+      }
     }
 
     // Opacity conflict rule: runtime wins (inline), else revert to base.
@@ -425,6 +432,11 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
         const pos = resolveEdgeLabelPosition(lbl, edgePath);
         el.setAttribute('x', String(pos.x));
         el.setAttribute('y', String(pos.y));
+
+        const tspans = el.querySelectorAll('tspan');
+        for (let j = 0; j < tspans.length; j++) {
+          tspans[j]?.setAttribute('x', String(pos.x));
+        }
       });
     }
 

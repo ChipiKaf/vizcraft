@@ -27,6 +27,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sass": "^1.97.2",
+    "react-vizcraft": "workspace:*",
     "vizcraft": "workspace:*"
   },
   "devDependencies": {
