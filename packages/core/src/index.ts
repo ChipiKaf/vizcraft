@@ -20,3 +20,4 @@ export * from './anim/extendAdapter';
 export * from './anim/adapter';
 export * from './panZoom';
 export * from './serialization';
+export * from './hitTest';

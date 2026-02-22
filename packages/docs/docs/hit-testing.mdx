@@ -1,0 +1,106 @@
+---
+sidebar_position: 6
+---
+
+# Hit Testing
+
+VizCraft provides a lightweight, mathematical hit testing API that runs independently of the DOM. 
+Because vizcraft scenes are plain data, you can query exactly what element is at a specific coordinate or within a specific bounding box. 
+This is essential for building interactive editor tools such as drag-and-drop, connection snapping, and rubber-band selection.
+
+import HitTestingDemo from '@site/src/components/HitTestingDemo';
+
+<HitTestingDemo />
+
+## Motivation
+
+While you can rely on simple `onClick` callbacks from `<VizCanvas>` for basic interactions, advanced editors require deeper scene awareness:
+- **Hover detection**: Changing the cursor or highlighting elements on pointer move.
+- **Port snapping**: Finding the closest connection point when drawing a new edge.
+- **Marquee Selection**: Selecting multiple nodes by dragging a rectangle.
+- **Edge Hit Testing**: Interacting with thin edges often requires a broader "hit area" tolerance than strict SVG paths provide.
+- **Coordinate Spaces**: DOM events run in screen space, whereas your scene may be zoomed and panned.
+
+By providing point and rectangle queries directly against the `VizScene` data structure, you can resolve these interactions reliably.
+
+## Point Hit Testing
+
+The `hitTest` function returns the topmost element at a given `(x, y)` coordinate. It checks in Z-index order (reverse array order, like standard rendering):
+
+1. **Nodes**: Checks if the point is inside the node's bounds (using shape approximation).
+2. **Ports**: If a node has explicit ports, it checks if the point is within the `portTolerance`.
+3. **Edges**: Evaluates the distance from the point to the edge's mathematical path, matching if it falls within `edgeTolerance`.
+
+```ts
+import { hitTest } from '@vizcraft/core';
+
+// `point` is typically an {x,y} coordinate relative to the scene container.
+const result = hitTest(scene, { x: 250, y: 150 });
+
+if (result?.type === 'node') {
+  console.log('Hit node:', result.id);
+} else if (result?.type === 'port') {
+  console.log('Hit port:', result.portId, 'on node:', result.nodeId);
+} else if (result?.type === 'edge') {
+  console.log('Hit edge:', result.id);
+} else {
+  console.log('Hit empty space');
+}
+```
+
+You can customize the tolerances for edges and ports (defaults: edge width 5, port radius 10).
+
+```ts
+const easyHit = hitTest(scene, point, {
+  edgeTolerance: 15, // Easier to click thin lines
+  portTolerance: 20   // Easier to snap to ports
+});
+```
+
+## Rectangle Selection (Rubber Banding)
+
+The `hitTestRect` function returns an array of all nodes and edges that intersect a given geometric rectangle.
+
+```ts
+import { hitTestRect } from '@vizcraft/core';
+
+// E.g., from a drag interaction
+const rect = { x: 100, y: 100, w: 300, h: 200 };
+
+const selectedItems = hitTestRect(scene, rect);
+
+selectedItems.forEach(item => {
+  if (item.type === 'node') {
+    // Select the node
+  }
+});
+```
+
+## Advanced Queries
+
+### Nearest Port Searching
+When drawing a new connection, it's often useful to "snap" to a nearby port before the mouse is directly over it. `nearestPort` scans all named ports on all scene nodes.
+
+```ts
+import { nearestPort } from '@vizcraft/core';
+
+const pt = { x: 260, y: 150 };
+const maxSnapDistance = 50;
+
+const port = nearestPort(scene, pt, { maxDistance: maxSnapDistance });
+
+if (port) {
+  // port.position is the absolute {x,y} of the port
+  console.log('Snapped to:', port.nodeId, port.portId, 'at distance:', port.distance);
+}
+```
+
+### Edge Proximity 
+If you only need to evaluate distance to a specific edge (for example, hovering an edge to drop a new node in the middle of it), you can query its distance.
+
+```ts
+import { edgeDistance } from '@vizcraft/core';
+
+// Computes the minimum distance from point {x,y} to the path of edge 'a->b'
+const distance = edgeDistance(scene, 'a->b', { x: 200, y: 150 });
+```
