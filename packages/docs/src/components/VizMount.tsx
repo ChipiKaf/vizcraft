@@ -14,6 +14,8 @@ interface VizMountProps {
   autoplay?: boolean;
   /** If true, calls `builder.play()` after mount (no-op if no specs). */
   play?: boolean;
+  /** Enable pan & zoom interactions */
+  panZoom?: boolean;
 }
 
 export default function VizMount({
@@ -23,6 +25,7 @@ export default function VizMount({
   css,
   autoplay,
   play,
+  panZoom,
 }: VizMountProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -32,11 +35,11 @@ export default function VizMount({
 
     let controller: PlaybackController | null = null;
 
-    const mountOpts = autoplay
-      ? ({ autoplay: true, ...(css ? { css } : {}) } as const)
-      : css
-        ? ({ css } as const)
-        : undefined;
+    const mountOpts = {
+      ...(autoplay ? { autoplay: true } : {}),
+      ...(css ? { css } : {}),
+      ...(panZoom ? { panZoom: true } : {}),
+    };
 
     builder.mount(container, mountOpts as never);
 

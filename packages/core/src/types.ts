@@ -458,3 +458,42 @@ export type VizScene = {
    */
   animationSpecs?: AnimationSpec[];
 };
+
+export interface PanZoomOptions {
+  /** Enable pan & zoom (default: false) */
+  panZoom?: boolean;
+  /** Minimum zoom level (default: 0.1) */
+  minZoom?: number;
+  /** Maximum zoom level (default: 5) */
+  maxZoom?: number;
+  /** Initial zoom level ('fit' or number, default: 'fit') */
+  initialZoom?: 'fit' | number;
+  /** Whether scroll wheel zooms (default: true) */
+  zoomOnWheel?: boolean;
+  /** Whether drag on empty space pans (default: true) */
+  panOnDrag?: boolean;
+}
+
+export interface PanZoomController {
+  /** Current zoom level (1 = 100%) */
+  zoom: number;
+  /** Current pan offset */
+  pan: Vec2;
+
+  /** Set zoom level programmatically */
+  setZoom(level: number, center?: Vec2): void;
+  /** Set pan offset programmatically */
+  setPan(offset: Vec2): void;
+  /** Fit the scene content to the viewport */
+  fitToContent(padding?: number): void;
+  /** Zoom and center on a specific node */
+  zoomToNode(nodeId: string, padding?: number): void;
+  /** Reset pan and zoom to initial state */
+  reset(): void;
+
+  /** Listen for viewport changes */
+  onChange(cb: (state: { zoom: number; pan: Vec2 }) => void): () => void;
+
+  /** Cleanup event listeners */
+  destroy(): void;
+}

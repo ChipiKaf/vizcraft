@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect } from 'vitest';
 import {
   viz,
@@ -3113,6 +3116,75 @@ describe('vizcraft core', () => {
       expect(svgStr).toContain('</svg>');
       expect(svgStr).toContain('fill="red"');
       expect(svgStr).toContain('fill="blue"');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Mount API defaults & options
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('mount API with panZoom options', () => {
+    it('returns a PanZoomController when panZoom is true and mounts the structure', () => {
+      // Vitest's JSDOM setup allows standard DOM APIs
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+
+      const builder = viz().node('a', {
+        rect: { w: 80, h: 40 },
+        at: { x: 50, y: 50 },
+      });
+
+      const controller = builder.mount(container, { panZoom: true });
+
+      expect(controller).toBeDefined();
+      expect(controller!.zoom).toBeDefined();
+      expect(controller!.pan).toBeDefined();
+
+      const svg = container.querySelector('svg');
+      expect(svg).toBeTruthy();
+
+      // Check for .viz-viewport grouping element
+      const viewport = svg!.querySelector('g.viz-viewport');
+      expect(viewport).toBeTruthy();
+
+      document.body.removeChild(container);
+    });
+
+    it('returns undefined when panZoom is false or omitted', () => {
+      const container = document.createElement('div');
+
+      const builder = viz().node('a', { circle: { r: 10 } });
+
+      const controller1 = builder.mount(container);
+      expect(controller1).toBeUndefined();
+
+      const controller2 = builder.mount(container, { panZoom: false });
+      expect(controller2).toBeUndefined();
+    });
+
+    it('updates zoom and pan programmatically', () => {
+      const container = document.createElement('div');
+      // Create SVG structure first otherwise bounding rects fail
+      const builder = viz()
+        .view(200, 200)
+        .node('a', { circle: { r: 10 }, at: { x: 100, y: 100 } });
+      const controller = builder.mount(container, {
+        panZoom: true,
+        minZoom: 0.5,
+        maxZoom: 5,
+      });
+
+      expect(controller).toBeDefined();
+
+      controller!.setZoom(2);
+      expect(controller!.zoom).toBe(2);
+
+      controller!.setPan({ x: 10, y: 20 });
+      expect(controller!.pan).toEqual({ x: 10, y: 20 });
+
+      // Viewport should reflect the pan and zoom in its transform attribute
+      const viewport = container.querySelector('g.viz-viewport') as SVGGElement;
+      expect(viewport.getAttribute('transform')).toContain('translate(10, 20)');
+      expect(viewport.getAttribute('transform')).toContain('scale(2)');
     });
   });
 });
