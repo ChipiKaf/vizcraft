@@ -10,6 +10,7 @@ import {
   resolvePortPosition,
 } from './index';
 import type { VizNode } from './index';
+import type { SceneChanges, VizSceneMutator } from './types';
 
 describe('vizcraft core', () => {
   it('exports viz builder', () => {
@@ -126,6 +127,121 @@ describe('vizcraft core', () => {
       expect(rect).not.toBeNull();
       expect(rect?.getAttribute('width')).toBe('200');
       expect(rect?.getAttribute('height')).toBe('120');
+    });
+  });
+
+  describe('Scene Mutations', () => {
+    it('supports incremental node addition and commit', () => {
+      const builder = viz()
+        .view(400, 400)
+        .node('a')
+        .at(100, 100)
+        .circle(20)
+        .done();
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      // Verify initial state
+      let svg = container.querySelector('svg');
+      let nodesLayer = svg?.querySelector('.viz-layer-nodes');
+      expect(nodesLayer?.querySelectorAll('g[data-id]').length).toBe(1);
+
+      // Add a node incrementally
+      let changes: SceneChanges | null = null;
+      (builder as unknown as VizSceneMutator).onChange((c: SceneChanges) => {
+        changes = c;
+      });
+      (builder as unknown as VizSceneMutator).addNode({
+        id: 'b',
+        pos: { x: 200, y: 200 },
+        shape: { kind: 'rect', w: 40, h: 40 },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      // Verify DOM updated
+      expect(nodesLayer?.querySelectorAll('g[data-id]').length).toBe(2);
+      expect(nodesLayer?.querySelector('g[data-id="b"]')).not.toBeNull();
+
+      // Verify changes hook fired correctly
+      expect(changes).toEqual({
+        added: { nodes: ['b'], edges: [] },
+        removed: { nodes: [], edges: [] },
+        updated: { nodes: [], edges: [] },
+      });
+    });
+
+    it('supports node removal and cascade edge deletion', () => {
+      const builder = viz()
+        .view(400, 400)
+        .node('a')
+        .at(100, 100)
+        .circle(20)
+        .done()
+        .node('b')
+        .at(300, 100)
+        .circle(20)
+        .done()
+        .edge('a', 'b', { id: 'e1' });
+
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      let changes: SceneChanges | null = null;
+      (builder as unknown as VizSceneMutator).onChange((c: SceneChanges) => {
+        changes = c;
+      });
+
+      // Remove node 'a' (should also remove edge 'e1')
+      (builder as unknown as VizSceneMutator).removeNode('a');
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      const svg = container.querySelector('svg');
+      const nodesLayer = svg?.querySelector('.viz-layer-nodes');
+      const edgesLayer = svg?.querySelector('.viz-layer-edges');
+
+      expect(nodesLayer?.querySelectorAll('g[data-id]').length).toBe(1); // Only 'b' remains
+      expect(edgesLayer?.querySelectorAll('g.viz-edge').length).toBe(0); // 'e1' deleted
+
+      // Verify changes hook
+      expect(changes).toEqual({
+        added: { nodes: [], edges: [] },
+        removed: { nodes: ['a'], edges: ['e1'] },
+        updated: { nodes: [], edges: [] },
+      });
+    });
+
+    it('supports node property updates', () => {
+      const builder = viz()
+        .view(400, 400)
+        .node('a')
+        .at(100, 100)
+        .circle(20)
+        .done();
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      let changes: SceneChanges | null = null;
+      (builder as unknown as VizSceneMutator).onChange((c: SceneChanges) => {
+        changes = c;
+      });
+
+      // Update node 'a' position and style
+      (builder as unknown as VizSceneMutator).updateNode('a', {
+        pos: { x: 500, y: 500 },
+        style: { fill: 'red' },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      const scene = builder.build();
+      const updatedNode = scene.nodes.find((n) => n.id === 'a');
+      expect(updatedNode?.pos).toEqual({ x: 500, y: 500 });
+      expect(updatedNode?.style?.fill).toBe('red');
+
+      expect(changes).toEqual({
+        added: { nodes: [], edges: [] },
+        removed: { nodes: [], edges: [] },
+        updated: { nodes: ['a'], edges: [] },
+      });
     });
   });
 

@@ -8,6 +8,7 @@ import { viz } from 'vizcraft';
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import ResizeDemo from '@site/src/components/ResizeDemo';
+import MutationDemo from '@site/src/components/MutationDemo';
 
 export const interactiveBuilder = viz().view(400, 200);
 export const interactiveScene = interactiveBuilder
@@ -85,6 +86,35 @@ builder.resizeNode('dynamic', { w: 180, h: 80 });
 builder.patchRuntime(container);
 ```
 
+## Incremental Scene Updates
+
+Vizcraft allows you to incrementally add, update, and remove nodes and edges at runtime using the `VizSceneMutator` methods (`addNode`, `updateNode`, `removeNode`, etc.). Calling `builder.commit(container)` gracefully syncs these mutations to the DOM and runtime overrides without total DOM thrashing.
+
+<CodePreview>
+  <MutationDemo />
+</CodePreview>
+
+```ts
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(600, 300)
+  .node('root', { circle: { r: 30 }, at: { x: 100, y: 150 } });
+
+// Mount the initial view
+const container = document.getElementById('viz');
+builder.mount(container, { panZoom: true });
+
+// Later, you can imperatively mutate the scene!
+builder.addNode({
+  id: 'n1',
+  pos: { x: 250, y: 150 },
+  shape: { kind: 'rect', w: 80, h: 40 },
+});
+builder.addEdge({ id: 'e1', from: 'root', to: 'n1', arrow: 'end' });
+builder.commit(container);
+```
+
 # Viewport & Pan/Zoom
 
 As your diagrams grow larger, a fixed-size SVG isn't always enough to comfortably display all content. VizCraft includes a built-in pan & zoom viewport controller to make exploring large scenes intuitive.
@@ -94,6 +124,7 @@ As your diagrams grow larger, a fixed-size SVG isn't always enough to comfortabl
 You can enable interactive pan and zoom across the `VizScene` by passing the `panZoom: true` flag in the mounting options.
 
 When `panZoom` is activated, interactions work out-of-the-box:
+
 - **Scroll wheel / trackpad** to zoom in and out.
 - **Click and drag** on empty background space to pan the diagram.
 - **Double click** on empty background space to auto-fit the scene to the viewport.
@@ -103,32 +134,77 @@ When `panZoom` is activated, interactions work out-of-the-box:
     className="border border-solid border-gray-200 dark:border-gray-800 rounded-lg shadow-sm"
     style={{ height: '400px', cursor: 'grab', overflow: 'hidden' }}
     panZoom={true}
-    builder={
-      viz()
-        .view(800, 600)
-        
-        // Background node
-        .node('bg', { rect: { w: 600, h: 400, rx: 20 }, at: { x: 400, y: 300 }, fill: 'var(--ifm-color-emphasis-100)', stroke: { color: 'var(--ifm-color-emphasis-300)', width: 2 }})
-        
-        // Define some colorful shapes spread out in the canvas
-        .node('a', { circle: { r: 40 }, at: { x: 200, y: 200 }, fill: '#f6c177', label: 'Start' })
-        .node('b', { diamond: { w: 100, h: 80 }, at: { x: 600, y: 200 }, fill: '#cba6f7', label: 'Decision' })
-        .node('c', { cylinder: { w: 80, h: 100 }, at: { x: 200, y: 400 }, fill: '#9ccfd8', label: 'Data' })
-        .node('d', { star: { points: 5, outerR: 45, innerR: 20 }, at: { x: 600, y: 400 }, fill: '#eb6f92', label: 'Finish' })
-        
-        .node('center', { hexagon: { r: 50 }, at: { x: 400, y: 300 }, fill: '#ebbcba', label: 'Hub' })
-        
-        // Connect them together
-        .edge('a', 'center', { stroke: { color: '#666', width: 2 }, arrow: true })
-        .edge('center', 'b', { stroke: { color: '#666', width: 2 }, arrow: true })
-        .edge('center', 'c', { stroke: { color: '#666', width: 2 }, arrow: true, dash: 'dashed' })
-        .edge('c', 'd', { stroke: { color: '#666', width: 2 }, arrow: true, routing: 'orthogonal' })
-        .edge('b', 'd', { stroke: { color: '#666', width: 2 }, arrow: true })
-        
-        // Extra nodes way off to show we can zoom out
-        .node('far', { cloud: { w: 100, h: 60 }, at: { x: 1000, y: -100 }, fill: '#31748f', label: 'Cloud' })
-        .edge('b', 'far', { stroke: { color: '#666', width: 2 }, arrow: true, dash: 'dotted' })
-    }
+    builder={viz()
+      .view(800, 600)
+
+      // Background node
+      .node('bg', {
+        rect: { w: 600, h: 400, rx: 20 },
+        at: { x: 400, y: 300 },
+        fill: 'var(--ifm-color-emphasis-100)',
+        stroke: { color: 'var(--ifm-color-emphasis-300)', width: 2 },
+      })
+
+      // Define some colorful shapes spread out in the canvas
+      .node('a', {
+        circle: { r: 40 },
+        at: { x: 200, y: 200 },
+        fill: '#f6c177',
+        label: 'Start',
+      })
+      .node('b', {
+        diamond: { w: 100, h: 80 },
+        at: { x: 600, y: 200 },
+        fill: '#cba6f7',
+        label: 'Decision',
+      })
+      .node('c', {
+        cylinder: { w: 80, h: 100 },
+        at: { x: 200, y: 400 },
+        fill: '#9ccfd8',
+        label: 'Data',
+      })
+      .node('d', {
+        star: { points: 5, outerR: 45, innerR: 20 },
+        at: { x: 600, y: 400 },
+        fill: '#eb6f92',
+        label: 'Finish',
+      })
+
+      .node('center', {
+        hexagon: { r: 50 },
+        at: { x: 400, y: 300 },
+        fill: '#ebbcba',
+        label: 'Hub',
+      })
+
+      // Connect them together
+      .edge('a', 'center', { stroke: { color: '#666', width: 2 }, arrow: true })
+      .edge('center', 'b', { stroke: { color: '#666', width: 2 }, arrow: true })
+      .edge('center', 'c', {
+        stroke: { color: '#666', width: 2 },
+        arrow: true,
+        dash: 'dashed',
+      })
+      .edge('c', 'd', {
+        stroke: { color: '#666', width: 2 },
+        arrow: true,
+        routing: 'orthogonal',
+      })
+      .edge('b', 'd', { stroke: { color: '#666', width: 2 }, arrow: true })
+
+      // Extra nodes way off to show we can zoom out
+      .node('far', {
+        cloud: { w: 100, h: 60 },
+        at: { x: 1000, y: -100 },
+        fill: '#31748f',
+        label: 'Cloud',
+      })
+      .edge('b', 'far', {
+        stroke: { color: '#666', width: 2 },
+        arrow: true,
+        dash: 'dotted',
+      })}
   />
 </CodePreview>
 
@@ -138,15 +214,19 @@ import { viz } from 'vizcraft';
 const scene = viz()
   .view(800, 600)
   .node('a', { circle: { r: 40 }, at: { x: 200, y: 200 }, fill: '#f6c177' })
-  .node('b', { diamond: { w: 100, h: 80 }, at: { x: 600, y: 200 }, fill: '#cba6f7' })
+  .node('b', {
+    diamond: { w: 100, h: 80 },
+    at: { x: 600, y: 200 },
+    fill: '#cba6f7',
+  })
   .edge('a', 'b', { arrow: true });
 
 // Enable interactive panning and zooming
-const controller = scene.mount(document.getElementById('viz'), { 
+const controller = scene.mount(document.getElementById('viz'), {
   panZoom: true,
-  minZoom: 0.1,    // default
-  maxZoom: 5,      // default
-  initialZoom: 'fit' // default
+  minZoom: 0.1, // default
+  maxZoom: 5, // default
+  initialZoom: 'fit', // default
 });
 ```
 
@@ -156,7 +236,7 @@ When you mount a scene with `panZoom: true`, an initialized `PanZoomController` 
 
 ```ts
 // Fit all elements neatly in the view
-controller.fitToContent(padding = 20);
+controller.fitToContent((padding = 20));
 
 // Zoom and center directly onto a specific node ID
 controller.zoomToNode('user-node');

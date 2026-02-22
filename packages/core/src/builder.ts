@@ -16,6 +16,8 @@ import type {
   EdgeOptions,
   PanZoomOptions,
   PanZoomController,
+  VizSceneMutator,
+  SceneChanges,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -32,6 +34,25 @@ import {
 import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 import { renderSvgText } from './textUtils';
+import type { AnimationSpec } from './anim/spec';
+import {
+  buildAnimationSpec,
+  type AnimationBuilder,
+  type AnimatableProps,
+  type TweenOptions,
+} from './anim/animationBuilder';
+import {
+  createBuilderPlayback,
+  type PlaybackController,
+} from './anim/playback';
+import type { ExtendAdapter } from './anim/extendAdapter';
+import { getAdapterExtensions } from './anim/specExtensions';
+import {
+  applyShapeGeometry,
+  effectivePos,
+  getShapeBehavior,
+  shapeSvgMarkup,
+} from './shapes';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -154,33 +175,12 @@ function generateMarkerSvg(
   return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="${orient}">${content}</marker>`;
 }
 
-import type { AnimationSpec } from './anim/spec';
-import {
-  buildAnimationSpec,
-  type AnimationBuilder,
-  type AnimatableProps,
-  type TweenOptions,
-} from './anim/animationBuilder';
-import {
-  createBuilderPlayback,
-  type PlaybackController,
-} from './anim/playback';
-import type { ExtendAdapter } from './anim/extendAdapter';
-import { getAdapterExtensions } from './anim/specExtensions';
-
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
 
 const autoplayControllerByContainer = new WeakMap<
   HTMLElement,
   PlaybackController
 >();
-
-import {
-  applyShapeGeometry,
-  effectivePos,
-  getShapeBehavior,
-  shapeSvgMarkup,
-} from './shapes';
 
 type SvgAttrValue = string | number | undefined;
 
@@ -213,7 +213,7 @@ function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
     .map(([k, v]) => [`--viz-anim-${k}`, String(v)] as [string, string]);
 }
 
-interface VizBuilder {
+export interface VizBuilder extends VizSceneMutator {
   view(w: number, h: number): VizBuilder;
   grid(
     cols: number,
@@ -591,6 +591,158 @@ class VizBuilderImpl implements VizBuilder {
   private _gridConfig: VizGridConfig | null = null;
   private _animationSpecs: AnimationSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
+
+  // Scene Mutation State
+  private _changes: SceneChanges = {
+    added: { nodes: [], edges: [] },
+    removed: { nodes: [], edges: [] },
+    updated: { nodes: [], edges: [] },
+  };
+  private _changeListeners: Array<(changes: SceneChanges) => void> = [];
+
+  addNode(node: VizNode): void {
+    if (this._nodes.has(node.id)) {
+      console.warn(`VizBuilder.addNode: Node ${node.id} already exists`);
+      return;
+    }
+    this._nodes.set(node.id, { ...node });
+    this._nodeOrder.push(node.id);
+    this._changes.added.nodes.push(node.id);
+  }
+
+  removeNode(id: string): void {
+    if (!this._nodes.has(id)) return;
+    this._nodes.delete(id);
+    this._nodeOrder = this._nodeOrder.filter((n) => n !== id);
+    this._changes.removed.nodes.push(id);
+
+    // Also remove connected edges
+    const edgesToRemove: string[] = [];
+    this._edges.forEach((edge) => {
+      if (edge.from === id || edge.to === id) {
+        edgesToRemove.push(edge.id!);
+      }
+    });
+    edgesToRemove.forEach((edgeId) => this.removeEdge(edgeId));
+  }
+
+  updateNode(id: string, patch: Partial<VizNode>): void {
+    const node = this._nodes.get(id);
+    if (!node) {
+      console.warn(`VizBuilder.updateNode: Node ${id} not found`);
+      return;
+    }
+
+    // Deep merge known nested objects
+    const patchedNode = { ...node, ...patch };
+    if (patch.pos && node.pos) patchedNode.pos = { ...node.pos, ...patch.pos };
+    if (patch.style && node.style)
+      patchedNode.style = { ...node.style, ...patch.style };
+    if (patch.shape && node.shape)
+      patchedNode.shape = { ...node.shape, ...patch.shape } as VizNode['shape'];
+
+    this._nodes.set(id, patchedNode);
+    if (!this._changes.added.nodes.includes(id)) {
+      if (!this._changes.updated.nodes.includes(id)) {
+        this._changes.updated.nodes.push(id);
+      }
+    }
+  }
+
+  addEdge(edge: VizEdge): void {
+    if (this._edges.has(edge.id)) {
+      console.warn(`VizBuilder.addEdge: Edge ${edge.id} already exists`);
+      return;
+    }
+    this._edges.set(edge.id, { ...edge });
+    this._edgeOrder.push(edge.id);
+    this._changes.added.edges.push(edge.id);
+  }
+
+  removeEdge(id: string): void {
+    if (!this._edges.has(id)) return;
+    this._edges.delete(id);
+    this._edgeOrder = this._edgeOrder.filter((e) => e !== id);
+    this._changes.removed.edges.push(id);
+  }
+
+  updateEdge(id: string, patch: Partial<VizEdge>): void {
+    const edge = this._edges.get(id);
+    if (!edge) {
+      console.warn(`VizBuilder.updateEdge: Edge ${id} not found`);
+      return;
+    }
+    this._edges.set(id, { ...edge, ...patch });
+    if (!this._changes.added.edges.includes(id)) {
+      if (!this._changes.updated.edges.includes(id)) {
+        this._changes.updated.edges.push(id);
+      }
+    }
+  }
+
+  onChange(cb: (changes: SceneChanges) => void): () => void {
+    this._changeListeners.push(cb);
+    return () => {
+      this._changeListeners = this._changeListeners.filter((l) => l !== cb);
+    };
+  }
+
+  commit(container: HTMLElement): void {
+    const changesObj = this._changes;
+
+    // 1. Notify listeners before resetting tracking state
+    if (this._changeListeners.length > 0) {
+      // Shallow clone so listeners get a frozen snapshot
+      const snapshot: SceneChanges = {
+        added: {
+          nodes: [...changesObj.added.nodes],
+          edges: [...changesObj.added.edges],
+        },
+        removed: {
+          nodes: [...changesObj.removed.nodes],
+          edges: [...changesObj.removed.edges],
+        },
+        updated: {
+          nodes: [...changesObj.updated.nodes],
+          edges: [...changesObj.updated.edges],
+        },
+      };
+
+      this._changeListeners.forEach((cb) => cb(snapshot));
+    }
+
+    // 2. Reset tracking state immediately
+    this._changes = {
+      added: { nodes: [], edges: [] },
+      removed: { nodes: [], edges: [] },
+      updated: { nodes: [], edges: [] },
+    };
+
+    // 3. Early exit if no DOM to patch
+    if (!container) return;
+    const svg = container.querySelector('svg') as SVGSVGElement | null;
+    if (!svg) {
+      console.warn(
+        'VizBuilder.commit: No mounted SVG found in container. Need to call .mount() first.'
+      );
+      return;
+    }
+
+    // Since we maintain the _renderSceneToDOM method which already does an
+    // intelligent DOM diffing/reconciliation pass based on the current `_nodes` and `_edges` maps
+    // we can simply call it to apply all structural changes (add/remove) and property updates.
+    // The reconciliation correctly re-uses existing SVG elements, inserts new ones, and deletes missing ones.
+    const scene = this.build();
+    this._renderSceneToDOM(scene, container);
+
+    // Apply runtime overrides (if any)
+    let ctx = runtimePatchCtxBySvg.get(svg);
+    if (!ctx) {
+      ctx = createRuntimePatchCtx(svg);
+      runtimePatchCtxBySvg.set(svg, ctx);
+    }
+    patchRuntime(scene, ctx);
+  }
 
   /**
    * Sets the view box.
