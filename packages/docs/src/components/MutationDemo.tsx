@@ -129,6 +129,7 @@ export default function MutationDemo() {
           cursor: 'grab',
           border: '1px solid var(--ifm-color-emphasis-200)',
           borderRadius: '8px',
+          overflow: 'hidden',
         }}
       />
     </div>
