@@ -1483,6 +1483,148 @@ describe('vizcraft core', () => {
     });
   });
 
+  describe('edge dash patterns (dashed, dotted, dash)', () => {
+    it('.dashed() sets strokeDasharray to "dashed"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .dashed()
+        .build();
+      expect(scene.edges[0]!.style?.strokeDasharray).toBe('dashed');
+    });
+
+    it('.dotted() sets strokeDasharray to "dotted"', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .dotted()
+        .build();
+      expect(scene.edges[0]!.style?.strokeDasharray).toBe('dotted');
+    });
+
+    it('.dash() sets a custom dasharray pattern', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .dash('12, 3, 3, 3')
+        .build();
+      expect(scene.edges[0]!.style?.strokeDasharray).toBe('12, 3, 3, 3');
+    });
+
+    it('.dash("dash-dot") sets dash-dot preset', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .dash('dash-dot')
+        .build();
+      expect(scene.edges[0]!.style?.strokeDasharray).toBe('dash-dot');
+    });
+
+    it('.dashed() chains with .stroke()', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .stroke('#ef4444', 2)
+        .dashed()
+        .arrow()
+        .build();
+      const style = scene.edges[0]!.style!;
+      expect(style.stroke).toBe('#ef4444');
+      expect(style.strokeWidth).toBe(2);
+      expect(style.strokeDasharray).toBe('dashed');
+    });
+
+    it('dashed edge renders stroke-dasharray in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .dashed()
+        .svg();
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('stroke-dasharray: 8, 4');
+    });
+
+    it('dotted edge renders stroke-dasharray in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .dotted()
+        .svg();
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('stroke-dasharray: 2, 4');
+    });
+
+    it('custom dash pattern renders in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .dash('12, 3, 3, 3')
+        .svg();
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      expect(pathMatch![0]).toContain('stroke-dasharray: 12, 3, 3, 3');
+    });
+
+    it('.dash("solid") produces no stroke-dasharray in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .circle(10)
+        .node('b')
+        .at(250, 50)
+        .circle(10)
+        .edge('a', 'b')
+        .dash('solid')
+        .svg();
+      const pathMatch = svgStr.match(/<path[^>]*class="viz-edge"[^>]*>/);
+      expect(pathMatch).toBeTruthy();
+      // 'solid' should resolve to empty, so no strokeDasharray in style
+      expect(pathMatch![0]).not.toContain('stroke-dasharray');
+    });
+  });
+
   describe('edge marker types and markerStart', () => {
     it('.markerEnd() sets custom marker type on the edge', () => {
       const scene = viz()

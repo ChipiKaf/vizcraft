@@ -5,6 +5,7 @@ import {
   computeEdgeEndpoints,
   resolveEdgeLabelPosition,
   collectEdgeLabels,
+  resolveDasharray,
 } from 'vizcraft';
 import {
   AnimationRegistry,
@@ -385,6 +386,10 @@ export function VizCanvas(props: VizCanvasProps) {
                     strokeWidth: edge.style?.strokeWidth,
                     fill: edge.style?.fill,
                     opacity: edge.style?.opacity,
+                    strokeDasharray: edge.style?.strokeDasharray
+                      ? resolveDasharray(edge.style.strokeDasharray) ||
+                        undefined
+                      : undefined,
                   }}
                 />
 

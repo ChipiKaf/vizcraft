@@ -74,7 +74,7 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
 - `labels?: EdgeLabel[]` — text labels at various positions along the edge. Each label has a `position` (`'start'`, `'mid'`, or `'end'`). Chain `.label()` calls on the builder to add multiple labels.
 - `label?: EdgeLabel` — _(deprecated)_ single label. Kept for backwards compatibility; prefer `labels`.
-- `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number }` — per-edge visual styling. When set, inline SVG attributes override the CSS class defaults.
+- `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; strokeDasharray?: string }` — per-edge visual styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. When set, inline SVG attributes override the CSS class defaults.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
 - `data?: unknown` — your payload.

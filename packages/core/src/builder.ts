@@ -18,6 +18,7 @@ import { DEFAULT_VIZ_CSS } from './styles';
 import { defaultCoreAnimationRegistry } from './animations';
 import { defaultCoreOverlayRegistry } from './overlays';
 import { OverlayBuilder } from './overlayBuilder';
+import { resolveDasharray } from './edgeStyles';
 import {
   createRuntimePatchCtx,
   patchRuntime,
@@ -388,6 +389,14 @@ interface EdgeBuilder {
   stroke(color: string, width?: number): EdgeBuilder;
   /** Sets the opacity of the edge. */
   opacity(value: number): EdgeBuilder;
+  /** Apply a dashed stroke pattern (`8, 4`). */
+  dashed(): EdgeBuilder;
+  /** Apply a dotted stroke pattern (`2, 4`). */
+  dotted(): EdgeBuilder;
+  /** Apply a custom SVG `stroke-dasharray` value, or a preset name (`'dashed'`, `'dotted'`, `'dash-dot'`). */
+  dash(
+    pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
+  ): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
@@ -1093,6 +1102,13 @@ class VizBuilderImpl implements VizBuilder {
       if (edge.style?.opacity !== undefined)
         line.style.opacity = String(edge.style.opacity);
       else line.style.removeProperty('opacity');
+      if (edge.style?.strokeDasharray !== undefined) {
+        line.style.strokeDasharray = resolveDasharray(
+          edge.style.strokeDasharray
+        );
+      } else {
+        line.style.removeProperty('stroke-dasharray');
+      }
 
       const oldHit =
         group.querySelector('[data-viz-role="edge-hit"]') ||
@@ -1605,6 +1621,10 @@ class VizBuilderImpl implements VizBuilder {
         edgeInlineStyle += `fill: ${edge.style.fill}; `;
       if (edge.style?.opacity !== undefined)
         edgeInlineStyle += `opacity: ${edge.style.opacity}; `;
+      if (edge.style?.strokeDasharray !== undefined) {
+        const resolved = resolveDasharray(edge.style.strokeDasharray);
+        if (resolved) edgeInlineStyle += `stroke-dasharray: ${resolved}; `;
+      }
       svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} ${markerStart} style="${edgeInlineStyle}"${lineRuntimeAttrs} />`;
 
       // Edge Labels (multi-position)
@@ -2225,6 +2245,32 @@ class EdgeBuilderImpl implements EdgeBuilder {
     this.edgeDef.style = {
       ...(this.edgeDef.style || {}),
       opacity: value,
+    };
+    return this;
+  }
+
+  dashed(): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      strokeDasharray: 'dashed',
+    };
+    return this;
+  }
+
+  dotted(): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      strokeDasharray: 'dotted',
+    };
+    return this;
+  }
+
+  dash(
+    pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
+  ): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      strokeDasharray: pattern,
     };
     return this;
   }

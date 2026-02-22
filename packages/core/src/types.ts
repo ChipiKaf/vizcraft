@@ -226,6 +226,13 @@ export interface VizEdge {
     strokeWidth?: number;
     fill?: string;
     opacity?: number;
+    /**
+     * SVG `stroke-dasharray` value.
+     * Use the presets `'dashed'` (`8,4`), `'dotted'` (`2,4`), `'dash-dot'` (`8,4,2,4`),
+     * or pass any valid SVG dasharray string (e.g. `'12, 3, 3, 3'`).
+     * `'solid'` (or omitting the property) renders a continuous stroke.
+     */
+    strokeDasharray?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
   };
   className?: string;
   hitArea?: number; // width in px

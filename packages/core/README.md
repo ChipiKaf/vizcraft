@@ -169,6 +169,11 @@ b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow();
 // Per-edge styling (overrides CSS defaults)
 b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8);
 
+// Dashed, dotted, and custom dash patterns
+b.edge('a', 'b').dashed().stroke('#6c7086'); // dashed line
+b.edge('a', 'b').dotted(); // dotted line
+b.edge('a', 'b').dash('12, 3, 3, 3').stroke('#cba6f7'); // custom pattern
+
 // Multi-position edge labels (start / mid / end)
 b.edge('a', 'b')
   .label('1', { position: 'start' })
@@ -212,6 +217,9 @@ b.edge('a', 'b').fromPort('right').toPort('left').arrow();
 | `.stroke(color, width?)` | Set stroke color and optional width.                                                                                                  |
 | `.fill(color)`           | Set fill color.                                                                                                                       |
 | `.opacity(value)`        | Set opacity (0–1).                                                                                                                    |
+| `.dashed()`              | Dashed stroke (`8, 4`).                                                                                                               |
+| `.dotted()`              | Dotted stroke (`2, 4`).                                                                                                               |
+| `.dash(pattern)`         | Custom SVG dasharray or preset (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`).                                                     |
 
 **`EdgeMarkerType`** values: `'none'`, `'arrow'`, `'arrowOpen'`, `'diamond'`, `'diamondOpen'`, `'circle'`, `'circleOpen'`, `'square'`, `'bar'`, `'halfArrow'`.
 
