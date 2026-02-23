@@ -20,6 +20,7 @@ import type {
   VizSceneMutator,
   SceneChanges,
   VizPlugin,
+  VizEventMap,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -223,6 +224,17 @@ export interface VizBuilder extends VizSceneMutator {
    * @returns The builder, for fluent chaining
    */
   use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder;
+
+  /**
+   * Listen for lifecycle events (e.g. 'build', 'mount').
+   * @param event The event name
+   * @param callback The callback to execute when the event fires
+   * @returns An unsubscribe function
+   */
+  on<K extends keyof VizEventMap>(
+    event: K,
+    callback: (ev: VizEventMap[K]) => void
+  ): () => void;
 
   view(w: number, h: number): VizBuilder;
   grid(
@@ -621,6 +633,38 @@ class VizBuilderImpl implements VizBuilder {
   };
   private _changeListeners: Array<(changes: SceneChanges) => void> = [];
 
+  // Lifecycle Event System
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _eventListeners: Record<string, Array<(ev: any) => void>> = {
+    build: [],
+    mount: [],
+  };
+
+  on<K extends keyof VizEventMap>(
+    event: K,
+    callback: (ev: VizEventMap[K]) => void
+  ): () => void {
+    if (!this._eventListeners[event as string]) {
+      this._eventListeners[event as string] = [];
+    }
+    this._eventListeners[event as string]!.push(callback);
+    return () => {
+      this._eventListeners[event as string] = this._eventListeners[
+        event as string
+      ]!.filter((cb) => cb !== callback);
+    };
+  }
+
+  private _dispatchEvent<K extends keyof VizEventMap>(
+    event: K,
+    payload: VizEventMap[K]
+  ) {
+    const listeners = this._eventListeners[event as string];
+    if (listeners) {
+      listeners.forEach((cb) => cb(payload));
+    }
+  }
+
   addNode(node: VizNode): void {
     if (this._nodes.has(node.id)) {
       console.warn(`VizBuilder.addNode: Node ${node.id} already exists`);
@@ -957,7 +1001,7 @@ class VizBuilderImpl implements VizBuilder {
     const nodes = this._nodeOrder.map((id) => this._nodes.get(id) as VizNode);
     const edges = this._edgeOrder.map((id) => this._edges.get(id) as VizEdge);
 
-    return {
+    const scene: VizScene = {
       viewBox: this._viewBox,
       grid: this._gridConfig ?? undefined,
       nodes,
@@ -966,6 +1010,10 @@ class VizBuilderImpl implements VizBuilder {
       animationSpecs:
         this._animationSpecs.length > 0 ? [...this._animationSpecs] : undefined,
     };
+
+    this._dispatchEvent('build', { scene });
+
+    return scene;
   }
 
   _getGridConfig(): VizGridConfig | null {
@@ -1000,14 +1048,19 @@ class VizBuilderImpl implements VizBuilder {
     const svg = container.querySelector('svg') as SVGSVGElement | null;
     if (svg && opts?.css) this._injectCssIntoMountedSvg(svg, opts.css);
 
-    if (opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
+    if (svg && opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
 
+    let controller: PanZoomController | undefined;
     if (svg && opts?.panZoom) {
       const viewport = svg.querySelector('.viz-viewport') as SVGGElement | null;
       if (viewport) {
-        return setupPanZoom(svg, viewport, scene, opts);
+        controller = setupPanZoom(svg, viewport, scene, opts);
       }
     }
+
+    this._dispatchEvent('mount', { container, controller });
+
+    return controller;
   }
 
   private _injectCssIntoMountedSvg(svg: SVGSVGElement, css: string | string[]) {

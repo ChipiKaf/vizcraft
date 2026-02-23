@@ -172,6 +172,29 @@ builder
 ```
 </CodePreview>
 
+### Event Hooks
+
+Plugins become incredibly powerful when combined with lifecycle event hooks. You can use the `builder.on()` method to listen for the `'build'` and `'mount'` events.
+
+For example, an export plugin could wait for VizCraft to mount the SVG to the DOM, and then inject a floating "Download as PNG" button directly into the container element:
+
+```ts
+const exportUiPlugin: VizPlugin = (builder) => {
+  builder.on('mount', ({ container, controller }) => {
+     const btn = document.createElement('button');
+     btn.innerText = "Download PNG";
+     btn.onclick = () => { 
+        // Logic to export the builder.svg() string to PNG
+     };
+     
+     btn.style.position = 'absolute';
+     btn.style.top = '10px';
+     btn.style.right = '10px';
+     container.appendChild(btn);
+  });
+};
+```
+
 See the [types documentation](./types#vizplugin) for details on the `VizPlugin` signature.
 
 # Viewport & Pan/Zoom

@@ -562,3 +562,26 @@ export type VizPlugin<Options = any> = (
   builder: VizBuilder,
   options?: Options
 ) => void;
+
+/**
+ * Event fired when a VizScene is built.
+ */
+export type VizBuildEvent = {
+  scene: VizScene;
+};
+
+/**
+ * Event fired when a VizScene is mounted to the DOM.
+ */
+export type VizMountEvent = {
+  container: HTMLElement;
+  controller?: PanZoomController;
+};
+
+/**
+ * Map of all events emitted by VizBuilder.
+ */
+export interface VizEventMap {
+  build: VizBuildEvent;
+  mount: VizMountEvent;
+}

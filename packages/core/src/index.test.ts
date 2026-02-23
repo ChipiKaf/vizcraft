@@ -3474,4 +3474,56 @@ describe('vizcraft core', () => {
       expect(typeof builder.build).toBe('function');
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Events
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('Events', () => {
+    it('fires the build event when build() is called', () => {
+      const builder = viz();
+      let capturedScene: unknown = null;
+
+      builder.on('build', (ev) => {
+        capturedScene = ev.scene;
+      });
+
+      const scene = builder.build();
+      expect(capturedScene).toBeDefined();
+      expect(capturedScene).toBe(scene);
+    });
+
+    it('fires the mount event when mount() is called', () => {
+      const builder = viz();
+      let capturedContainer: unknown = null;
+      let capturedController: unknown = null;
+
+      builder.on('mount', (ev) => {
+        capturedContainer = ev.container;
+        capturedController = ev.controller;
+      });
+
+      const container = document.createElement('div');
+      const controller = builder.mount(container, { panZoom: true });
+
+      expect(capturedContainer).toBe(container);
+      expect(capturedController).toBeDefined();
+      expect(capturedController).toBe(controller);
+    });
+
+    it('allows unsubscribing from events', () => {
+      const builder = viz();
+      let buildCount = 0;
+
+      const unsubscribe = builder.on('build', () => {
+        buildCount++;
+      });
+
+      builder.build();
+      expect(buildCount).toBe(1);
+
+      unsubscribe();
+      builder.build();
+      expect(buildCount).toBe(1); // Should not increment
+    });
+  });
 });
