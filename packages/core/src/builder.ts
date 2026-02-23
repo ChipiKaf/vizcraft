@@ -346,6 +346,7 @@ interface NodeBuilder {
   stroke(color: string, width?: number): NodeBuilder;
   opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
+  zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
   animate(cb: (anim: AnimationBuilder) => unknown): NodeBuilder;
 
@@ -513,6 +514,7 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   }
   if (opts.opacity !== undefined) nb.opacity(opts.opacity);
   if (opts.className) nb.class(opts.className);
+  if (opts.zIndex !== undefined) nb.zIndex(opts.zIndex);
 
   // Label
   if (opts.label) {
@@ -1580,6 +1582,12 @@ class VizBuilderImpl implements VizBuilder {
       }
     });
 
+    // Sort by zIndex (stable sort relies on array insertion order if zIndex is equal)
+    rootNodesDOM.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    childrenByParentDOM.forEach((arr) =>
+      arr.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+    );
+
     // Collect ALL existing node groups (including nested inside containers)
     const existingNodeGroups = Array.from(
       nodeLayer.querySelectorAll('g[data-viz-role="node-group"]')
@@ -1601,11 +1609,10 @@ class VizBuilderImpl implements VizBuilder {
         group = document.createElementNS(svgNS, 'g');
         group.setAttribute('data-id', node.id);
         group.setAttribute('data-viz-role', 'node-group');
-        parentGroup.appendChild(group);
-      } else if (group.parentElement !== parentGroup) {
-        // Re-parent if the node moved to/from a container
-        parentGroup.appendChild(group);
       }
+
+      // Always append to ensure DOM order matches z-index order
+      parentGroup.appendChild(group);
 
       const isContainer = !!node.container;
 
@@ -2448,6 +2455,11 @@ class NodeBuilderImpl implements NodeBuilder {
     } else {
       this.nodeDef.className = name;
     }
+    return this;
+  }
+
+  zIndex(value: number): NodeBuilder {
+    this.nodeDef.zIndex = value;
     return this;
   }
 

@@ -185,6 +185,8 @@ export interface VizNode {
   data?: unknown; // User payload
   onClick?: (id: string, node: VizNode) => void;
   animations?: VizAnimSpec[];
+  /** Explicit render order. Higher values render on top. Default: 0. */
+  zIndex?: number;
 
   /**
    * Named connection ports on this node.
@@ -355,6 +357,8 @@ export interface NodeOptions {
   /** Stroke color, or `{ color, width }`. */
   stroke?: string | { color: string; width?: number };
   opacity?: number;
+  /** Explicit render order. Higher values render on top. Default: 0. */
+  zIndex?: number;
   className?: string;
 
   // --- Label ---

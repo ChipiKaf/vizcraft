@@ -9,6 +9,7 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import ResizeDemo from '@site/src/components/ResizeDemo';
 import MutationDemo from '@site/src/components/MutationDemo';
+import ZOrderingDemo from '@site/src/components/ZOrderingDemo';
 
 export const interactiveBuilder = viz().view(400, 200);
 export const interactiveScene = interactiveBuilder
@@ -113,6 +114,31 @@ builder.addNode({
 });
 builder.addEdge({ id: 'e1', from: 'root', to: 'n1', arrow: 'end' });
 builder.commit(container);
+```
+
+## Node Z-Ordering
+
+Controlling the stack order of objects on the grid is important when multiple nodes intersect. By default, visual order is determined by SVG insertion order. You can easily control this dynamically using the \`zIndex\` property on nodes or options.
+
+<CodePreview>
+  <ZOrderingDemo />
+</CodePreview>
+
+```ts
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(600, 300)
+  .node('back', { circle: { r: 50 }, at: { x: 250, y: 150 }, zIndex: 1, fill: 'blue' })
+  .node('front', { circle: { r: 50 }, at: { x: 300, y: 150 }, zIndex: 5, fill: 'green' })
+  .node('dynamic', { circle: { r: 60 }, at: { x: 275, y: 100 }, zIndex: 0, fill: 'red' });
+
+const container = document.getElementById('viz');
+builder.mount(container);
+
+// Later, interactively bring the dynamic node to the front
+builder.node('dynamic', { zIndex: 10 });
+builder.patchRuntime(container);
 ```
 
 # Viewport & Pan/Zoom
