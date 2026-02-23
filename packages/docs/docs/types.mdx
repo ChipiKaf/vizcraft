@@ -341,11 +341,27 @@ Options object accepted by `viz().node(id, opts)`. Configures a node declarative
 - `zIndex?: number` — explicit rendering depth order.
 - `className?: string` — CSS class.
 - `label?: string | { text: string; fontSize?: number; fill?: string; … }` — label text or label with options.
+- `image?: NodeImage` — embedded image or SVG icon options.
 - `ports?: Array<{ id: string; offset: { x: number; y: number }; direction?: number }>` — connection ports.
 - `container?: ContainerConfig` — marks this node as a container.
 - `parent?: string` — parent container node id.
 - `data?: unknown` — custom payload.
 - `onClick?: (id: string, node: VizNode) => void` — click handler.
+
+### NodeImage
+
+Embedded image options for a node, useful for architecture blocks or custom icons.
+
+```typescript
+export interface NodeImage {
+  href: string; // Image URL (raster or SVG)
+  width: number;
+  height: number;
+  dx?: number; // Horizontal offset from node center
+  dy?: number; // Vertical offset from node center
+  position?: 'above' | 'below' | 'left' | 'right' | 'replace'; // Position relative to label if both are present
+}
+```
 
 ---
 

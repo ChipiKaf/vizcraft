@@ -271,6 +271,7 @@ Returns **`VizBuilder`** (not `NodeBuilder`), so you can chain the next element 
 | `zIndex`                       | `number`                            | `.zIndex(value)`                  |
 | `className`                    | `string`                            | `.class(name)`                    |
 | `label`                        | `string \| { text, …labelOpts }`    | `.label(text, opts)`              |
+| `image`                        | `{ href, width, height, …opts }`    | `.image(href, w, h, opts)`        |
 | `ports`                        | `Array<{ id, offset, direction? }>` | `.port(id, offset, dir)`          |
 | `container`                    | `ContainerConfig`                   | `.container(config)`              |
 | `parent`                       | `string`                            | `.parent(id)`                     |
@@ -424,6 +425,62 @@ if (container) builder.mount(container);
   <VizMount
     builder={shapesScene}
     style={{ height: '920px', width: '100%', border: '1px solid #ccc' }}
+  />
+</CodePreview>
+
+</CodePreview>
+
+### Embedded Images
+
+You can embed images or SVG icons directly inside nodes using `.image()`. You can specify dimensions, positioning offsets, and how the image should relate to the node's text label (`above`, `below`, `left`, `right`, or `replace`).
+
+export const imageNodeScene = viz()
+  .view(600, 150)
+  .node('n1')
+  .at(100, 75)
+  .circle(40)
+  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', 24, 24, { position: 'above' })
+  .label('Info')
+  .node('n2')
+  .at(300, 75)
+  .rect(120, 50, 8)
+  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>', 24, 24, { position: 'left' })
+  .label('Activity')
+  .node('n3')
+  .at(500, 75)
+  .diamond(80, 80)
+  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>', 30, 30, { position: 'replace' })
+  .label('Hidden')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(600, 150);
+
+builder
+  // Image above label
+  .node('n1').at(100, 75).circle(40)
+  .image('/info-icon.svg', 24, 24, { position: 'above' })
+  .label('Info')
+
+  // Image to the left of label
+  .node('n2').at(300, 75).rect(120, 50, 8)
+  .image('/activity-icon.svg', 24, 24, { position: 'left' })
+  .label('Activity')
+
+  // Image replacing label
+  .node('n3').at(500, 75).diamond(80, 80)
+  .image('/dollar-icon.svg', 30, 30, { position: 'replace' })
+  .label('Hidden')
+  .done();
+
+const container = document.getElementById('viz-images');
+if (container) builder.mount(container);
+`}>
+  <VizMount
+    builder={imageNodeScene}
+    style={{ height: '150px', width: '100%', border: '1px solid var(--ifm-color-emphasis-200)' }}
   />
 </CodePreview>
 
