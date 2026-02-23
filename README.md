@@ -98,6 +98,29 @@ Common lifecycle:
 - `builder.play()` plays any compiled timeline specs.
 - `builder.patchRuntime(container)` applies runtime-only updates (useful for per-frame updates without remounting).
 
+### Plugins
+
+Extend the builder's functionality seamlessly using `.use()`. Plugins are functions that take the builder instance and optional configuration, allowing you to encapsulate reusable behaviors, export utilities, or composite nodes.
+
+```typescript
+import { viz, VizPlugin } from 'vizcraft';
+
+const watermarkPlugin: VizPlugin<{ text: string }> = (builder, opts) => {
+  builder.node('watermark', {
+    at: { x: 50, y: 20 },
+    rect: { w: 100, h: 20 },
+    label: opts?.text ?? 'Draft',
+    opacity: 0.5
+  });
+};
+
+viz()
+  .view(800, 600)
+  .node('n1', { circle: { r: 20 } })
+  .use(watermarkPlugin, { text: 'Confidential' })
+  .build();
+```
+
 ### Declarative Options Overloads
 
 You can also configure nodes and edges in a single declarative call by passing an options object:

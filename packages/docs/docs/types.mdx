@@ -25,6 +25,18 @@ A scene is the complete, serializable description of what to render.
 
 ---
 
+## VizPlugin {#vizplugin}
+
+A plugin function that can be ingested by a `VizBuilder` using the `.use()` method to extend functionality or mutate the scene fluently.
+
+**Signature**
+
+```typescript
+type VizPlugin<Options = any> = (builder: VizBuilder, options?: Options) => void;
+```
+
+---
+
 ## VizNode
 
 A node in the scene graph.
