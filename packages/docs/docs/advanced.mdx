@@ -21,6 +21,21 @@ export const interactiveScene = interactiveBuilder
   .onClick((id) => alert(`Clicked node ${id}`))
   .done();
 
+export const selfLoopBuilder = viz().view(400, 200);
+export const selfLoopScene = selfLoopBuilder
+  .node('db')
+  .at(200, 100)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .label('Database')
+  .done()
+  .edge('db', 'db')
+  .loopSide('right')
+  .loopSize(40)
+  .arrow()
+  .label('Ping', { position: 'end' })
+  .done();
+
 Take your visualizations to the next level with animations and interactivity.
 
 ## Animations
@@ -60,6 +75,41 @@ if (container) builder.mount(container);
 :::info
 Interactive elements will automatically get `cursor: pointer` if an `onClick` handler is attached, but you can also enforce it via styles.
 :::
+
+## Self-Loop Edges
+
+Self-loop edges are edges that connect a node to itself. They are drawn using bezier curves extending outward from the node boundaries.
+
+Use the fluent \`.loopSide()\` and \`.loopSize()\` methods to control the placement and extension of the loop curve.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(400, 200);
+
+builder
+  .node('db')
+  .at(200, 100)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .label('Database')
+  .done()
+  .edge('db', 'db')
+  .loopSide('right')
+  .loopSize(40)
+  .arrow()
+  .label('Ping', { position: 'end' })
+  .done();
+
+const container = document.getElementById('viz-self-loop');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount
+    builder={selfLoopScene}
+    style={{ height: '200px', width: '100%' }}
+  />
+</CodePreview>
 
 ## Runtime Node Resizing
 

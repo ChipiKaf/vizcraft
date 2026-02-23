@@ -7,8 +7,13 @@
  *   2. A midpoint along the path (for label positioning).
  */
 
-import type { Vec2, VizNode, VizEdge, EdgeRouting } from './types';
-import { computeNodeAnchor, effectivePos, resolvePortPosition } from './shapes';
+import type { Vec2, VizNode, VizEdge, EdgeRouting, NodeShape } from './types';
+import {
+  computeNodeAnchor,
+  effectivePos,
+  effectiveShape,
+  resolvePortPosition,
+} from './shapes';
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -334,4 +339,95 @@ function polylineLabelPositions(pts: Vec2[]): {
     mid: polylinePointAt(pts, 0.5),
     end: polylinePointAt(pts, LABEL_FRACTION_END),
   };
+}
+
+// ── Self Loops ──────────────────────────────────────────────────────────────
+
+/** Helper to estimate a shape's bounding box dimensions. */
+function estimateNodeDims(shape: NodeShape): { w: number; h: number } {
+  if (!shape) return { w: 60, h: 60 };
+  if ('w' in shape && 'h' in shape) return { w: shape.w, h: shape.h };
+  if ('r' in shape) return { w: shape.r * 2, h: shape.r * 2 };
+  if ('rx' in shape && 'ry' in shape)
+    return { w: shape.rx * 2, h: shape.ry * 2 };
+  if ('size' in shape) return { w: shape.size, h: shape.size };
+  return { w: 60, h: 60 };
+}
+
+/**
+ * Compute the SVG path and label positions for a self-loop edge.
+ * A self-loop exits and enters the same node on the specified side.
+ *
+ * @param node The target node
+ * @param edge The self-referencing VizEdge
+ */
+export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
+  const c = effectivePos(node);
+  const dims = estimateNodeDims(effectiveShape(node));
+  const w = dims.w;
+  const h = dims.h;
+
+  const side = edge.loopSide || 'top';
+  const size = edge.loopSize || 30;
+  // How wide the loop sits at the base (gap between exit and entry)
+  const spread = Math.min(
+    20,
+    (side === 'top' || side === 'bottom' ? w : h) * 0.8
+  );
+
+  let d = '';
+  let start: Vec2, mid: Vec2, end: Vec2;
+
+  switch (side) {
+    case 'top': {
+      const sx = c.x - spread / 2;
+      const sy = c.y - h / 2;
+      const ex = c.x + spread / 2;
+      const ey = c.y - h / 2;
+      const cpY = sy - size * 1.5;
+      d = `M ${sx} ${sy} C ${sx - spread / 2} ${cpY}, ${ex + spread / 2} ${cpY}, ${ex} ${ey}`;
+      start = { x: sx, y: sy - size * 0.2 };
+      mid = { x: c.x, y: sy - size };
+      end = { x: ex, y: ey - size * 0.2 };
+      break;
+    }
+    case 'bottom': {
+      const sx = c.x - spread / 2;
+      const sy = c.y + h / 2;
+      const ex = c.x + spread / 2;
+      const ey = c.y + h / 2;
+      const cpY = sy + size * 1.5;
+      d = `M ${sx} ${sy} C ${sx - spread / 2} ${cpY}, ${ex + spread / 2} ${cpY}, ${ex} ${ey}`;
+      start = { x: sx, y: sy + size * 0.2 };
+      mid = { x: c.x, y: sy + size };
+      end = { x: ex, y: ey + size * 0.2 };
+      break;
+    }
+    case 'left': {
+      const sx = c.x - w / 2;
+      const sy = c.y - spread / 2;
+      const ex = c.x - w / 2;
+      const ey = c.y + spread / 2;
+      const cpX = sx - size * 1.5;
+      d = `M ${sx} ${sy} C ${cpX} ${sy - spread / 2}, ${cpX} ${ey + spread / 2}, ${ex} ${ey}`;
+      start = { x: sx - size * 0.2, y: sy };
+      mid = { x: sx - size, y: c.y };
+      end = { x: ex - size * 0.2, y: ey };
+      break;
+    }
+    case 'right': {
+      const sx = c.x + w / 2;
+      const sy = c.y - spread / 2;
+      const ex = c.x + w / 2;
+      const ey = c.y + spread / 2;
+      const cpX = sx + size * 1.5;
+      d = `M ${sx} ${sy} C ${cpX} ${sy - spread / 2}, ${cpX} ${ey + spread / 2}, ${ex} ${ey}`;
+      start = { x: sx + size * 0.2, y: sy };
+      mid = { x: sx + size, y: c.y };
+      end = { x: ex + size * 0.2, y: ey };
+      break;
+    }
+  }
+
+  return { d, start, mid, end };
 }

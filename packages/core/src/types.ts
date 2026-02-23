@@ -285,6 +285,10 @@ export interface VizEdge {
   fromPort?: string;
   /** Port id on the target node. When set, the edge ends at the port's position instead of the boundary. */
   toPort?: string;
+  /** For self-loops: which side the loop exits from. Default: 'top'. */
+  loopSide?: 'top' | 'right' | 'bottom' | 'left';
+  /** For self-loops: how far the loop extends from the shape. Default: 30. */
+  loopSize?: number;
   anchor?: 'center' | 'boundary';
   /** Per-edge visual styling. Overrides the CSS defaults when set. */
   style?: {
@@ -417,6 +421,10 @@ export interface EdgeOptions {
   arrow?: boolean | 'both' | 'start' | 'end';
   markerStart?: EdgeMarkerType;
   markerEnd?: EdgeMarkerType;
+
+  // --- Self-Loops ---
+  loopSide?: 'top' | 'right' | 'bottom' | 'left';
+  loopSize?: number;
 
   // --- Style ---
   /** Stroke color, or `{ color, width }`. */

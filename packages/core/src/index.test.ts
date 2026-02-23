@@ -1345,6 +1345,36 @@ describe('vizcraft core', () => {
       ]);
     });
 
+    it('supports self-loops exiting and entering the same node', () => {
+      const builder = viz()
+        .node('loopable')
+        .at(100, 100)
+        .circle(20)
+        .done()
+        .edge('loopable', 'loopable')
+        .loopSide('top')
+        .loopSize(40);
+
+      const scene = builder.build();
+      const edge = scene.edges.find((e) => e.id === 'loopable->loopable');
+
+      expect(edge).toBeDefined();
+      expect(edge?.from).toBe('loopable');
+      expect(edge?.to).toBe('loopable');
+      expect(edge?.loopSide).toBe('top');
+      expect(edge?.loopSize).toBe(40);
+
+      // Verify SVG output has a path for the self-loop
+      const svgStr = builder.svg();
+      const pathMatch = svgStr.match(/ d="([^"]+)"/);
+      expect(pathMatch).toBeTruthy();
+
+      const d = pathMatch![1]!;
+      expect(d).toMatch(/^M\s/);
+      // Self loops are rendered with a cubic bezier C command
+      expect(d).toContain('C');
+    });
+
     it('straight SVG path uses M/L commands', () => {
       const svgStr = viz()
         .node('a')
