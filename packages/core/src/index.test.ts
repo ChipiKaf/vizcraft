@@ -3338,4 +3338,55 @@ describe('vizcraft core', () => {
       expect(viewport.getAttribute('transform')).toContain('scale(2)');
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Z-Ordering
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('z-ordering', () => {
+    it('sorts nodes by zIndex during render', () => {
+      const builder = viz()
+        .node('a', { circle: { r: 10 }, zIndex: 10 })
+        .node('b', { circle: { r: 10 }, zIndex: -1 })
+        .node('c', { circle: { r: 10 }, zIndex: 5 });
+
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      const nodes = Array.from(
+        container.querySelectorAll('g[data-viz-role="node-group"]')
+      );
+      expect(nodes).toHaveLength(3);
+
+      // Order should be b (-1), c (5), a (10)
+      expect(nodes[0]?.getAttribute('data-id')).toBe('b');
+      expect(nodes[1]?.getAttribute('data-id')).toBe('c');
+      expect(nodes[2]?.getAttribute('data-id')).toBe('a');
+    });
+
+    it('updates zIndex during runtime patching', () => {
+      const builder = viz()
+        .node('a', { circle: { r: 10 }, zIndex: 10 })
+        .node('b', { circle: { r: 10 }, zIndex: -1 });
+
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      const scene = builder.build();
+      const nodeA = scene.nodes.find((n) => n.id === 'a')!;
+      const nodeB = scene.nodes.find((n) => n.id === 'b')!;
+
+      // Swap zIndex
+      nodeA.zIndex = -5;
+      nodeB.zIndex = 15;
+
+      builder.patchRuntime(container);
+
+      const nodes = Array.from(
+        container.querySelectorAll('g[data-viz-role="node-group"]')
+      );
+      // A is now behind B
+      expect(nodes[0]?.getAttribute('data-id')).toBe('a');
+      expect(nodes[1]?.getAttribute('data-id')).toBe('b');
+    });
+  });
 });

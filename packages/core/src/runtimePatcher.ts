@@ -458,4 +458,65 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       line.removeAttribute('stroke-dashoffset');
     }
   }
+
+  // Ensure DOM order matches zIndex order for node layer children
+  // We use insertBefore to minimize DOM thrashing in the animation loop
+  const rootNodesDOM = [];
+  const childrenByParentDOM = new Map<string, typeof scene.nodes>();
+
+  for (const n of scene.nodes) {
+    if (n.parentId) {
+      let arr = childrenByParentDOM.get(n.parentId);
+      if (!arr) {
+        arr = [];
+        childrenByParentDOM.set(n.parentId, arr);
+      }
+      arr.push(n);
+    } else {
+      rootNodesDOM.push(n);
+    }
+  }
+
+  rootNodesDOM.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+  const nodeLayer =
+    ctx.svg.querySelector('[data-viz-layer="nodes"]') ||
+    ctx.svg.querySelector('.viz-layer-nodes');
+
+  if (nodeLayer) {
+    let currentDOMNode = nodeLayer.firstElementChild;
+    for (const node of rootNodesDOM) {
+      const group = ctx.nodeGroupsById.get(node.id);
+      if (!group) continue;
+
+      if (currentDOMNode !== group) {
+        nodeLayer.insertBefore(group, currentDOMNode);
+      } else {
+        currentDOMNode = currentDOMNode.nextElementSibling;
+      }
+    }
+  }
+
+  for (const [parentId, children] of childrenByParentDOM.entries()) {
+    children.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    const parentGroup = ctx.nodeGroupsById.get(parentId);
+    if (!parentGroup) continue;
+
+    const childrenGroup = parentGroup.querySelector(
+      ':scope > [data-viz-role="container-children"]'
+    );
+    if (childrenGroup) {
+      let currentDOMNode = childrenGroup.firstElementChild;
+      for (const child of children) {
+        const childGroup = ctx.nodeGroupsById.get(child.id);
+        if (!childGroup) continue;
+
+        if (currentDOMNode !== childGroup) {
+          childrenGroup.insertBefore(childGroup, currentDOMNode);
+        } else {
+          currentDOMNode = currentDOMNode.nextElementSibling;
+        }
+      }
+    }
+  }
 }
