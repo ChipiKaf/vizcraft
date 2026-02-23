@@ -1,6 +1,7 @@
 export type Vec2 = { x: number; y: number };
 
 import type { AnimationSpec } from './anim/spec';
+import type { VizBuilder } from './builder';
 
 export type NodeShape =
   | { kind: 'circle'; r: number }
@@ -550,3 +551,14 @@ export interface PanZoomController {
   /** Cleanup event listeners */
   destroy(): void;
 }
+
+/**
+ * A VizCraft plugin is a function that receives the VizBuilder instance
+ * and optional configuration options. It can mutate the scene, add nodes/edges,
+ * or attach custom behavior.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type VizPlugin<Options = any> = (
+  builder: VizBuilder,
+  options?: Options
+) => void;

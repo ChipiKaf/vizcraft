@@ -19,6 +19,7 @@ import type {
   PanZoomController,
   VizSceneMutator,
   SceneChanges,
+  VizPlugin,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -215,6 +216,14 @@ function animFallbackStyleEntries(params: unknown): Array<[string, string]> {
 }
 
 export interface VizBuilder extends VizSceneMutator {
+  /**
+   * Applies a plugin to the builder fluently.
+   * @param plugin The plugin function to execute
+   * @param options Optional configuration for the plugin
+   * @returns The builder, for fluent chaining
+   */
+  use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder;
+
   view(w: number, h: number): VizBuilder;
   grid(
     cols: number,
@@ -754,6 +763,17 @@ class VizBuilderImpl implements VizBuilder {
       runtimePatchCtxBySvg.set(svg, ctx);
     }
     patchRuntime(scene, ctx);
+  }
+
+  /**
+   * Applies a plugin to the builder.
+   * @param plugin The plugin
+   * @param options Optional configuration
+   * @returns The builder
+   */
+  use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder {
+    plugin(this, options);
+    return this;
   }
 
   /**

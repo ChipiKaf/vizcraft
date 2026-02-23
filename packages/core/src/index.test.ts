@@ -10,7 +10,7 @@ import {
   resolvePortPosition,
 } from './index';
 import type { VizNode } from './index';
-import type { SceneChanges, VizSceneMutator } from './types';
+import type { SceneChanges, VizSceneMutator, VizPlugin } from './types';
 
 describe('vizcraft core', () => {
   it('exports viz builder', () => {
@@ -3432,6 +3432,46 @@ describe('vizcraft core', () => {
       // A is now behind B
       expect(nodes[0]?.getAttribute('data-id')).toBe('a');
       expect(nodes[1]?.getAttribute('data-id')).toBe('b');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Plugins
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('Plugins', () => {
+    it('applies a plugin using builder.use()', () => {
+      // A simple plugin that adds a watermark node
+      const watermarkPlugin: VizPlugin<{ text: string }> = (
+        builder,
+        options
+      ) => {
+        builder.node('watermark', {
+          at: { x: 0, y: 0 },
+          rect: { w: 100, h: 20 },
+          label: options?.text ?? 'Watermark',
+        });
+      };
+
+      const scene = viz()
+        .node('a', { circle: { r: 10 } })
+        .use(watermarkPlugin, { text: 'Draft' })
+        .build();
+
+      expect(scene.nodes).toHaveLength(2);
+      const watermark = scene.nodes.find((n) => n.id === 'watermark');
+      expect(watermark).toBeDefined();
+      expect(watermark!.label?.text).toBe('Draft');
+    });
+
+    it('returns the builder for fluent chaining', () => {
+      const dummyPlugin: VizPlugin = (b) => {
+        b.node('plugin-node', { circle: { r: 5 } });
+      };
+
+      const builder = viz().use(dummyPlugin);
+      expect(typeof builder.node).toBe('function');
+      expect(typeof builder.edge).toBe('function');
+      expect(typeof builder.build).toBe('function');
     });
   });
 });
