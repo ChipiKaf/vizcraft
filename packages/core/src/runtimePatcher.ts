@@ -1,6 +1,10 @@
 import type { VizScene, EdgeMarkerType } from './types';
 import { applyShapeGeometry, effectivePos, effectiveShape } from './shapes';
-import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  computeSelfLoop,
+} from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 import { resolveDasharray } from './edgeStyles';
 
@@ -371,13 +375,18 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     const end = nodesById.get(edge.to);
     if (!start || !end) continue;
 
-    const endpoints = computeEdgeEndpoints(start, end, edge);
-    const edgePath = computeEdgePath(
-      endpoints.start,
-      endpoints.end,
-      edge.routing,
-      edge.waypoints
-    );
+    let edgePath;
+    if (start === end) {
+      edgePath = computeSelfLoop(start, edge);
+    } else {
+      const endpoints = computeEdgeEndpoints(start, end, edge);
+      edgePath = computeEdgePath(
+        endpoints.start,
+        endpoints.end,
+        edge.routing,
+        edge.waypoints
+      );
+    }
 
     // Path
     line.setAttribute('d', edgePath.d);

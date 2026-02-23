@@ -34,7 +34,11 @@ import {
   patchRuntime,
   type RuntimePatchCtx,
 } from './runtimePatcher';
-import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import {
+  computeEdgePath,
+  computeEdgeEndpoints,
+  computeSelfLoop,
+} from './edgePaths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
 import { renderSvgText } from './textUtils';
 import type { AnimationSpec } from './anim/spec';
@@ -461,6 +465,19 @@ interface EdgeBuilder {
   animateTo(props: AnimatableProps, opts: TweenOptions): EdgeBuilder;
   data(payload: unknown): EdgeBuilder;
   onClick(handler: (id: string, edge: VizEdge) => void): EdgeBuilder;
+
+  /**
+   * For self-loops: which side the loop exits from.
+   * @default 'top'
+   */
+  loopSide(side: 'top' | 'right' | 'bottom' | 'left'): EdgeBuilder;
+
+  /**
+   * For self-loops: how far the loop extends from the shape boundary.
+   * @default 30
+   */
+  loopSize(size: number): EdgeBuilder;
+
   done(): VizBuilder;
 
   // Seamless chaining extensions
@@ -579,6 +596,9 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.arrow !== undefined) eb.arrow(opts.arrow);
   if (opts.markerStart) eb.markerStart(opts.markerStart);
   if (opts.markerEnd) eb.markerEnd(opts.markerEnd);
+
+  if (opts.loopSide) eb.loopSide(opts.loopSide);
+  if (opts.loopSize) eb.loopSize(opts.loopSize);
 
   // Style
   if (opts.stroke) {
@@ -1515,13 +1535,18 @@ class VizBuilderImpl implements VizBuilder {
       group.setAttribute('class', classes);
 
       // Use effective positions (handles runtime overrides internally via helper)
-      const endpoints = computeEdgeEndpoints(start, end, edge);
-      const edgePath = computeEdgePath(
-        endpoints.start,
-        endpoints.end,
-        edge.routing,
-        edge.waypoints
-      );
+      let edgePath;
+      if (start === end) {
+        edgePath = computeSelfLoop(start, edge);
+      } else {
+        const endpoints = computeEdgeEndpoints(start, end, edge);
+        edgePath = computeEdgePath(
+          endpoints.start,
+          endpoints.end,
+          edge.routing,
+          edge.waypoints
+        );
+      }
 
       // Apply Edge Runtime Overrides
       if (edge.runtime?.opacity !== undefined) {
@@ -2122,13 +2147,18 @@ class VizBuilderImpl implements VizBuilder {
           ? `marker-start="url(#${markerIdFor(edge.markerStart, edge.style?.stroke, 'start')})"`
           : '';
 
-      const endpoints = computeEdgeEndpoints(start, end, edge);
-      const edgePath = computeEdgePath(
-        endpoints.start,
-        endpoints.end,
-        edge.routing,
-        edge.waypoints
-      );
+      let edgePath;
+      if (start === end) {
+        edgePath = computeSelfLoop(start, edge);
+      } else {
+        const endpoints = computeEdgeEndpoints(start, end, edge);
+        edgePath = computeEdgePath(
+          endpoints.start,
+          endpoints.end,
+          edge.routing,
+          edge.waypoints
+        );
+      }
 
       // Runtime overrides for SVG export
       let runtimeStyle = '';
@@ -2914,6 +2944,16 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   onClick(handler: (id: string, edge: VizEdge) => void): EdgeBuilder {
     this.edgeDef.onClick = handler;
+    return this;
+  }
+
+  loopSide(side: 'top' | 'right' | 'bottom' | 'left'): EdgeBuilder {
+    this.edgeDef.loopSide = side;
+    return this;
+  }
+
+  loopSize(size: number): EdgeBuilder {
+    this.edgeDef.loopSize = size;
     return this;
   }
 
