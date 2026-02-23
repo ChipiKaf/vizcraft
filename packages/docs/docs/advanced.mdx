@@ -31,9 +31,9 @@ export const selfLoopScene = selfLoopBuilder
   .done()
   .edge('db', 'db')
   .loopSide('right')
-  .loopSize(40)
+  .loopSize(60)
   .arrow()
-  .label('Ping', { position: 'end' })
+  .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
 Take your visualizations to the next level with animations and interactivity.
@@ -96,9 +96,9 @@ builder
   .done()
   .edge('db', 'db')
   .loopSide('right')
-  .loopSize(40)
+  .loopSize(60)
   .arrow()
-  .label('Ping', { position: 'end' })
+  .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
 const container = document.getElementById('viz-self-loop');
