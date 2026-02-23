@@ -14,6 +14,7 @@ import type {
   EdgeMarkerType,
   NodeOptions,
   EdgeOptions,
+  NodeImage,
   PanZoomOptions,
   PanZoomController,
   VizSceneMutator,
@@ -346,6 +347,12 @@ interface NodeBuilder {
   stroke(color: string, width?: number): NodeBuilder;
   opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
+  image(
+    href: string,
+    width: number,
+    height: number,
+    opts?: Omit<NodeImage, 'href' | 'width' | 'height'>
+  ): NodeBuilder;
   zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
   animate(cb: (anim: AnimationBuilder) => unknown): NodeBuilder;
@@ -516,10 +523,13 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   if (opts.className) nb.class(opts.className);
   if (opts.zIndex !== undefined) nb.zIndex(opts.zIndex);
 
-  // Label
+  // Label & Image
   if (opts.label) {
     if (typeof opts.label === 'string') nb.label(opts.label);
     else nb.label(opts.label.text, opts.label);
+  }
+  if (opts.image) {
+    nb.image(opts.image.href, opts.image.width, opts.image.height, opts.image);
   }
 
   // Extras
@@ -1729,7 +1739,51 @@ class VizBuilderImpl implements VizBuilder {
         if (staleHeader) staleHeader.remove();
       }
 
-      // Label
+      // Label & Image coordinate computation
+      let lx = x + (node.label?.dx || 0);
+      let ly = y + (node.label?.dy || 0);
+      let showLabel = !!node.label;
+
+      if (
+        node.label &&
+        isContainer &&
+        node.container!.headerHeight &&
+        'h' in node.shape &&
+        !node.label.dy
+      ) {
+        const sh = (node.shape as { h: number }).h;
+        ly = y - sh / 2 + node.container!.headerHeight / 2;
+        lx = x + (node.label.dx || 0);
+      }
+
+      let ix = x;
+      let iy = y;
+
+      if (node.image) {
+        const { width, height, position, dx = 0, dy = 0 } = node.image;
+        ix = x - width / 2 + dx;
+        iy = y - height / 2 + dy;
+
+        if (node.label && position) {
+          if (position === 'replace') {
+            showLabel = false;
+          } else if (position === 'above') {
+            iy -= 15;
+            ly += height / 2 + 5;
+          } else if (position === 'below') {
+            iy += 15;
+            ly -= height / 2 + 5;
+          } else if (position === 'left') {
+            ix -= 15;
+            lx += width / 2 + 5;
+          } else if (position === 'right') {
+            ix += 15;
+            lx -= width / 2 + 5;
+          }
+        }
+      }
+
+      // Render Label
       let label =
         (group.querySelector(
           '[data-viz-role="node-label"]'
@@ -1737,26 +1791,11 @@ class VizBuilderImpl implements VizBuilder {
         (group.querySelector('.viz-node-label') as SVGTextElement | null);
       if (label) {
         label.remove();
+        label = null;
       }
 
-      if (node.label) {
-        let lx = x + (node.label.dx || 0);
-        let ly = y + (node.label.dy || 0);
-
-        // If container with headerHeight, center label in header area
-        if (
-          isContainer &&
-          node.container!.headerHeight &&
-          'h' in node.shape &&
-          !node.label.dy
-        ) {
-          const sh = (node.shape as { h: number }).h;
-          ly = y - sh / 2 + node.container!.headerHeight / 2;
-          lx = x + (node.label.dx || 0);
-        }
-
+      if (node.label && showLabel) {
         const labelClass = `viz-node-label ${node.label.className || ''}`;
-
         const nodeLabelSvg = renderSvgText(lx, ly, node.label.text, {
           className: labelClass,
           fill: node.label.fill,
@@ -1771,8 +1810,27 @@ class VizBuilderImpl implements VizBuilder {
         }).replace('<text ', '<text data-viz-role="node-label" ');
 
         group.insertAdjacentHTML('beforeend', nodeLabelSvg);
-      } else if (label) {
-        label.remove();
+        label = group.querySelector(
+          '[data-viz-role="node-label"]'
+        ) as SVGTextElement | null;
+      }
+
+      // Render Image
+      let img = group.querySelector(
+        '[data-viz-role="node-image"]'
+      ) as SVGImageElement | null;
+      if (img) img.remove();
+
+      if (node.image) {
+        const { href, width, height } = node.image;
+        const imgEl = document.createElementNS(svgNS, 'image');
+        imgEl.setAttribute('href', href);
+        imgEl.setAttribute('x', String(ix));
+        imgEl.setAttribute('y', String(iy));
+        imgEl.setAttribute('width', String(width));
+        imgEl.setAttribute('height', String(height));
+        imgEl.setAttribute('data-viz-role', 'node-image');
+        group.insertBefore(imgEl, label || group.firstChild);
       }
 
       // Ports — render small circles at each explicit port position.
@@ -2446,6 +2504,16 @@ class NodeBuilderImpl implements NodeBuilder {
       ...(this.nodeDef.style || {}),
       opacity: value,
     };
+    return this;
+  }
+
+  image(
+    href: string,
+    width: number,
+    height: number,
+    opts?: Omit<NodeImage, 'href' | 'width' | 'height'>
+  ): NodeBuilder {
+    this.nodeDef.image = { href, width, height, ...opts };
     return this;
   }
 

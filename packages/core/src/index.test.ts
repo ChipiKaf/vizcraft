@@ -3342,6 +3342,51 @@ describe('vizcraft core', () => {
   // ═══════════════════════════════════════════════════════════════════════
   // Z-Ordering
   // ═══════════════════════════════════════════════════════════════════════
+  describe('node image embedding', () => {
+    it('supports builder.image() to configure a node image', () => {
+      const b = viz();
+      b.node('n1')
+        .circle(10)
+        .image('/img.png', 20, 20, { position: 'above', dx: 5 });
+      const scene = b.build();
+      const node = scene.nodes.find((n) => n.id === 'n1');
+      expect(node).toBeDefined();
+      expect(node!.image).toBeDefined();
+      expect(node!.image).toEqual({
+        href: '/img.png',
+        width: 20,
+        height: 20,
+        position: 'above',
+        dx: 5,
+      });
+    });
+
+    it('renders <image> SVG element alongside shapes and labels', () => {
+      const b = viz();
+      b.node('n1')
+        .at(100, 100)
+        .rect(50, 50)
+        .image('/icon.svg', 24, 24, { dx: 10, dy: -5 })
+        .label('Test Label', { dy: 20 });
+
+      const container = document.createElement('div');
+      b.mount(container);
+
+      const html = container.innerHTML;
+      expect(html).toContain('<image');
+      expect(html).toContain('href="/icon.svg"');
+      expect(html).toContain('width="24"');
+      expect(html).toContain('height="24"');
+      // 100 - (24/2) + 10 = 98 for x
+      expect(html).toContain('x="98"');
+      // 100 - (24/2) - 5 = 83 for y
+      expect(html).toContain('y="83"');
+
+      // Ensures the label still rendered
+      expect(html).toContain('Test Label</tspan>');
+    });
+  });
+
   describe('z-ordering', () => {
     it('sorts nodes by zIndex during render', () => {
       const builder = viz()

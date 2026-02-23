@@ -70,6 +70,21 @@ export type NodeLabel = {
   overflow?: 'visible' | 'ellipsis' | 'clip';
 };
 
+export interface NodeImage {
+  /** Image URL (raster or SVG) */
+  href: string;
+  /** Image width */
+  width: number;
+  /** Image height */
+  height: number;
+  /** Horizontal offset from node center */
+  dx?: number;
+  /** Vertical offset from node center */
+  dy?: number;
+  /** Position relative to label if both are present: 'above' | 'below' | 'left' | 'right' | 'replace' */
+  position?: 'above' | 'below' | 'left' | 'right' | 'replace';
+}
+
 export type AnimationDuration = `${number}s`;
 
 export interface AnimationConfig {
@@ -174,6 +189,7 @@ export interface VizNode {
   pos: Vec2;
   shape: NodeShape;
   label?: NodeLabel;
+  image?: NodeImage;
   runtime?: VizRuntimeNodeProps;
   style?: {
     fill?: string;
@@ -361,9 +377,11 @@ export interface NodeOptions {
   zIndex?: number;
   className?: string;
 
-  // --- Label ---
+  // --- Label & Embedded Image ---
   /** Plain string or full label options. */
   label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
+  /** Embedded image options. */
+  image?: NodeImage;
 
   // --- Extras ---
   data?: unknown;
