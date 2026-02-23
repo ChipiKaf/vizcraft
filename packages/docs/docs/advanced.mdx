@@ -141,6 +141,62 @@ builder.node('dynamic', { zIndex: 10 });
 builder.patchRuntime(container);
 ```
 
+## Plugins
+
+VizCraft features a lightweight plugin system, allowing you to seamlessly extend its functionality without bloating the core library itself. Plugins are functions that accept a `VizBuilder` instance and can mutate the scene, register custom behaviors, or execute utilities like exporting.
+
+<CodePreview>
+```ts
+import { viz, VizPlugin } from 'vizcraft';
+
+// A simple plugin that adds a watermark to the scene
+const watermarkPlugin: VizPlugin<{ text: string }> = (builder, options) => {
+  builder.node('watermark', {
+    at: { x: 50, y: 50 },
+    rect: { w: 100, h: 30 },
+    label: options?.text ?? 'Watermark',
+    zIndex: 999,
+    opacity: 0.5
+  });
+};
+
+const builder = viz().view(400, 200);
+
+builder
+  .node('a', { circle: { r: 20 }, at: { x: 150, y: 100 } })
+  // Attach the plugin fluently
+  .use(watermarkPlugin, { text: 'Draft Version' });
+
+// const container = document.getElementById('viz');
+// if (container) builder.mount(container);
+```
+</CodePreview>
+
+### Event Hooks
+
+Plugins become incredibly powerful when combined with lifecycle event hooks. You can use the `builder.on()` method to listen for the `'build'` and `'mount'` events.
+
+For example, an export plugin could wait for VizCraft to mount the SVG to the DOM, and then inject a floating "Download as PNG" button directly into the container element:
+
+```ts
+const exportUiPlugin: VizPlugin = (builder) => {
+  builder.on('mount', ({ container, controller }) => {
+     const btn = document.createElement('button');
+     btn.innerText = "Download PNG";
+     btn.onclick = () => { 
+        // Logic to export the builder.svg() string to PNG
+     };
+     
+     btn.style.position = 'absolute';
+     btn.style.top = '10px';
+     btn.style.right = '10px';
+     container.appendChild(btn);
+  });
+};
+```
+
+See the [types documentation](./types#vizplugin) for details on the `VizPlugin` signature.
+
 # Viewport & Pan/Zoom
 
 As your diagrams grow larger, a fixed-size SVG isn't always enough to comfortably display all content. VizCraft includes a built-in pan & zoom viewport controller to make exploring large scenes intuitive.

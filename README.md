@@ -98,6 +98,50 @@ Common lifecycle:
 - `builder.play()` plays any compiled timeline specs.
 - `builder.patchRuntime(container)` applies runtime-only updates (useful for per-frame updates without remounting).
 
+### Plugins
+
+Extend the builder's functionality seamlessly using `.use()`. Plugins are functions that take the builder instance and optional configuration, allowing you to encapsulate reusable behaviors, export utilities, or composite nodes.
+
+```typescript
+import { viz, VizPlugin } from 'vizcraft';
+
+const watermarkPlugin: VizPlugin<{ text: string }> = (builder, opts) => {
+  builder.node('watermark', {
+    at: { x: 50, y: 20 },
+    rect: { w: 100, h: 20 },
+    label: opts?.text ?? 'Draft',
+    opacity: 0.5
+  });
+};
+
+viz()
+  .view(800, 600)
+  .node('n1', { circle: { r: 20 } })
+  .use(watermarkPlugin, { text: 'Confidential' })
+  .build();
+```
+
+**Event Hooks**
+
+Plugins (or your own code) can also tap into the builder's lifecycle using `.on()`. This is particularly useful for interactive plugins that need to append HTML elements (like export buttons or tooltips) after VizCraft mounts the SVG to the DOM.
+
+```typescript
+const exportUiPlugin: VizPlugin = (builder) => {
+  // Listen for the 'mount' event to inject a button next to the SVG
+  builder.on('mount', ({ container }) => {
+     const btn = document.createElement('button');
+     btn.innerText = "Download PNG";
+     btn.onclick = () => { /* export logic */ };
+     
+     // Position the button absolutely over the container
+     btn.style.position = 'absolute';
+     btn.style.top = '10px';
+     btn.style.right = '10px';
+     container.appendChild(btn);
+  });
+};
+```
+
 ### Declarative Options Overloads
 
 You can also configure nodes and edges in a single declarative call by passing an options object:
