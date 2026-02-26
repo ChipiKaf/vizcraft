@@ -7,3 +7,5 @@ _index.ts
 tsconfig.tsbuildinfo
 
 .turbo
+
+.vizness-requests
