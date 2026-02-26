@@ -5,7 +5,15 @@ title: Essentials
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
-import { viz, circularLayout, gridLayout } from 'vizcraft';
+import { viz, circularLayout, gridLayout, registerIcon } from 'vizcraft';
+
+export const _registerEssentialsIcons = (() => {
+  registerIcon(
+    'custom-check',
+    '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+  );
+  return true;
+})();
 
 export const circularLayoutBuilder = (() => {
   const b = viz().view(500, 300);
@@ -29,7 +37,13 @@ export const gridLayoutBuilder = (() => {
   b.node('4').rect(40, 40).fill('#f9e2af');
   b.node('5').rect(40, 40).fill('#fab387');
   b.node('6').rect(40, 40).fill('#f38ba8');
-  b.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+  b.layout(gridLayout, {
+    cols: 3,
+    x: 100,
+    y: 70,
+    colSpacing: 150,
+    rowSpacing: 160,
+  });
   b.edge('1', '2').routing('orthogonal');
   b.edge('2', '3').routing('orthogonal');
   b.edge('4', '5').routing('orthogonal');
@@ -257,7 +271,7 @@ if (container) builder.mount(container);
 
 Once a scene is built, you render it to the DOM by passing an `HTMLElement` to `builder.mount()`. This injects the SVG and sets up any requested controllers (like pan/zoom).
 
-When you are done with a visualization — for example, when navigating away from a page or switching diagrams — you should call `builder.destroy()`. 
+When you are done with a visualization — for example, when navigating away from a page or switching diagrams — you should call `builder.destroy()`.
 
 ```typescript
 // Render the scene
@@ -317,7 +331,7 @@ Returns **`VizBuilder`** (not `NodeBuilder`), so you can chain the next element 
 | `zIndex`                       | `number`                            | `.zIndex(value)`                  |
 | `className`                    | `string`                            | `.class(name)`                    |
 | `label`                        | `string \| { text, …labelOpts }`    | `.label(text, opts)`              |
-| `image`                        | `{ href, width, height, …opts }`    | `.image(href, w, h, opts)`        |
+| `image`                        | `{ href, w, h, …opts }`             | `.image(href, w, h, opts)`        |
 | `ports`                        | `Array<{ id, offset, direction? }>` | `.port(id, offset, dir)`          |
 | `container`                    | `ContainerConfig`                   | `.container(config)`              |
 | `parent`                       | `string`                            | `.parent(id)`                     |
@@ -428,9 +442,9 @@ builder.edge('d', 'a');
 
 // Automatically arrange the nodes in a circle
 builder.layout(circularLayout, {
-  cx: 250,
-  cy: 150,
-  radius: 80
+cx: 250,
+cy: 150,
+radius: 80
 });
 
 const container = document.getElementById('viz-layout-circle');
@@ -459,11 +473,11 @@ builder.node('6').rect(40, 40).fill('#f38ba8');
 
 // The layout algorithm automatically wraps into columns/rows
 builder.layout(gridLayout, {
-  cols: 3,
-  x: 100,
-  y: 70,
-  colSpacing: 150,
-  rowSpacing: 160
+cols: 3,
+x: 100,
+y: 70,
+colSpacing: 150,
+rowSpacing: 160
 });
 
 // Since the algorithms only position the nodes, we can still chain fluent options:
@@ -555,25 +569,40 @@ if (container) builder.mount(container);
 
 ### Embedded Images
 
-You can embed images or SVG icons directly inside nodes using `.image()`. You can specify dimensions, positioning offsets, and how the image should relate to the node's text label (`above`, `below`, `left`, `right`, or `replace`).
+You can embed images (raster or SVG) directly inside nodes using `.image()`. You can specify dimensions, positioning (`center`, `above`, `below`, `left`, `right`), and `dx`/`dy` offsets.
 
 export const imageNodeScene = viz()
   .view(600, 150)
   .node('n1')
   .at(100, 75)
   .circle(40)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', 24, 24, { position: 'above' })
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    24,
+    24,
+    { position: 'above' }
+  )
   .label('Info')
   .node('n2')
   .at(300, 75)
   .rect(120, 50, 8)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>', 24, 24, { position: 'left' })
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>',
+    24,
+    24,
+    { position: 'left' }
+  )
   .label('Activity')
   .node('n3')
   .at(500, 75)
   .diamond(80, 80)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>', 30, 30, { position: 'replace' })
-  .label('Hidden')
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+    30,
+    30,
+    { position: 'center' }
+  )
+  .label('Centered', { dy: 30 })
   .done();
 
 <CodePreview code={`
@@ -582,29 +611,109 @@ import { viz } from 'vizcraft';
 const builder = viz().view(600, 150);
 
 builder
-  // Image above label
-  .node('n1').at(100, 75).circle(40)
-  .image('/info-icon.svg', 24, 24, { position: 'above' })
-  .label('Info')
+// Image above label
+.node('n1').at(100, 75).circle(40)
+.image('/info-icon.svg', 24, 24, { position: 'above' })
+.label('Info')
 
-  // Image to the left of label
-  .node('n2').at(300, 75).rect(120, 50, 8)
-  .image('/activity-icon.svg', 24, 24, { position: 'left' })
-  .label('Activity')
+// Image to the left of label
+.node('n2').at(300, 75).rect(120, 50, 8)
+.image('/activity-icon.svg', 24, 24, { position: 'left' })
+.label('Activity')
 
-  // Image replacing label
-  .node('n3').at(500, 75).diamond(80, 80)
-  .image('/dollar-icon.svg', 30, 30, { position: 'replace' })
-  .label('Hidden')
-  .done();
+// Image centered in the shape
+.node('n3').at(500, 75).diamond(80, 80)
+.image('/dollar-icon.svg', 30, 30, { position: 'center' })
+.label('Centered', { dy: 30 })
+.done();
 
 const container = document.getElementById('viz-images');
 if (container) builder.mount(container);
 `}>
+
   <VizMount
     builder={imageNodeScene}
     style={{ height: '150px', width: '100%', border: '1px solid var(--ifm-color-emphasis-200)' }}
   />
+</CodePreview>
+
+### Embedded Icons & Inline SVG
+
+If you want icons without managing image URLs, use `.icon()` with the icon registry.
+
+- Built-in icons are available by id (e.g. `'database'`, `'server'`, `'cloud'`, `'person'`).
+- Register your own via `registerIcon(id, svgString)`.
+
+For fully custom markup, use `.svgContent(...)` to embed inline SVG.
+
+export const embeddedMediaScene = viz()
+  .view(760, 170)
+  .node('img')
+  .at(140, 85)
+  .rect(170, 70, 10)
+  .fill('#a6e3a1')
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="black"/><circle cx="12" cy="12" r="4" fill="white"/></svg>',
+    28,
+    28,
+    { position: 'left', dx: -6 }
+  )
+  .label('image()', { dx: 16 })
+  .node('icon')
+  .at(380, 85)
+  .rect(170, 70, 10)
+  .fill('#89b4fa')
+  .icon('custom-check', { size: 28, color: '#111', position: 'center' })
+  .label('icon()', { dy: 30 })
+  .node('svg')
+  .at(620, 85)
+  .rect(170, 70, 10)
+  .fill('#f9e2af')
+  .svgContent(
+    '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l3 6 6 1-4.5 4.3L17.8 21 12 17.9 6.2 21l1.3-6.7L3 10l6-1 3-6z" fill="currentColor"/></svg>',
+    { w: 28, h: 28, position: 'center' }
+  )
+  .label('svgContent()', { dy: 30 })
+  .done();
+
+<CodePreview code={`
+import { viz, registerIcon } from 'vizcraft';
+
+registerIcon(
+'custom-check',
+'<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+);
+
+const builder = viz().view(760, 170);
+
+builder
+.node('img')
+.at(140, 85)
+.rect(170, 70, 10)
+.fill('#a6e3a1')
+.image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="black"/><circle cx="12" cy="12" r="4" fill="white"/></svg>', 28, 28, { position: 'left', dx: -6 })
+.label('image()', { dx: 16 })
+
+.node('icon')
+.at(380, 85)
+.rect(170, 70, 10)
+.fill('#89b4fa')
+.icon('custom-check', { size: 28, color: '#111', position: 'center' })
+.label('icon()', { dy: 30 })
+
+.node('svg')
+.at(620, 85)
+.rect(170, 70, 10)
+.fill('#f9e2af')
+.svgContent('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l3 6 6 1-4.5 4.3L17.8 21 12 17.9 6.2 21l1.3-6.7L3 10l6-1 3-6z" fill="currentColor"/></svg>', { w: 28, h: 28, position: 'center' })
+.label('svgContent()', { dy: 30 })
+.done();
+
+const container = document.getElementById('viz-embedded-media');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount builder={embeddedMediaScene} style={{ height: '170px', width: '100%' }} />
 </CodePreview>
 
 ### Positioning
@@ -648,11 +757,18 @@ export const multiLineLabelScene = viz()
   .node('n1')
   .at(100, 60)
   .rect(140, 80)
-  .label('Manual\nLine\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
+  .label('Manual\nLine\nBreaks', {
+    lineHeight: 1.4,
+    fontSize: 13,
+    fontWeight: 'bold',
+  })
   .node('n2')
   .at(300, 60)
   .circle(50)
-  .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
+  .label('This long text automatically wraps to fit the shape', {
+    maxWidth: 80,
+    fontSize: 11,
+  })
   .node('n3')
   .at(500, 60)
   .diamond(80, 80)
@@ -661,7 +777,10 @@ export const multiLineLabelScene = viz()
   .label('Edge\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
   .arrow()
   .edge('n2', 'n3')
-  .label('Long edge description\nwrapped\ninto three lines', { maxWidth: 80, fontSize: 10 })
+  .label('Long edge description\nwrapped\ninto three lines', {
+    maxWidth: 80,
+    fontSize: 10,
+  })
   .arrow()
   .done();
 
@@ -677,25 +796,25 @@ import { viz } from 'vizcraft';
 const builder = viz().view(600, 160);
 
 builder
-  // 1. Manual \n breaks
-  .node('n1').at(100, 60).rect(140, 80)
-  .label('Manual\\nLine\\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
+// 1. Manual \n breaks
+.node('n1').at(100, 60).rect(140, 80)
+.label('Manual\\nLine\\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
 
-  // 2. Auto word-wrap via maxWidth
-  .node('n2').at(300, 60).circle(50)
-  .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
+// 2. Auto word-wrap via maxWidth
+.node('n2').at(300, 60).circle(50)
+.label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
 
-  // 3. Vertical Alignment
-  .node('n3').at(500, 60).diamond(80, 80)
-  .label('Top Align\\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 })
+// 3. Vertical Alignment
+.node('n3').at(500, 60).diamond(80, 80)
+.label('Top Align\\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 })
 
-  // Edge labels also support wrapping
-  .edge('n1', 'n2').arrow()
-  .label('Edge\\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
-  
-  .edge('n2', 'n3').arrow()
-  .label('Long edge description\\nwrapped\\ninto three lines', { maxWidth: 80, fontSize: 10 })
-  .done();
+// Edge labels also support wrapping
+.edge('n1', 'n2').arrow()
+.label('Edge\\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
+
+.edge('n2', 'n3').arrow()
+.label('Long edge description\\nwrapped\\ninto three lines', { maxWidth: 80, fontSize: 10 })
+.done();
 
 const el = document.getElementById('viz-multiline-labels');
 if (el) builder.mount(el);
@@ -704,12 +823,12 @@ if (el) builder.mount(el);
   <VizMount builder={multiLineLabelScene} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
-| Label Option      | Type                                       | Effect                                                                               |
-| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `maxWidth`        | \`number\`                                 | Triggers automatic word wrapping when the approximate text width exceeds this value. |
-| `lineHeight`      | \`number\`                                 | Vertical spacing multiplier between lines (default: \`1.2\`).                        |
-| `verticalAlign`   | \`'top' \| 'middle' \| 'bottom'\`          | Aligns the text block vertically relative to the node's center (default \`'middle'\`). |
-| `overflow`        | \`'visible' \| 'ellipsis' \| 'clip'\`      | Defines how to handle text that exceeds bounds after wrapping (basic support).       |
+| Label Option    | Type                                  | Effect                                                                                 |
+| --------------- | ------------------------------------- | -------------------------------------------------------------------------------------- |
+| `maxWidth`      | \`number\`                            | Triggers automatic word wrapping when the approximate text width exceeds this value.   |
+| `lineHeight`    | \`number\`                            | Vertical spacing multiplier between lines (default: \`1.2\`).                          |
+| `verticalAlign` | \`'top' \| 'middle' \| 'bottom'\`     | Aligns the text block vertically relative to the node's center (default \`'middle'\`). |
+| `overflow`      | \`'visible' \| 'ellipsis' \| 'clip'\` | Defines how to handle text that exceeds bounds after wrapping (basic support).         |
 
 ### Edge Routing
 

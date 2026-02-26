@@ -32,7 +32,10 @@ A plugin function that can be ingested by a `VizBuilder` using the `.use()` meth
 **Signature**
 
 ```typescript
-type VizPlugin<Options = any> = (builder: VizBuilder, options?: Options) => void;
+type VizPlugin<Options = any> = (
+  builder: VizBuilder,
+  options?: Options
+) => void;
 ```
 
 ---
@@ -353,25 +356,68 @@ Options object accepted by `viz().node(id, opts)`. Configures a node declarative
 - `zIndex?: number` — explicit rendering depth order.
 - `className?: string` — CSS class.
 - `label?: string | { text: string; fontSize?: number; fill?: string; … }` — label text or label with options.
-- `image?: NodeImage` — embedded image or SVG icon options.
+- `image?: { href: string; w: number; h: number; dx?: number; dy?: number; position?: NodeMediaPosition; preserveAspectRatio?: string }` — embed an image (raster or SVG).
+- `icon?: { id: string; size: number; color?: string; dx?: number; dy?: number; position?: NodeMediaPosition }` — embed an icon by id (from the icon registry).
+- `svgContent?: { content: string; w: number; h: number; dx?: number; dy?: number; position?: NodeMediaPosition }` — embed inline SVG markup.
 - `ports?: Array<{ id: string; offset: { x: number; y: number }; direction?: number }>` — connection ports.
 - `container?: ContainerConfig` — marks this node as a container.
 - `parent?: string` — parent container node id.
 - `data?: unknown` — custom payload.
 - `onClick?: (id: string, node: VizNode) => void` — click handler.
 
-### NodeImage
+### NodeMediaPosition
 
-Embedded image options for a node, useful for architecture blocks or custom icons.
+Shared positioning options for `image`, `icon`, and `svgContent`.
+
+- `'center'` (default)
+- `'above'`
+- `'below'`
+- `'left'`
+- `'right'`
+
+### NodeOptions.image
+
+Embedded image options for a node.
 
 ```typescript
-export interface NodeImage {
-  href: string; // Image URL (raster or SVG)
-  width: number;
-  height: number;
-  dx?: number; // Horizontal offset from node center
-  dy?: number; // Vertical offset from node center
-  position?: 'above' | 'below' | 'left' | 'right' | 'replace'; // Position relative to label if both are present
+image?: {
+  href: string; // Image URL (raster, SVG, or data: URL)
+  w: number;
+  h: number;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
+  preserveAspectRatio?: string;
+}
+```
+
+### NodeOptions.icon
+
+Embedded icon options. The icon content is resolved from the icon registry by `id`.
+
+```typescript
+icon?: {
+  id: string;
+  size: number;
+  color?: string;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
+}
+```
+
+### NodeOptions.svgContent
+
+Embed inline SVG markup directly in the node.
+
+```typescript
+svgContent?: {
+  content: string; // '<svg ...>...</svg>' or raw inner markup
+  w: number;
+  h: number;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
 }
 ```
 

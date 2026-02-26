@@ -3471,6 +3471,80 @@ describe('vizcraft core', () => {
     });
   });
 
+  describe('node icon embedding', () => {
+    it('supports builder.icon() to configure a node icon', () => {
+      const b = viz();
+      b.node('n1')
+        .circle(10)
+        .icon('database', { size: 40, color: '#4285f4', dx: 2 });
+      const scene = b.build();
+      const node = scene.nodes.find((n) => n.id === 'n1');
+      expect(node).toBeDefined();
+      expect(node!.icon).toEqual({
+        id: 'database',
+        size: 40,
+        color: '#4285f4',
+        dx: 2,
+      });
+    });
+
+    it('renders a <g data-viz-role="node-icon"> wrapper with sized <svg>', () => {
+      const b = viz();
+      b.node('n1')
+        .at(100, 100)
+        .rect(50, 50)
+        .icon('server', { size: 24, color: '#111', dx: 10, dy: -5 })
+        .label('Test', { dy: 20 });
+
+      const container = document.createElement('div');
+      b.mount(container);
+
+      const html = container.innerHTML;
+      expect(html).toContain('data-viz-role="node-icon"');
+      expect(html).toContain('<svg');
+      expect(html).toContain('width="24"');
+      expect(html).toContain('height="24"');
+      expect(html).toContain('style="color:#111"');
+      // Position should match the image math: 100 - 12 + 10 = 98, 100 - 12 - 5 = 83
+      expect(html).toContain('transform="translate(98 83)"');
+    });
+  });
+
+  describe('node svgContent embedding', () => {
+    it('stores svgContent config and renders it as inline svg', () => {
+      const b = viz();
+      b.node('n1')
+        .at(100, 100)
+        .rect(50, 50)
+        .svgContent(
+          '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>',
+          {
+            w: 20,
+            h: 20,
+            dx: 1,
+          }
+        );
+
+      const scene = b.build();
+      const node = scene.nodes.find((n) => n.id === 'n1');
+      expect(node!.svgContent).toEqual({
+        content:
+          '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>',
+        width: 20,
+        height: 20,
+        dx: 1,
+      });
+
+      const container = document.createElement('div');
+      b.mount(container);
+      const html = container.innerHTML;
+      expect(html).toContain('data-viz-role="node-svg"');
+      expect(html).toContain('<svg');
+      expect(html).toContain('width="20"');
+      expect(html).toContain('height="20"');
+    });
+  });
+
   describe('z-ordering', () => {
     it('sorts nodes by zIndex during render', () => {
       const builder = viz()

@@ -157,6 +157,9 @@ export interface RuntimePatchCtx {
   nodeGroupsById: Map<string, SVGGElement>;
   nodeShapesById: Map<string, SVGElement>;
   nodeLabelsById: Map<string, SVGTextElement>;
+  nodeImagesById: Map<string, SVGImageElement>;
+  nodeIconsById: Map<string, SVGGElement>;
+  nodeSvgsById: Map<string, SVGGElement>;
 
   edgeGroupsById: Map<string, SVGGElement>;
   edgeLinesById: Map<string, SVGPathElement>;
@@ -168,6 +171,9 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
   const nodeGroupsById = new Map<string, SVGGElement>();
   const nodeShapesById = new Map<string, SVGElement>();
   const nodeLabelsById = new Map<string, SVGTextElement>();
+  const nodeImagesById = new Map<string, SVGImageElement>();
+  const nodeIconsById = new Map<string, SVGGElement>();
+  const nodeSvgsById = new Map<string, SVGGElement>();
 
   const edgeGroupsById = new Map<string, SVGGElement>();
   const edgeLinesById = new Map<string, SVGPathElement>();
@@ -195,6 +201,21 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
         group.querySelector<SVGTextElement>('[data-viz-role="node-label"]') ||
         group.querySelector<SVGTextElement>('.viz-node-label');
       if (label) nodeLabelsById.set(id, label);
+
+      const image =
+        group.querySelector<SVGImageElement>('[data-viz-role="node-image"]') ||
+        group.querySelector<SVGImageElement>('.viz-node-image');
+      if (image) nodeImagesById.set(id, image);
+
+      const icon =
+        group.querySelector<SVGGElement>('[data-viz-role="node-icon"]') ||
+        group.querySelector<SVGGElement>('.viz-node-icon');
+      if (icon) nodeIconsById.set(id, icon);
+
+      const svgGroup =
+        group.querySelector<SVGGElement>('[data-viz-role="node-svg"]') ||
+        group.querySelector<SVGGElement>('.viz-node-svg');
+      if (svgGroup) nodeSvgsById.set(id, svgGroup);
     }
   }
 
@@ -234,10 +255,76 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
     nodeGroupsById,
     nodeShapesById,
     nodeLabelsById,
+    nodeImagesById,
+    nodeIconsById,
+    nodeSvgsById,
     edgeGroupsById,
     edgeLinesById,
     edgeHitsById,
     edgeLabelsById,
+  };
+}
+
+function effectiveShapeDims(shape: unknown): { w: number; h: number } {
+  let w = 0;
+  let h = 0;
+  if (shape && typeof shape === 'object') {
+    const s = shape as Record<string, unknown>;
+    if (typeof s.w === 'number') w = s.w;
+    else if (typeof s.r === 'number') w = s.r * 2;
+    else if (typeof s.rx === 'number' && typeof s.ry === 'number') {
+      w = (s.rx as number) * 2;
+      h = (s.ry as number) * 2;
+    } else if (typeof s.size === 'number') w = s.size;
+    else if (typeof s.outerR === 'number') w = (s.outerR as number) * 2;
+
+    if (typeof s.h === 'number') h = s.h;
+    else if (h === 0) h = w;
+  }
+  return { w, h };
+}
+
+function mediaTopLeftAt(
+  cx: number,
+  cy: number,
+  nodeW: number,
+  nodeH: number,
+  mediaW: number,
+  mediaH: number,
+  opts?: { position?: string; dx?: number; dy?: number }
+): { x: number; y: number } {
+  const position = (opts?.position ?? 'center') as
+    | 'center'
+    | 'above'
+    | 'below'
+    | 'left'
+    | 'right';
+  const dx = opts?.dx ?? 0;
+  const dy = opts?.dy ?? 0;
+
+  let ox = 0;
+  let oy = 0;
+  switch (position) {
+    case 'above':
+      oy = -nodeH / 2 - mediaH / 2;
+      break;
+    case 'below':
+      oy = nodeH / 2 + mediaH / 2;
+      break;
+    case 'left':
+      ox = -nodeW / 2 - mediaW / 2;
+      break;
+    case 'right':
+      ox = nodeW / 2 + mediaW / 2;
+      break;
+    case 'center':
+    default:
+      break;
+  }
+
+  return {
+    x: cx + ox - mediaW / 2 + dx,
+    y: cy + oy - mediaH / 2 + dy,
   };
 }
 
@@ -277,6 +364,65 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     // Geometry
     const finalShape = effectiveShape(node);
     applyShapeGeometry(shape, finalShape, { x, y });
+
+    // Embedded media positions (image/icon/svg)
+    const { w: nodeW, h: nodeH } = effectiveShapeDims(finalShape);
+    if (nodeW > 0 && nodeH > 0) {
+      const imgEl = ctx.nodeImagesById.get(node.id);
+      if (imgEl && node.image) {
+        const tl = mediaTopLeftAt(
+          x,
+          y,
+          nodeW,
+          nodeH,
+          node.image.width,
+          node.image.height,
+          {
+            position: node.image.position,
+            dx: node.image.dx,
+            dy: node.image.dy,
+          }
+        );
+        imgEl.setAttribute('x', String(tl.x));
+        imgEl.setAttribute('y', String(tl.y));
+      }
+
+      const iconEl = ctx.nodeIconsById.get(node.id);
+      if (iconEl && node.icon) {
+        const tl = mediaTopLeftAt(
+          x,
+          y,
+          nodeW,
+          nodeH,
+          node.icon.size,
+          node.icon.size,
+          {
+            position: node.icon.position,
+            dx: node.icon.dx,
+            dy: node.icon.dy,
+          }
+        );
+        iconEl.setAttribute('transform', `translate(${tl.x} ${tl.y})`);
+      }
+
+      const svgEl = ctx.nodeSvgsById.get(node.id);
+      if (svgEl && node.svgContent) {
+        const tl = mediaTopLeftAt(
+          x,
+          y,
+          nodeW,
+          nodeH,
+          node.svgContent.width,
+          node.svgContent.height,
+          {
+            position: node.svgContent.position,
+            dx: node.svgContent.dx,
+            dy: node.svgContent.dy,
+          }
+        );
+        svgEl.setAttribute('transform', `translate(${tl.x} ${tl.y})`);
+      }
+    }
 
     // Container header line (update position if present)
     if (

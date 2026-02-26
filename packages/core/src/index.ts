@@ -3,6 +3,7 @@ export * from './builder';
 export * from './styles';
 export * from './animations';
 export * from './overlays';
+export * from './icons';
 export * from './overlayBuilder';
 export * from './edgePaths';
 export * from './edgeLabels';

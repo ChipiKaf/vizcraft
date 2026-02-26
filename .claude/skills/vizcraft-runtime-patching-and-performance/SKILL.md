@@ -8,7 +8,7 @@ license: Complete terms in LICENSE.txt
 
 ## Mental model (fast path)
 
-- **Mount once**, then update by *mutating runtime state* and *patching the existing SVG in-place*.
+- **Mount once**, then update by _mutating runtime state_ and _patching the existing SVG in-place_.
 - Runtime patching is designed for **high-frequency updates** (RAF, dragging, slider scrubbing, playback).
 - The “flush” operation should be **one call per frame**:
   - `builder.patchRuntime(container)` patches nodes/edges and reconciles overlays.
@@ -55,13 +55,13 @@ When you want timeline-style animation (including scrubbing):
 - Prefer `builder.play(...)` or the low-level helpers `createBuilderPlayback(...)` / `playAnimationSpec(...)`.
 - Playback is efficient because it:
   - writes only numeric runtime properties via the adapter (`get`/`set`)
-  - calls a single `flush()` per frame (wired to `builder.patchRuntime(container)`) 
+  - calls a single `flush()` per frame (wired to `builder.patchRuntime(container)`)
 
 For scrubbing, use `controller.seek(ms)` rather than rebuilding specs or remounting.
 
 ## Scale tips for “big” updates
 
-When the scene is large, the expensive part is usually the *number of animated tracks* and the *amount of geometry that must be recomputed*.
+When the scene is large, the expensive part is usually the _number of animated tracks_ and the _amount of geometry that must be recomputed_.
 
 - **Minimize tracks**: per frame cost grows with the count of `(target, property)` pairs you update.
 - **Prefer container motion**: if many nodes move together, animate the container node; children inherit the container’s runtime delta.
@@ -76,7 +76,7 @@ When the scene is large, the expensive part is usually the *number of animated t
 
 ## When you must do a full rebuild/remount
 
-Runtime patching is for *updating existing objects*, not changing topology.
+Runtime patching is for _updating existing objects_, not changing topology.
 
 - If you add/remove nodes or edges, or you materially change the SVG structure, do a full `build()` + `mount()`.
 - If you only need motion/opacity/transform/dashoffset changes, prefer runtime patching.

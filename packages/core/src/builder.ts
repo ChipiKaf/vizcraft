@@ -14,7 +14,6 @@ import type {
   EdgeMarkerType,
   NodeOptions,
   EdgeOptions,
-  NodeImage,
   PanZoomOptions,
   PanZoomController,
   VizSceneMutator,
@@ -62,6 +61,8 @@ import {
   getShapeBehavior,
   shapeSvgMarkup,
 } from './shapes';
+import { getEffectiveNodeBounds } from './hitTest';
+import { defaultCoreIconRegistry } from './icons';
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -182,6 +183,65 @@ function generateMarkerSvg(
 
   const orient = position === 'start' ? 'auto-start-reverse' : 'auto';
   return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="${orient}">${content}</marker>`;
+}
+
+function mediaTopLeft(
+  node: VizNode,
+  mediaW: number,
+  mediaH: number,
+  opts?: {
+    position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    dx?: number;
+    dy?: number;
+  }
+): { x: number; y: number } {
+  const { x: cx, y: cy } = effectivePos(node);
+  const bounds = getEffectiveNodeBounds(node);
+  const position = opts?.position ?? 'center';
+  const dx = opts?.dx ?? 0;
+  const dy = opts?.dy ?? 0;
+
+  let ox = 0;
+  let oy = 0;
+  switch (position) {
+    case 'above':
+      oy = -bounds.h / 2 - mediaH / 2;
+      break;
+    case 'below':
+      oy = bounds.h / 2 + mediaH / 2;
+      break;
+    case 'left':
+      ox = -bounds.w / 2 - mediaW / 2;
+      break;
+    case 'right':
+      ox = bounds.w / 2 + mediaW / 2;
+      break;
+    case 'center':
+    default:
+      break;
+  }
+
+  return {
+    x: cx + ox - mediaW / 2 + dx,
+    y: cy + oy - mediaH / 2 + dy,
+  };
+}
+
+function sizeSvgString(svg: string, w: number, h: number): string {
+  const trimmed = svg.trim();
+  if (!trimmed.startsWith('<svg')) return svg;
+  return trimmed.replace(/<svg\b([^>]*)>/, (_m, attrs: string) => {
+    const cleaned = attrs
+      .replace(/\swidth="[^"]*"/g, '')
+      .replace(/\sheight="[^"]*"/g, '');
+    return `<svg${cleaned} width="${w}" height="${h}">`;
+  });
+}
+
+function normalizeSvgContent(content: string, w: number, h: number): string {
+  const trimmed = content.trim();
+  if (trimmed.startsWith('<svg')) return sizeSvgString(trimmed, w, h);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${content}</svg>`;
 }
 
 const runtimePatchCtxBySvg = new WeakMap<SVGSVGElement, RuntimePatchCtx>();
@@ -390,17 +450,69 @@ interface NodeBuilder {
     h: number,
     direction?: 'up' | 'down' | 'left' | 'right'
   ): NodeBuilder;
+
+  /** Embed an SVG <image> inside/around the node. */
+  image(
+    href: string,
+    w: number,
+    h: number,
+    opts?: {
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+      preserveAspectRatio?: string;
+    }
+  ): NodeBuilder;
+  image(
+    href: string,
+    opts: {
+      w: number;
+      h: number;
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+      preserveAspectRatio?: string;
+    }
+  ): NodeBuilder;
+
+  /** Render a registered SVG icon inside/around the node. */
+  icon(
+    id: string,
+    opts: {
+      size: number;
+      color?: string;
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    }
+  ): NodeBuilder;
+
+  /** Render inline SVG content inside/around the node. */
+  svgContent(
+    content: string,
+    w: number,
+    h: number,
+    opts?: {
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    }
+  ): NodeBuilder;
+  svgContent(
+    content: string,
+    opts: {
+      w: number;
+      h: number;
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    }
+  ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
   opacity(value: number): NodeBuilder;
   class(name: string): NodeBuilder;
-  image(
-    href: string,
-    width: number,
-    height: number,
-    opts?: Omit<NodeImage, 'href' | 'width' | 'height'>
-  ): NodeBuilder;
   zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
   animate(cb: (anim: AnimationBuilder) => unknown): NodeBuilder;
@@ -589,8 +701,35 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
     if (typeof opts.label === 'string') nb.label(opts.label);
     else nb.label(opts.label.text, opts.label);
   }
+
   if (opts.image) {
-    nb.image(opts.image.href, opts.image.width, opts.image.height, opts.image);
+    nb.image(opts.image.href, opts.image.w, opts.image.h, {
+      dx: opts.image.dx,
+      dy: opts.image.dy,
+      position: opts.image.position,
+      preserveAspectRatio: opts.image.preserveAspectRatio,
+    });
+  }
+  if (opts.icon) {
+    nb.icon(opts.icon.id, {
+      size: opts.icon.size,
+      color: opts.icon.color,
+      dx: opts.icon.dx,
+      dy: opts.icon.dy,
+      position: opts.icon.position,
+    });
+  }
+  if (opts.svgContent) {
+    nb.svgContent(
+      opts.svgContent.content,
+      opts.svgContent.w,
+      opts.svgContent.h,
+      {
+        dx: opts.svgContent.dx,
+        dy: opts.svgContent.dy,
+        position: opts.svgContent.position,
+      }
+    );
   }
 
   // Extras
@@ -1533,7 +1672,7 @@ class VizBuilderImpl implements VizBuilder {
       container.appendChild(svg);
     }
 
-    // Update ViewBox
+    // Update Viewbox
     svg.setAttribute('viewBox', `0 0 ${viewBox.w} ${viewBox.h}`);
 
     const edgeLayer =
@@ -1885,6 +2024,104 @@ class VizBuilderImpl implements VizBuilder {
         opacity: node.runtime?.opacity ?? node.style?.opacity,
       });
 
+      // Embedded media (rendered alongside the base shape)
+      const existingImg = group.querySelector(
+        ':scope > [data-viz-role="node-image"], :scope > .viz-node-image'
+      ) as SVGImageElement | null;
+      if (existingImg) existingImg.remove();
+      const existingIcon = group.querySelector(
+        ':scope > [data-viz-role="node-icon"], :scope > .viz-node-icon'
+      ) as SVGGElement | null;
+      if (existingIcon) existingIcon.remove();
+      const existingSvg = group.querySelector(
+        ':scope > [data-viz-role="node-svg"], :scope > .viz-node-svg'
+      ) as SVGGElement | null;
+      if (existingSvg) existingSvg.remove();
+
+      // Insert immediately after the shape so labels/ports remain on top.
+      let insertAfter: ChildNode = shape!;
+      const insertNext = (el: SVGElement) => {
+        group!.insertBefore(el, insertAfter.nextSibling);
+        insertAfter = el;
+      };
+
+      if (node.image) {
+        const tl = mediaTopLeft(node, node.image.width, node.image.height, {
+          position: node.image.position,
+          dx: node.image.dx,
+          dy: node.image.dy,
+        });
+
+        const imgEl = document.createElementNS(svgNS, 'image');
+        imgEl.setAttribute('class', 'viz-node-image');
+        imgEl.setAttribute('data-viz-role', 'node-image');
+        imgEl.setAttribute('x', String(tl.x));
+        imgEl.setAttribute('y', String(tl.y));
+        imgEl.setAttribute('width', String(node.image.width));
+        imgEl.setAttribute('height', String(node.image.height));
+        imgEl.setAttribute('href', node.image.href);
+        if (node.image.preserveAspectRatio) {
+          imgEl.setAttribute(
+            'preserveAspectRatio',
+            node.image.preserveAspectRatio
+          );
+        }
+        insertNext(imgEl);
+      }
+
+      if (node.icon) {
+        const svg = defaultCoreIconRegistry.get(node.icon.id);
+        if (!svg) {
+          console.warn(
+            `VizCraft: icon '${node.icon.id}' not found. Use registerIcon().`
+          );
+        } else {
+          const tl = mediaTopLeft(node, node.icon.size, node.icon.size, {
+            position: node.icon.position,
+            dx: node.icon.dx,
+            dy: node.icon.dy,
+          });
+
+          const iconGroup = document.createElementNS(svgNS, 'g');
+          iconGroup.setAttribute('class', 'viz-node-icon');
+          iconGroup.setAttribute('data-viz-role', 'node-icon');
+          iconGroup.setAttribute('transform', `translate(${tl.x} ${tl.y})`);
+          if (node.icon.color) {
+            // Keep formatting stable for tests (avoid CSSStyleDeclaration serialization)
+            iconGroup.setAttribute('style', `color:${node.icon.color}`);
+          }
+          iconGroup.innerHTML = sizeSvgString(
+            svg,
+            node.icon.size,
+            node.icon.size
+          );
+          insertNext(iconGroup);
+        }
+      }
+
+      if (node.svgContent) {
+        const tl = mediaTopLeft(
+          node,
+          node.svgContent.width,
+          node.svgContent.height,
+          {
+            position: node.svgContent.position,
+            dx: node.svgContent.dx,
+            dy: node.svgContent.dy,
+          }
+        );
+        const svgGroup = document.createElementNS(svgNS, 'g');
+        svgGroup.setAttribute('class', 'viz-node-svg');
+        svgGroup.setAttribute('data-viz-role', 'node-svg');
+        svgGroup.setAttribute('transform', `translate(${tl.x} ${tl.y})`);
+        svgGroup.innerHTML = normalizeSvgContent(
+          node.svgContent.content,
+          node.svgContent.width,
+          node.svgContent.height
+        );
+        insertNext(svgGroup);
+      }
+
       // Container header line
       if (
         isContainer &&
@@ -1922,7 +2159,7 @@ class VizBuilderImpl implements VizBuilder {
         if (staleHeader) staleHeader.remove();
       }
 
-      // Label & Image coordinate computation
+      // Label coordinate computation
       let lx = x + (node.label?.dx || 0);
       let ly = y + (node.label?.dy || 0);
       let showLabel = !!node.label;
@@ -1937,33 +2174,6 @@ class VizBuilderImpl implements VizBuilder {
         const sh = (node.shape as { h: number }).h;
         ly = y - sh / 2 + node.container!.headerHeight / 2;
         lx = x + (node.label.dx || 0);
-      }
-
-      let ix = x;
-      let iy = y;
-
-      if (node.image) {
-        const { width, height, position, dx = 0, dy = 0 } = node.image;
-        ix = x - width / 2 + dx;
-        iy = y - height / 2 + dy;
-
-        if (node.label && position) {
-          if (position === 'replace') {
-            showLabel = false;
-          } else if (position === 'above') {
-            iy -= 15;
-            ly += height / 2 + 5;
-          } else if (position === 'below') {
-            iy += 15;
-            ly -= height / 2 + 5;
-          } else if (position === 'left') {
-            ix -= 15;
-            lx += width / 2 + 5;
-          } else if (position === 'right') {
-            ix += 15;
-            lx -= width / 2 + 5;
-          }
-        }
       }
 
       // Render Label
@@ -1996,24 +2206,6 @@ class VizBuilderImpl implements VizBuilder {
         label = group.querySelector(
           '[data-viz-role="node-label"]'
         ) as SVGTextElement | null;
-      }
-
-      // Render Image
-      let img = group.querySelector(
-        '[data-viz-role="node-image"]'
-      ) as SVGImageElement | null;
-      if (img) img.remove();
-
-      if (node.image) {
-        const { href, width, height } = node.image;
-        const imgEl = document.createElementNS(svgNS, 'image');
-        imgEl.setAttribute('href', href);
-        imgEl.setAttribute('x', String(ix));
-        imgEl.setAttribute('y', String(iy));
-        imgEl.setAttribute('width', String(width));
-        imgEl.setAttribute('height', String(height));
-        imgEl.setAttribute('data-viz-role', 'node-image');
-        group.insertBefore(imgEl, label || group.firstChild);
       }
 
       // Ports — render small circles at each explicit port position.
@@ -2371,6 +2563,59 @@ class VizBuilderImpl implements VizBuilder {
       // Shape
       content += shapeSvgMarkup(shape, { x, y }, shapeStyleAttrs);
 
+      // Embedded media (rendered alongside the base shape)
+      if (node.image) {
+        const tl = mediaTopLeft(node, node.image.width, node.image.height, {
+          position: node.image.position,
+          dx: node.image.dx,
+          dy: node.image.dy,
+        });
+        const preserve = node.image.preserveAspectRatio
+          ? ` preserveAspectRatio="${escapeXmlAttr(node.image.preserveAspectRatio)}"`
+          : '';
+        const safeHref = escapeXmlAttr(node.image.href);
+        content += `<image x="${tl.x}" y="${tl.y}" width="${node.image.width}" height="${node.image.height}" href="${safeHref}"${preserve} class="viz-node-image" data-viz-role="node-image" />`;
+      }
+
+      if (node.icon) {
+        const svg = defaultCoreIconRegistry.get(node.icon.id);
+        if (!svg) {
+          console.warn(
+            `VizCraft: icon '${node.icon.id}' not found. Use registerIcon().`
+          );
+        } else {
+          const tl = mediaTopLeft(node, node.icon.size, node.icon.size, {
+            position: node.icon.position,
+            dx: node.icon.dx,
+            dy: node.icon.dy,
+          });
+          const colorStyle = node.icon.color
+            ? ` style="color:${escapeXmlAttr(node.icon.color)}"`
+            : '';
+          const sized = sizeSvgString(svg, node.icon.size, node.icon.size);
+          content += `<g transform="translate(${tl.x} ${tl.y})" class="viz-node-icon" data-viz-role="node-icon"${colorStyle}>${sized}</g>`;
+        }
+      }
+
+      if (node.svgContent) {
+        const tl = mediaTopLeft(
+          node,
+          node.svgContent.width,
+          node.svgContent.height,
+          {
+            position: node.svgContent.position,
+            dx: node.svgContent.dx,
+            dy: node.svgContent.dy,
+          }
+        );
+        const normalized = normalizeSvgContent(
+          node.svgContent.content,
+          node.svgContent.width,
+          node.svgContent.height
+        );
+        content += `<g transform="translate(${tl.x} ${tl.y})" class="viz-node-svg" data-viz-role="node-svg">${normalized}</g>`;
+      }
+
       // Container header line
       if (
         isContainer &&
@@ -2665,6 +2910,128 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  image(
+    href: string,
+    wOrOpts:
+      | number
+      | {
+          w: number;
+          h: number;
+          dx?: number;
+          dy?: number;
+          position?: 'center' | 'above' | 'below' | 'left' | 'right';
+          preserveAspectRatio?: string;
+        },
+    h?: number,
+    opts?: {
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+      preserveAspectRatio?: string;
+    }
+  ): NodeBuilder {
+    const parsed =
+      typeof wOrOpts === 'number'
+        ? {
+            width: wOrOpts,
+            height: h ?? wOrOpts,
+            dx: opts?.dx,
+            dy: opts?.dy,
+            position: opts?.position,
+            preserveAspectRatio: opts?.preserveAspectRatio,
+          }
+        : {
+            width: wOrOpts.w,
+            height: wOrOpts.h,
+            dx: wOrOpts.dx,
+            dy: wOrOpts.dy,
+            position: wOrOpts.position,
+            preserveAspectRatio: wOrOpts.preserveAspectRatio,
+          };
+
+    const image = {
+      href,
+      width: parsed.width,
+      height: parsed.height,
+    } as NonNullable<VizNode['image']>;
+    if (parsed.dx !== undefined) image.dx = parsed.dx;
+    if (parsed.dy !== undefined) image.dy = parsed.dy;
+    if (parsed.position !== undefined) image.position = parsed.position;
+    if (parsed.preserveAspectRatio !== undefined)
+      image.preserveAspectRatio = parsed.preserveAspectRatio;
+    this.nodeDef.image = image;
+    return this;
+  }
+
+  icon(
+    id: string,
+    opts: {
+      size: number;
+      color?: string;
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    }
+  ): NodeBuilder {
+    const icon = {
+      id,
+      size: opts.size,
+    } as NonNullable<VizNode['icon']>;
+    if (opts.color !== undefined) icon.color = opts.color;
+    if (opts.dx !== undefined) icon.dx = opts.dx;
+    if (opts.dy !== undefined) icon.dy = opts.dy;
+    if (opts.position !== undefined) icon.position = opts.position;
+    this.nodeDef.icon = icon;
+    return this;
+  }
+
+  svgContent(
+    content: string,
+    wOrOpts:
+      | number
+      | {
+          w: number;
+          h: number;
+          dx?: number;
+          dy?: number;
+          position?: 'center' | 'above' | 'below' | 'left' | 'right';
+        },
+    h?: number,
+    opts?: {
+      dx?: number;
+      dy?: number;
+      position?: 'center' | 'above' | 'below' | 'left' | 'right';
+    }
+  ): NodeBuilder {
+    const parsed =
+      typeof wOrOpts === 'number'
+        ? {
+            width: wOrOpts,
+            height: h ?? wOrOpts,
+            dx: opts?.dx,
+            dy: opts?.dy,
+            position: opts?.position,
+          }
+        : {
+            width: wOrOpts.w,
+            height: wOrOpts.h,
+            dx: wOrOpts.dx,
+            dy: wOrOpts.dy,
+            position: wOrOpts.position,
+          };
+
+    const svgContent = {
+      content,
+      width: parsed.width,
+      height: parsed.height,
+    } as NonNullable<VizNode['svgContent']>;
+    if (parsed.dx !== undefined) svgContent.dx = parsed.dx;
+    if (parsed.dy !== undefined) svgContent.dy = parsed.dy;
+    if (parsed.position !== undefined) svgContent.position = parsed.position;
+    this.nodeDef.svgContent = svgContent;
+    return this;
+  }
+
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder {
     this.nodeDef.label = { text, ...opts };
     return this;
@@ -2692,16 +3059,6 @@ class NodeBuilderImpl implements NodeBuilder {
       ...(this.nodeDef.style || {}),
       opacity: value,
     };
-    return this;
-  }
-
-  image(
-    href: string,
-    width: number,
-    height: number,
-    opts?: Omit<NodeImage, 'href' | 'width' | 'height'>
-  ): NodeBuilder {
-    this.nodeDef.image = { href, width, height, ...opts };
     return this;
   }
 

@@ -49,7 +49,58 @@ export type NodeShape =
       w: number;
       h: number;
       direction?: 'up' | 'down' | 'left' | 'right';
+    }
+  | {
+      kind: 'image';
+      href: string;
+      w: number;
+      h: number;
+      preserveAspectRatio?: string;
+    }
+  | {
+      kind: 'icon';
+      id: string;
+      size: number;
+      color?: string;
+      w: number;
+      h: number;
+    }
+  | {
+      kind: 'svg';
+      content: string;
+      w: number;
+      h: number;
     };
+
+export type NodeMediaPosition = 'center' | 'above' | 'below' | 'left' | 'right';
+
+export interface VizNodeImage {
+  href: string;
+  width: number;
+  height: number;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
+  preserveAspectRatio?: string;
+}
+
+export interface VizNodeIcon {
+  id: string;
+  size: number;
+  color?: string;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
+}
+
+export interface VizNodeSvgContent {
+  content: string;
+  width: number;
+  height: number;
+  dx?: number;
+  dy?: number;
+  position?: NodeMediaPosition;
+}
 
 export type NodeLabel = {
   text: string;
@@ -70,21 +121,6 @@ export type NodeLabel = {
   /** Text overflow behavior */
   overflow?: 'visible' | 'ellipsis' | 'clip';
 };
-
-export interface NodeImage {
-  /** Image URL (raster or SVG) */
-  href: string;
-  /** Image width */
-  width: number;
-  /** Image height */
-  height: number;
-  /** Horizontal offset from node center */
-  dx?: number;
-  /** Vertical offset from node center */
-  dy?: number;
-  /** Position relative to label if both are present: 'above' | 'below' | 'left' | 'right' | 'replace' */
-  position?: 'above' | 'below' | 'left' | 'right' | 'replace';
-}
 
 export type AnimationDuration = `${number}s`;
 
@@ -190,7 +226,12 @@ export interface VizNode {
   pos: Vec2;
   shape: NodeShape;
   label?: NodeLabel;
-  image?: NodeImage;
+  /** Optional embedded image rendered alongside the node shape. */
+  image?: VizNodeImage;
+  /** Optional embedded icon rendered alongside the node shape. */
+  icon?: VizNodeIcon;
+  /** Optional embedded inline SVG content rendered alongside the node shape. */
+  svgContent?: VizNodeSvgContent;
   runtime?: VizRuntimeNodeProps;
   style?: {
     fill?: string;
@@ -373,6 +414,33 @@ export interface NodeOptions {
     direction?: 'up' | 'down' | 'left' | 'right';
   };
 
+  // --- Embedded Media ---
+  image?: {
+    href: string;
+    w: number;
+    h: number;
+    dx?: number;
+    dy?: number;
+    position?: NodeMediaPosition;
+    preserveAspectRatio?: string;
+  };
+  icon?: {
+    id: string;
+    size: number;
+    color?: string;
+    dx?: number;
+    dy?: number;
+    position?: NodeMediaPosition;
+  };
+  svgContent?: {
+    content: string;
+    w: number;
+    h: number;
+    dx?: number;
+    dy?: number;
+    position?: NodeMediaPosition;
+  };
+
   // --- Styling ---
   fill?: string;
   /** Stroke color, or `{ color, width }`. */
@@ -385,8 +453,6 @@ export interface NodeOptions {
   // --- Label & Embedded Image ---
   /** Plain string or full label options. */
   label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
-  /** Embedded image options. */
-  image?: NodeImage;
 
   // --- Extras ---
   data?: unknown;
