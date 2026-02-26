@@ -7,34 +7,35 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz, circularLayout, gridLayout } from 'vizcraft';
 
-export const circularLayoutBuilder = viz()
-  .view(500, 300)
-  .node('a').circle(30).fill('#89b4fa')
-  .node('b').circle(30).fill('#a6e3a1')
-  .node('c').circle(30).fill('#f9e2af')
-  .node('d').circle(30).fill('#f38ba8')
-  .edge('a', 'b')
-  .edge('b', 'c')
-  .edge('c', 'd')
-  .edge('d', 'a')
-  .done()
-  .layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+export const circularLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('a').circle(30).fill('#89b4fa');
+  b.node('b').circle(30).fill('#a6e3a1');
+  b.node('c').circle(30).fill('#f9e2af');
+  b.node('d').circle(30).fill('#f38ba8');
+  b.edge('a', 'b');
+  b.edge('b', 'c');
+  b.edge('c', 'd');
+  b.edge('d', 'a');
+  b.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+  return b;
+})();
 
-export const gridLayoutBuilder = viz()
-  .view(500, 300)
-  .node('1').rect(40, 40).fill('#cba6f7')
-  .node('2').rect(40, 40).fill('#89b4fa')
-  .node('3').rect(40, 40).fill('#a6e3a1')
-  .node('4').rect(40, 40).fill('#f9e2af')
-  .node('5').rect(40, 40).fill('#fab387')
-  .node('6').rect(40, 40).fill('#f38ba8')
-  .done()
-  .layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 })
-  .edge('1', '2').routing('orthogonal')
-  .edge('2', '3').routing('orthogonal')
-  .edge('4', '5').routing('orthogonal')
-  .edge('5', '6').routing('orthogonal')
-  .done();
+export const gridLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('1').rect(40, 40).fill('#cba6f7');
+  b.node('2').rect(40, 40).fill('#89b4fa');
+  b.node('3').rect(40, 40).fill('#a6e3a1');
+  b.node('4').rect(40, 40).fill('#f9e2af');
+  b.node('5').rect(40, 40).fill('#fab387');
+  b.node('6').rect(40, 40).fill('#f38ba8');
+  b.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+  b.edge('1', '2').routing('orthogonal');
+  b.edge('2', '3').routing('orthogonal');
+  b.edge('4', '5').routing('orthogonal');
+  b.edge('5', '6').routing('orthogonal');
+  return b;
+})();
 
 export const gridBuilder = viz().view(500, 300);
 export const gridScene = gridBuilder
@@ -481,7 +482,7 @@ if (container) builder.mount(container);
   />
 </CodePreview>
 
-A layout algorithm is a function that takes a \`LayoutGraph\` (the current nodes and edges) and returns a \`LayoutResult\` object mapping node IDs to computed \`{x, y}\` coordinates. If you write your own algorithm, just ensure it conforms to the \`LayoutAlgorithm\` TypeScript signature.
+A layout algorithm is a function that takes a \`LayoutGraph\` (the current nodes and edges) and returns a \`LayoutResult\` object mapping node IDs to computed \`\{x, y\}\` coordinates. If you write your own algorithm, just ensure it conforms to the \`LayoutAlgorithm\` TypeScript signature.
 
 ## Nodes
 
