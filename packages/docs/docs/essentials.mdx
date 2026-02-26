@@ -223,6 +223,22 @@ if (container) builder.mount(container);
   />
 </CodePreview>
 
+### Mounting and Destroying
+
+Once a scene is built, you render it to the DOM by passing an `HTMLElement` to `builder.mount()`. This injects the SVG and sets up any requested controllers (like pan/zoom).
+
+When you are done with a visualization — for example, when navigating away from a page or switching diagrams — you should call `builder.destroy()`. 
+
+```typescript
+// Render the scene
+builder.mount(containerElement);
+
+// Later, when cleaning up:
+builder.destroy();
+```
+
+Calling `destroy()` removes the SVG from the DOM, destroys the pan/zoom controller, cancels animation loops, and cleans up internal event listeners.
+
 ## Declarative Options Overloads
 
 Instead of chaining many fluent methods, you can also pass an **options object** as the second argument to `.node()` or the third argument to `.edge()`. This configures the element in a single call and returns the `VizBuilder` so you can continue adding more elements.

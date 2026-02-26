@@ -95,6 +95,7 @@ Common lifecycle:
 
 - `builder.build()` creates a serializable `VizScene`.
 - `builder.mount(container)` renders into an SVG inside your container.
+- `builder.destroy()` tears down a mounted scene securely, cleaning up DOM and event listeners.
 - `builder.play()` plays any compiled timeline specs.
 - `builder.patchRuntime(container)` applies runtime-only updates (useful for per-frame updates without remounting).
 

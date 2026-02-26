@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   viz,
   getDefaultPorts,
@@ -3297,6 +3297,58 @@ describe('vizcraft core', () => {
       expect(svgStr).toContain('</svg>');
       expect(svgStr).toContain('fill="red"');
       expect(svgStr).toContain('fill="blue"');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Builder Lifecycle (mount & destroy)
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('Builder lifecycle (mount & destroy)', () => {
+    it('destroy() after mount() cleans up the DOM container', () => {
+      const container = document.createElement('div');
+      const builder = viz().node('a', { rect: { w: 80, h: 40 } });
+
+      builder.mount(container);
+      expect(container.querySelector('svg')).toBeTruthy();
+
+      builder.destroy();
+      expect(container.querySelector('svg')).toBeNull();
+    });
+
+    it('destroy() stops animations and cleans panZoom controller', () => {
+      const container = document.createElement('div');
+      const builder = viz().node('a', { rect: { w: 80, h: 40 } });
+
+      const controller = builder.mount(container, {
+        panZoom: true,
+        autoplay: true,
+      });
+      expect(controller).toBeDefined();
+
+      const destroySpy = vi.spyOn(controller!, 'destroy');
+
+      builder.destroy();
+      expect(destroySpy).toHaveBeenCalled();
+      expect(container.querySelector('svg')).toBeNull();
+    });
+
+    it('destroy() without mount() is a safe no-op', () => {
+      const builder = viz().node('a', { rect: { w: 80, h: 40 } });
+      expect(() => builder.destroy()).not.toThrow();
+    });
+
+    it('mount() after destroy() remounts cleanly', () => {
+      const container = document.createElement('div');
+      const builder = viz().node('a', { rect: { w: 80, h: 40 } });
+
+      builder.mount(container);
+      builder.destroy();
+      expect(container.querySelector('svg')).toBeNull();
+
+      builder.mount(container);
+      expect(container.querySelector('svg')).toBeTruthy();
+
+      builder.destroy();
     });
   });
 

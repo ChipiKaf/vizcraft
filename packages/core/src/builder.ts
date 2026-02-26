@@ -314,6 +314,19 @@ export interface VizBuilder extends VizSceneMutator {
    * This avoids full DOM reconciliation and is intended for animation frame updates.
    */
   patchRuntime(container: HTMLElement): void;
+
+  /**
+   * Tear down a previously mounted scene.
+   *
+   * - Removes the SVG tree from the container.
+   * - Destroys the PanZoomController (if created).
+   * - Cancels any pending requestAnimationFrame / animation loops.
+   * - Removes any internal event listeners (resize, mutation, etc.).
+   *
+   * Safe to call multiple times (no-op after first call).
+   * Safe to call even if `mount()` was never called.
+   */
+  destroy(): void;
 }
 
 interface NodeBuilder {
@@ -644,6 +657,7 @@ class VizBuilderImpl implements VizBuilder {
   private _gridConfig: VizGridConfig | null = null;
   private _animationSpecs: AnimationSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
+  private _panZoomController?: PanZoomController;
 
   // Scene Mutation State
   private _changes: SceneChanges = {
@@ -1078,9 +1092,44 @@ class VizBuilderImpl implements VizBuilder {
       }
     }
 
+    this._panZoomController = controller;
+
     this._dispatchEvent('mount', { container, controller });
 
     return controller;
+  }
+
+  /**
+   * Tear down a previously mounted scene.
+   */
+  destroy(): void {
+    // 1. Destroy PanZoomController if created
+    if (this._panZoomController) {
+      this._panZoomController.destroy();
+      this._panZoomController = undefined;
+    }
+
+    // 2. Clear out mounted container and animations
+    if (this._mountedContainer) {
+      // Stop any pending animations
+      const playback = autoplayControllerByContainer.get(
+        this._mountedContainer
+      );
+      if (playback) {
+        playback.stop();
+        autoplayControllerByContainer.delete(this._mountedContainer);
+      }
+
+      // Remove SVG tree
+      const svg = this._mountedContainer.querySelector(
+        'svg'
+      ) as SVGSVGElement | null;
+      if (svg) {
+        svg.remove();
+      }
+
+      this._mountedContainer = null;
+    }
   }
 
   private _injectCssIntoMountedSvg(svg: SVGSVGElement, css: string | string[]) {
