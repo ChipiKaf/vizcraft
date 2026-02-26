@@ -1,10 +1,11 @@
 import type { NodePort, NodeShape, Vec2, VizNode } from './types';
+import { defaultCoreIconRegistry } from './icons';
 
 export type AnchorMode = 'center' | 'boundary';
 
 export interface ShapeBehavior<K extends NodeShape['kind']> {
   kind: K;
-  tagName: 'circle' | 'rect' | 'polygon' | 'g' | 'ellipse' | 'path';
+  tagName: 'circle' | 'rect' | 'polygon' | 'g' | 'ellipse' | 'path' | 'image';
   applyGeometry(
     el: SVGElement,
     shape: Extract<NodeShape, { kind: K }>,
@@ -154,6 +155,36 @@ function cylinderGeometry(
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+function escapeXmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function sizeSvgString(svg: string, w: number, h: number): string {
+  const trimmed = svg.trim();
+  if (!trimmed.startsWith('<svg')) return svg;
+  return trimmed.replace(/<svg\b([^>]*)>/, (_m, attrs: string) => {
+    const cleaned = attrs
+      .replace(/\swidth="[^"]*"/g, '')
+      .replace(/\sheight="[^"]*"/g, '');
+    return `<svg${cleaned} width="${w}" height="${h}">`;
+  });
+}
+
+function normalizeSvgContent(content: string, w: number, h: number): string {
+  const trimmed = content.trim();
+  if (trimmed.startsWith('<svg')) return sizeSvgString(trimmed, w, h);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${content}</svg>`;
+}
+
+function getIconSvg(id: string): string | undefined {
+  return defaultCoreIconRegistry.get(id);
+}
 
 const cylinderBehavior: ShapeBehavior<'cylinder'> = {
   kind: 'cylinder',
@@ -1056,6 +1087,157 @@ const triangleBehavior: ShapeBehavior<'triangle'> = {
   },
 };
 
+const imageBehavior: ShapeBehavior<'image'> = {
+  kind: 'image',
+  tagName: 'image',
+  applyGeometry(el, shape, pos) {
+    el.setAttribute('x', String(pos.x - shape.w / 2));
+    el.setAttribute('y', String(pos.y - shape.h / 2));
+    el.setAttribute('width', String(shape.w));
+    el.setAttribute('height', String(shape.h));
+    el.setAttribute('href', shape.href);
+    // Compatibility (older SVG implementations)
+    try {
+      el.setAttributeNS(XLINK_NS, 'href', shape.href);
+    } catch {
+      // ignore
+    }
+    if (shape.preserveAspectRatio !== undefined) {
+      el.setAttribute('preserveAspectRatio', shape.preserveAspectRatio);
+    } else {
+      el.removeAttribute('preserveAspectRatio');
+    }
+  },
+  svgMarkup(shape, pos, attrs) {
+    const safeHref = escapeXmlAttr(shape.href);
+    const par =
+      shape.preserveAspectRatio !== undefined
+        ? ` preserveAspectRatio="${escapeXmlAttr(shape.preserveAspectRatio)}"`
+        : '';
+    return `<image x="${pos.x - shape.w / 2}" y="${pos.y - shape.h / 2}" width="${shape.w}" height="${shape.h}" href="${safeHref}"${par} class="viz-node-shape" data-viz-role="node-shape"${attrs} />`;
+  },
+  anchorBoundary(pos, target, shape) {
+    // Treat as rectangle boundary
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
+const iconBehavior: ShapeBehavior<'icon'> = {
+  kind: 'icon',
+  tagName: 'g',
+  applyGeometry(el, shape, pos) {
+    const x = pos.x - shape.w / 2;
+    const y = pos.y - shape.h / 2;
+    el.setAttribute('transform', `translate(${x} ${y})`);
+    if (shape.color) {
+      el.setAttribute('style', `color:${shape.color}`);
+    } else {
+      el.removeAttribute('style');
+    }
+
+    const svg = getIconSvg(shape.id);
+    if (!svg) return;
+
+    let container = el.querySelector(
+      '[data-viz-icon="content"]'
+    ) as SVGGElement | null;
+    if (!container) {
+      container = document.createElementNS(SVG_NS, 'g');
+      container.setAttribute('data-viz-icon', 'content');
+      el.appendChild(container);
+    }
+    container.innerHTML = sizeSvgString(svg, shape.w, shape.h);
+  },
+  svgMarkup(shape, pos, attrs) {
+    const x = pos.x - shape.w / 2;
+    const y = pos.y - shape.h / 2;
+    const svg = getIconSvg(shape.id);
+    const style = shape.color
+      ? ` style="color:${escapeXmlAttr(shape.color)}"`
+      : '';
+    const body = svg ? sizeSvgString(svg, shape.w, shape.h) : '';
+    return (
+      `<g class="viz-node-shape" data-viz-role="node-shape" transform="translate(${x} ${y})"${style}${attrs}>` +
+      `<g data-viz-icon="content">${body}</g>` +
+      '</g>'
+    );
+  },
+  anchorBoundary(pos, target, shape) {
+    // Treat as rectangle boundary
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
+const svgBehavior: ShapeBehavior<'svg'> = {
+  kind: 'svg',
+  tagName: 'g',
+  applyGeometry(el, shape, pos) {
+    const x = pos.x - shape.w / 2;
+    const y = pos.y - shape.h / 2;
+    el.setAttribute('transform', `translate(${x} ${y})`);
+
+    let container = el.querySelector(
+      '[data-viz-svg="content"]'
+    ) as SVGGElement | null;
+    if (!container) {
+      container = document.createElementNS(SVG_NS, 'g');
+      container.setAttribute('data-viz-svg', 'content');
+      el.appendChild(container);
+    }
+    container.innerHTML = normalizeSvgContent(shape.content, shape.w, shape.h);
+  },
+  svgMarkup(shape, pos, attrs) {
+    const x = pos.x - shape.w / 2;
+    const y = pos.y - shape.h / 2;
+    const body = normalizeSvgContent(shape.content, shape.w, shape.h);
+    return (
+      `<g class="viz-node-shape" data-viz-role="node-shape" transform="translate(${x} ${y})"${attrs}>` +
+      `<g data-viz-svg="content">${body}</g>` +
+      '</g>'
+    );
+  },
+  anchorBoundary(pos, target, shape) {
+    // Treat as rectangle boundary
+    const dx = target.x - pos.x;
+    const dy = target.y - pos.y;
+    if (dx === 0 && dy === 0) return { x: pos.x, y: pos.y };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const scale = Math.min(
+      hw / Math.abs(dx || 1e-6),
+      hh / Math.abs(dy || 1e-6)
+    );
+    return {
+      x: pos.x + dx * scale,
+      y: pos.y + dy * scale,
+    };
+  },
+};
+
 const shapeBehaviorRegistry: {
   [K in NodeShape['kind']]: ShapeBehavior<K>;
 } = {
@@ -1078,6 +1260,9 @@ const shapeBehaviorRegistry: {
   star: starBehavior,
   trapezoid: trapezoidBehavior,
   triangle: triangleBehavior,
+  image: imageBehavior,
+  icon: iconBehavior,
+  svg: svgBehavior,
 };
 
 export function getShapeBehavior(shape: NodeShape) {
@@ -1347,5 +1532,15 @@ function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
       };
     case 'triangle':
       return { hw: shape.w / 2, hh: shape.h / 2 };
+
+    case 'image':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'icon':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'svg':
+      return { hw: shape.w / 2, hh: shape.h / 2 };
+
+    default:
+      return { hw: 0, hh: 0 };
   }
 }

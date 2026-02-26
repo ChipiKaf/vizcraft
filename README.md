@@ -185,6 +185,9 @@ b.node('n1')
  .trapezoid(topW, bottomW, h) // Trapezoid
  .triangle(w, h, [direction]) // Triangle
  .label('Text', { dy: 5 }) // Label with offset
+ .image(href, w, h, opts?) // Embed an <image> inside the node
+ .icon(id, opts?)         // Embed an icon from the icon registry (see registerIcon)
+ .svgContent(svg, opts)   // Embed inline SVG content inside the node
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
  .port('out', { x: 50, y: 0 }) // Named connection port
