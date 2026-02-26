@@ -21,6 +21,8 @@ import type {
   SceneChanges,
   VizPlugin,
   VizEventMap,
+  LayoutAlgorithm,
+  LayoutGraph,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -228,6 +230,14 @@ export interface VizBuilder extends VizSceneMutator {
    * @returns The builder, for fluent chaining
    */
   use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder;
+
+  /**
+   * Applies a layout algorithm to the current nodes and edges.
+   * @param algorithm The layout function to execute
+   * @param options Optional configuration for the layout algorithm
+   * @returns The builder, for fluent chaining
+   */
+  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder;
 
   /**
    * Listen for lifecycle events (e.g. 'build', 'mount').
@@ -851,6 +861,32 @@ class VizBuilderImpl implements VizBuilder {
    */
   use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder {
     plugin(this, options);
+    return this;
+  }
+
+  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder {
+    const scene = this.build(); // gets full constructed VizNode[]
+    const graph: LayoutGraph = {
+      nodes: scene.nodes,
+      edges: scene.edges,
+    };
+
+    const result = algorithm(graph, options);
+
+    // Apply computed node positions
+    for (const [id, pos] of Object.entries(result.nodes)) {
+      this.updateNode(id, { pos });
+    }
+
+    // Apply optionally returned edge waypoints
+    if (result.edges) {
+      for (const [id, edgeResult] of Object.entries(result.edges)) {
+        if (edgeResult.waypoints !== undefined) {
+          this.updateEdge(id, { waypoints: edgeResult.waypoints });
+        }
+      }
+    }
+
     return this;
   }
 

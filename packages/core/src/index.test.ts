@@ -8,6 +8,8 @@ import {
   getNodePorts,
   findPort,
   resolvePortPosition,
+  circularLayout,
+  gridLayout,
 } from './index';
 import type { VizNode } from './index';
 import type { SceneChanges, VizSceneMutator, VizPlugin } from './types';
@@ -3554,6 +3556,47 @@ describe('vizcraft core', () => {
       expect(typeof builder.node).toBe('function');
       expect(typeof builder.edge).toBe('function');
       expect(typeof builder.build).toBe('function');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Layout API
+  // ═══════════════════════════════════════════════════════════════════════
+  describe('Layout API', () => {
+    it('applies a layout algorithm to the builder', () => {
+      const builder = viz();
+      builder.node('a');
+      builder.node('b');
+      builder.node('c');
+
+      builder.layout(circularLayout, { cx: 100, cy: 100, radius: 50 });
+
+      const scene = builder.build();
+
+      const nodeA = scene.nodes.find((n) => n.id === 'a');
+      const nodeB = scene.nodes.find((n) => n.id === 'b');
+
+      expect(nodeA?.pos.x).toBeCloseTo(150);
+      expect(nodeA?.pos.y).toBeCloseTo(100);
+
+      expect(nodeB?.pos.x).toBeCloseTo(75);
+      expect(nodeB?.pos.y).toBeCloseTo(143.3); // 100 + 50 * sin(120deg)
+    });
+
+    it('applies gridLayout correctly', () => {
+      const builder = viz();
+      builder.node('a');
+      builder.node('b');
+      builder.layout(gridLayout, {
+        x: 10,
+        y: 10,
+        colSpacing: 50,
+        rowSpacing: 50,
+      });
+
+      const scene = builder.build();
+      expect(scene.nodes.find((n) => n.id === 'a')?.pos.x).toBe(10);
+      expect(scene.nodes.find((n) => n.id === 'b')?.pos.x).toBe(60);
     });
   });
 

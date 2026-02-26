@@ -5,7 +5,37 @@ title: Essentials
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
-import { viz } from 'vizcraft';
+import { viz, circularLayout, gridLayout } from 'vizcraft';
+
+export const circularLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('a').circle(30).fill('#89b4fa');
+  b.node('b').circle(30).fill('#a6e3a1');
+  b.node('c').circle(30).fill('#f9e2af');
+  b.node('d').circle(30).fill('#f38ba8');
+  b.edge('a', 'b');
+  b.edge('b', 'c');
+  b.edge('c', 'd');
+  b.edge('d', 'a');
+  b.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+  return b;
+})();
+
+export const gridLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('1').rect(40, 40).fill('#cba6f7');
+  b.node('2').rect(40, 40).fill('#89b4fa');
+  b.node('3').rect(40, 40).fill('#a6e3a1');
+  b.node('4').rect(40, 40).fill('#f9e2af');
+  b.node('5').rect(40, 40).fill('#fab387');
+  b.node('6').rect(40, 40).fill('#f38ba8');
+  b.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+  b.edge('1', '2').routing('orthogonal');
+  b.edge('2', '3').routing('orthogonal');
+  b.edge('4', '5').routing('orthogonal');
+  b.edge('5', '6').routing('orthogonal');
+  return b;
+})();
 
 export const gridBuilder = viz().view(500, 300);
 export const gridScene = gridBuilder
@@ -374,6 +404,85 @@ The same applies to edges — calling `.edge(from, to)` or `.edge(from, to, id)`
 :::info
 This works because the builder stores nodes and edges by id internally. A second call with the same id reuses the existing definition rather than creating a new one. All properties — whether set declaratively or via chaining — accumulate on the same object.
 :::
+
+## Auto-Layout
+
+Instead of manually positioning nodes with `.at(x, y)` or `.cell(col, row)`, you can use **Auto-Layout Algorithms**. VizCraft comes with a few basic algorithms (`circularLayout`, `gridLayout`) built-in, and the architecture is pluggable so you can bring your own algorithm (like Dagre).
+
+Simply define your nodes and edges, then call `builder.layout()` before building the scene.
+
+<CodePreview code={`
+import { viz, circularLayout } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+
+builder.node('a').circle(30).fill('#89b4fa');
+builder.node('b').circle(30).fill('#a6e3a1');
+builder.node('c').circle(30).fill('#f9e2af');
+builder.node('d').circle(30).fill('#f38ba8');
+
+builder.edge('a', 'b');
+builder.edge('b', 'c');
+builder.edge('c', 'd');
+builder.edge('d', 'a');
+
+// Automatically arrange the nodes in a circle
+builder.layout(circularLayout, {
+  cx: 250,
+  cy: 150,
+  radius: 80
+});
+
+const container = document.getElementById('viz-layout-circle');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount
+    builder={circularLayoutBuilder}
+    style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
+  />
+</CodePreview>
+
+You can also use the `gridLayout` algorithm to arrange nodes into rows and columns:
+
+<CodePreview code={`
+import { viz, gridLayout } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+
+builder.node('1').rect(40, 40).fill('#cba6f7');
+builder.node('2').rect(40, 40).fill('#89b4fa');
+builder.node('3').rect(40, 40).fill('#a6e3a1');
+builder.node('4').rect(40, 40).fill('#f9e2af');
+builder.node('5').rect(40, 40).fill('#fab387');
+builder.node('6').rect(40, 40).fill('#f38ba8');
+
+// The layout algorithm automatically wraps into columns/rows
+builder.layout(gridLayout, {
+  cols: 3,
+  x: 100,
+  y: 70,
+  colSpacing: 150,
+  rowSpacing: 160
+});
+
+// Since the algorithms only position the nodes, we can still chain fluent options:
+builder.edge('1', '2').routing('orthogonal');
+builder.edge('2', '3').routing('orthogonal');
+builder.edge('4', '5').routing('orthogonal');
+builder.edge('5', '6').routing('orthogonal');
+
+const container = document.getElementById('viz-layout-grid');
+if (container) builder.mount(container);
+`}>
+
+  <VizMount
+    builder={gridLayoutBuilder}
+    style={{ height: '300px', width: '100%', border: '1px solid #ccc' }}
+  />
+</CodePreview>
+
+A layout algorithm is a function that takes a \`LayoutGraph\` (the current nodes and edges) and returns a \`LayoutResult\` object mapping node IDs to computed \`\{x, y\}\` coordinates. If you write your own algorithm, just ensure it conforms to the \`LayoutAlgorithm\` TypeScript signature.
 
 ## Nodes
 

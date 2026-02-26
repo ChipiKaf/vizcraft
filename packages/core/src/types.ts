@@ -593,3 +593,29 @@ export interface VizEventMap {
   build: VizBuildEvent;
   mount: VizMountEvent;
 }
+
+/**
+ * Input graph structure for layout algorithms.
+ */
+export interface LayoutGraph {
+  nodes: VizNode[];
+  edges: VizEdge[];
+}
+
+/**
+ * Result of a layout algorithm, mapping node IDs to their computed positions.
+ * A layout algorithm may optionally return edge routing paths.
+ */
+export interface LayoutResult {
+  nodes: Record<string, { x: number; y: number }>;
+  edges?: Record<string, { waypoints?: Vec2[] }>;
+}
+
+/**
+ * A layout algorithm computes positions for nodes in a graph.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LayoutAlgorithm<Options = any> = (
+  graph: LayoutGraph,
+  options?: Options
+) => LayoutResult;

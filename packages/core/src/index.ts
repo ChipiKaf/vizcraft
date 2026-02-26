@@ -21,3 +21,4 @@ export * from './anim/adapter';
 export * from './panZoom';
 export * from './serialization';
 export * from './hitTest';
+export * from './layouts';
