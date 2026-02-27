@@ -1,5 +1,12 @@
 import React, { useMemo } from 'react';
-import type { VizScene, VizNode, VizEdge, EdgeMarkerType } from 'vizcraft';
+import type {
+  VizScene,
+  VizNode,
+  VizEdge,
+  EdgeMarkerType,
+  RichText,
+  RichTextToken,
+} from 'vizcraft';
 import {
   computeEdgePath,
   computeEdgeEndpoints,
@@ -41,6 +48,80 @@ export interface VizCanvasProps {
   children?: React.ReactNode; // For custom overlays (lines, signals, etc)
   animationRegistry?: AnimationRegistry;
   overlayRegistry?: OverlayRegistry;
+}
+
+function splitRichTextIntoLines(tokens: RichTextToken[]) {
+  const lines: Array<Array<Extract<RichTextToken, { kind: 'span' }>>> = [[]];
+  for (const tok of tokens) {
+    if (tok.kind === 'newline') {
+      lines.push([]);
+      continue;
+    }
+    if (tok.kind === 'span') {
+      lines[lines.length - 1]!.push(tok);
+    }
+  }
+  return lines.length ? lines : [[]];
+}
+
+function renderRichTextTspans(
+  rich: RichText,
+  x: number,
+  lineHeightEm: number = 1.2
+) {
+  const lines = splitRichTextIntoLines(rich.tokens);
+  return lines.map((line, lineIndex) => (
+    <tspan
+      // Keep stable keys within a label
+      key={`line-${lineIndex}`}
+      data-viz-role="text-line"
+      x={x}
+      dy={lineIndex === 0 ? '0' : `${lineHeightEm}em`}
+    >
+      {line.map((tok, spanIndex) => {
+        const weight = tok.fontWeight ?? (tok.bold ? 'bold' : undefined);
+        const fontFamily =
+          tok.fontFamily ?? (tok.code ? 'monospace' : undefined);
+        const fontStyle = tok.italic ? 'italic' : undefined;
+        const textDecoration = tok.underline ? 'underline' : undefined;
+        const fontSize =
+          tok.fontSize ?? (tok.baselineShift ? '0.8em' : undefined);
+
+        const spanEl = (
+          <tspan
+            key={`span-${spanIndex}`}
+            className={tok.className}
+            fill={tok.fill}
+            fontSize={fontSize as any}
+            fontWeight={weight as any}
+            fontFamily={fontFamily}
+            fontStyle={fontStyle as any}
+            textDecoration={textDecoration as any}
+            baselineShift={tok.baselineShift as any}
+          >
+            {tok.text}
+          </tspan>
+        );
+
+        return tok.href ? (
+          <a key={`a-${spanIndex}`} href={tok.href}>
+            {spanEl}
+          </a>
+        ) : (
+          spanEl
+        );
+      })}
+    </tspan>
+  ));
+}
+
+function renderLabelChildren(
+  text: string,
+  rich: RichText | undefined,
+  x: number
+) {
+  if (!rich) return text;
+  return renderRichTextTspans(rich, x);
 }
 
 // Helper hook for smooth node transitions
@@ -425,7 +506,7 @@ export function VizCanvas(props: VizCanvasProps) {
                       dominantBaseline="middle"
                       style={{ pointerEvents: 'none' }}
                     >
-                      {lbl.text}
+                      {renderLabelChildren(lbl.text, lbl.rich, pos.x)}
                     </text>
                   );
                 })}
@@ -546,7 +627,7 @@ function RenderNodeGroup({
           dominantBaseline="middle"
           style={{ pointerEvents: 'none' }}
         >
-          {node.label.text}
+          {renderLabelChildren(node.label.text, node.label.rich, lx)}
         </text>
       )}
 

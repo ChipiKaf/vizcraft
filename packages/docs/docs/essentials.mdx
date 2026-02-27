@@ -1004,6 +1004,74 @@ if (el) builder.mount(el);
 You can chain `.label()` as many times as you like — each call adds an additional label. The `dy` default of `-10` places text slightly above the path.
 :::
 
+#### Rich Text Labels
+
+Use `.richLabel((l) => ...)` on both nodes and edges to create **mixed-format** labels (bold/italic/code/links + sub/sup) rendered as nested SVG `<tspan>` spans.
+
+export const richTextLabelScene = viz()
+  .view(680, 240)
+  .node('api')
+  .at(140, 120)
+  .rect(140, 64, 12)
+  .richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
+  .node('db')
+  .at(520, 120)
+  .cylinder(140, 64)
+  .richLabel((l) => l.text('Postgres ').italic('14'))
+  .edge('api', 'db')
+  .arrow()
+  .richLabel((l) =>
+    l
+      .text('p')
+      .sup('95')
+      .text(' ')
+      .bold('12ms')
+      .text(' ')
+      .link('docs', 'https://vizcraft.dev/docs')
+  )
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(680, 240);
+
+builder
+.node('api')
+.at(140, 120)
+.rect(140, 64, 12)
+.richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
+.node('db')
+.at(520, 120)
+.cylinder(140, 64)
+.richLabel((l) => l.text('Postgres ').italic('14'))
+.edge('api', 'db')
+.arrow()
+.richLabel((l) =>
+l
+.text('p')
+.sup('95')
+.text(' ')
+.bold('12ms')
+.text(' ')
+.link('docs', 'https://vizcraft.dev/docs')
+)
+.done();
+
+const el = document.getElementById('viz-rich-text-labels');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount
+    builder={richTextLabelScene}
+    style={{ height: '240px', width: '100%' }}
+  />
+</CodePreview>
+
+:::note
+Rich text labels currently don’t auto-wrap to a `maxWidth`. Use `.newline()` to control line breaks.
+:::
+
 ### Edge Styling
 
 Like nodes, edges can be styled **per-edge** via the builder using `.stroke()`, `.fill()`, `.opacity()`, `.dashed()`, `.dotted()`, and `.dash()`.

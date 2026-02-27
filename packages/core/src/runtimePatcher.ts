@@ -474,7 +474,7 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
 
       // SVG text wrapping uses <tspan> which have hardcoded `x` coords.
       // We must sync the x value so multi-line text follows the animation horizontally.
-      const tspans = label.querySelectorAll('tspan');
+      const tspans = label.querySelectorAll('tspan[data-viz-role="text-line"]');
       for (let i = 0; i < tspans.length; i++) {
         tspans[i]?.setAttribute('x', String(lx));
       }
@@ -628,7 +628,7 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
         el.setAttribute('x', String(pos.x));
         el.setAttribute('y', String(pos.y));
 
-        const tspans = el.querySelectorAll('tspan');
+        const tspans = el.querySelectorAll('tspan[data-viz-role="text-line"]');
         for (let j = 0; j < tspans.length; j++) {
           tspans[j]?.setAttribute('x', String(pos.x));
         }

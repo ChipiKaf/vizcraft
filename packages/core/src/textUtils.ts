@@ -6,6 +6,8 @@
  * generate multi-line `<tspan>` nodes.
  */
 
+import type { RichText, RichTextToken } from './types';
+
 // Rough approximation of character widths relative to font-size.
 // Without DOM measurement, we assume an average character is ~0.6em wide,
 // with some tweaks for caps/narrow chars if needed (simplified here).
@@ -92,7 +94,7 @@ export interface RenderTextOptions {
 export function renderSvgText(
   x: number,
   y: number,
-  text: string,
+  text: string | RichText,
   options: RenderTextOptions = {}
 ): string {
   const {
@@ -117,19 +119,31 @@ export function renderSvgText(
     if (!isNaN(parsed)) numericFontSize = parsed;
   }
 
-  let lines = wrapText(text, maxWidth, numericFontSize);
+  const isRich = typeof text !== 'string';
 
-  if (maxWidth && overflow && overflow !== 'visible') {
-    // Very basic ellipsis logic for now - just truncate to first 2 lines
-    // Real robust ellipsis in purely string SVG generation is complex
-    if (overflow === 'ellipsis' && lines.length > 2) {
-      const line2 = lines[1];
-      if (line2) {
-        lines = [lines[0]!, line2.substring(0, line2.length - 3) + '...'];
+  let plainLines: string[] = [];
+  let richLines: Array<Array<Extract<RichTextToken, { kind: 'span' }>>> = [];
+
+  if (!isRich) {
+    plainLines = wrapText(text, maxWidth, numericFontSize);
+
+    if (maxWidth && overflow && overflow !== 'visible') {
+      // Very basic ellipsis logic for now - just truncate to first 2 lines
+      // Real robust ellipsis in purely string SVG generation is complex
+      if (overflow === 'ellipsis' && plainLines.length > 2) {
+        const line2 = plainLines[1];
+        if (line2) {
+          plainLines = [
+            plainLines[0]!,
+            line2.substring(0, Math.max(0, line2.length - 3)) + '...',
+          ];
+        }
+      } else if (overflow === 'clip' && plainLines.length > 2) {
+        plainLines = [plainLines[0]!, plainLines[1]!];
       }
-    } else if (overflow === 'clip' && lines.length > 2) {
-      lines = [lines[0]!, lines[1]!];
     }
+  } else {
+    richLines = splitRichTextIntoLines(text.tokens);
   }
 
   const attrs: string[] = [];
@@ -149,7 +163,7 @@ export function renderSvgText(
   // 'top' means the *top* of the first line is at y.
   // 'bottom' means the *bottom* of the last line is at y.
 
-  const totalLines = lines.length;
+  const totalLines = isRich ? richLines.length : plainLines.length;
   let startDyEm = 0;
 
   if (verticalAlign === 'middle') {
@@ -163,25 +177,86 @@ export function renderSvgText(
     startDyEm = 0; // The first line's dominant-baseline is already centered or top-aligned based on dominantBaseline attr
   }
 
-  // Generate tspan elements
-  const tspans = lines.map((line, i) => {
-    // Determine the dy offset for this specific tspan
-    let dy: string;
-    if (i === 0) {
-      // Use ems or fixed dx if startDyEm is 0?
-      // We use em units to accurately position text lines relative to font-size.
-      dy = startDyEm === 0 ? '0' : `${startDyEm}em`;
-    } else {
-      dy = `${lineHeight}em`;
-    }
-
-    // In order for text wrapping to work smoothly, each consecutive tspan
-    // needs x="{x}" to return to the left edge of the anchor,
-    // and dy="{lineHeight}em" to drop down a line.
-    return `<tspan x="${x}" dy="${dy}">${escapeXmlString(line)}</tspan>`;
-  });
+  const tspans = isRich
+    ? richLines.map((lineTokens, i) => {
+        const dy = dyForLine(i, startDyEm, lineHeight);
+        const inner = lineTokens
+          .map((tok) => renderRichSpanTspan(tok))
+          .join('');
+        return `<tspan data-viz-role="text-line" x="${x}" dy="${dy}">${inner}</tspan>`;
+      })
+    : plainLines.map((line, i) => {
+        const dy = dyForLine(i, startDyEm, lineHeight);
+        return `<tspan data-viz-role="text-line" x="${x}" dy="${dy}">${escapeXmlString(line)}</tspan>`;
+      });
 
   return `<text x="${x}" y="${y}" class="${className}"${attrStr}>${tspans.join('')}</text>`;
+}
+
+function dyForLine(i: number, startDyEm: number, lineHeight: number): string {
+  if (i === 0) return startDyEm === 0 ? '0' : `${startDyEm}em`;
+  return `${lineHeight}em`;
+}
+
+function splitRichTextIntoLines(
+  tokens: RichTextToken[]
+): Array<Array<Extract<RichTextToken, { kind: 'span' }>>> {
+  const lines: Array<Array<Extract<RichTextToken, { kind: 'span' }>>> = [[]];
+
+  for (const tok of tokens) {
+    if (tok.kind === 'newline') {
+      lines.push([]);
+      continue;
+    }
+    if (tok.kind === 'span') {
+      lines[lines.length - 1]!.push(tok);
+    }
+  }
+
+  // Ensure we always render at least one line.
+  if (lines.length === 0) return [[]];
+  return lines;
+}
+
+function renderRichSpanTspan(tok: Extract<RichTextToken, { kind: 'span' }>) {
+  const attrs: string[] = [];
+
+  if (tok.className) attrs.push(`class="${escapeXmlAttr(tok.className)}"`);
+  if (tok.fill !== undefined) attrs.push(`fill="${escapeXmlAttr(tok.fill)}"`);
+  if (tok.fontSize !== undefined) attrs.push(`font-size="${tok.fontSize}"`);
+
+  if (tok.fontFamily)
+    attrs.push(`font-family="${escapeXmlAttr(tok.fontFamily)}"`);
+  else if (tok.code) attrs.push('font-family="monospace"');
+
+  const weight = tok.fontWeight ?? (tok.bold ? 'bold' : undefined);
+  if (weight !== undefined) attrs.push(`font-weight="${weight}"`);
+
+  if (tok.italic) attrs.push('font-style="italic"');
+  if (tok.underline) attrs.push('text-decoration="underline"');
+
+  if (tok.baselineShift) {
+    attrs.push(`baseline-shift="${tok.baselineShift}"`);
+    if (tok.fontSize === undefined) {
+      // Common default sizing for sub/sup.
+      attrs.push('font-size="0.8em"');
+    }
+  }
+
+  const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
+  const tspan = `<tspan${attrStr}>${escapeXmlString(tok.text)}</tspan>`;
+
+  if (tok.href) {
+    // SVG2 prefers `href`; many renderers also accept `xlink:href`.
+    return `<a href="${escapeXmlAttr(tok.href)}">${tspan}</a>`;
+  }
+
+  return tspan;
+}
+
+function escapeXmlAttr(str: string): string {
+  // Attributes use the same escaping rules as text nodes for our purposes.
+  return escapeXmlString(str);
 }
 
 function escapeXmlString(str: string): string {

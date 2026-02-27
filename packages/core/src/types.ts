@@ -102,8 +102,46 @@ export interface VizNodeSvgContent {
   position?: NodeMediaPosition;
 }
 
+export type RichTextToken =
+  | {
+      kind: 'span';
+      text: string;
+      /** Render span in bold. */
+      bold?: boolean;
+      /** Render span in italics. */
+      italic?: boolean;
+      /** Underline the span. */
+      underline?: boolean;
+      /** Render span in a monospace font-family. */
+      code?: boolean;
+      /** Optional link target. Rendered as an SVG <a> wrapper. */
+      href?: string;
+      /** Span-level style overrides (optional). */
+      fill?: string;
+      fontSize?: number | string;
+      fontWeight?: number | string;
+      fontFamily?: string;
+      /** Baseline shift for sub/superscript. */
+      baselineShift?: 'sub' | 'super';
+      className?: string;
+    }
+  | { kind: 'newline' };
+
+/**
+ * Rich label content, rendered as an SVG <text> with nested <tspan> elements.
+ *
+ * Note: Rich labels currently support explicit newlines via `{ kind: 'newline' }`.
+ * Automatic `maxWidth` word-wrapping is only supported for plain string labels.
+ */
+export type RichText = {
+  kind: 'rich';
+  tokens: RichTextToken[];
+};
+
 export type NodeLabel = {
   text: string;
+  /** Optional rich content. When set, this is rendered instead of `text`. */
+  rich?: RichText;
   dx?: number;
   dy?: number;
   className?: string;
@@ -274,6 +312,8 @@ export interface VizNode {
 
 export interface EdgeLabel {
   text: string;
+  /** Optional rich content. When set, this is rendered instead of `text`. */
+  rich?: RichText;
   position: 'start' | 'mid' | 'end'; // Simplified for now
   className?: string;
   dx?: number;
@@ -462,7 +502,12 @@ export interface NodeOptions {
 
   // --- Label & Embedded Image ---
   /** Plain string or full label options. */
-  label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
+  label?:
+    | string
+    | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>)
+    | ({ rich: RichText; text?: string } & Partial<
+        Omit<NodeLabel, 'text' | 'rich'>
+      >);
 
   // --- Extras ---
   data?: unknown;
@@ -523,7 +568,15 @@ export interface EdgeOptions {
   label?:
     | string
     | ({ text: string } & Partial<Omit<EdgeLabel, 'text'>>)
-    | Array<{ text: string } & Partial<Omit<EdgeLabel, 'text'>>>;
+    | ({ rich: RichText; text?: string } & Partial<
+        Omit<EdgeLabel, 'text' | 'rich'>
+      >)
+    | Array<
+        | ({ text: string } & Partial<Omit<EdgeLabel, 'text'>>)
+        | ({ rich: RichText; text?: string } & Partial<
+            Omit<EdgeLabel, 'text' | 'rich'>
+          >)
+      >;
 
   // --- Hit area ---
   hitArea?: number;

@@ -186,6 +186,7 @@ b.node('n1')
  .trapezoid(topW, bottomW, h) // Trapezoid
  .triangle(w, h, [direction]) // Triangle
  .label('Text', { dy: 5 }) // Label with offset
+ .richLabel((l) => l.text('Hello ').bold('World')) // Rich / mixed-format label
  .image(href, w, h, opts?) // Embed an <image> inside the node
  .icon(id, opts?)         // Embed an icon from the icon registry (see registerIcon)
  .svgContent(svg, opts)   // Embed inline SVG content inside the node
@@ -222,6 +223,7 @@ b.edge('n1', 'n2')
  .arrow()                // Add an arrowhead
  .straight()             // (Default) Straight line
  .label('Connection')
+ .richLabel((l) => l.text('p').sup('95').text(' = ').bold('10ms'))
  .animate('flow')        // Add animation
 
 // Curved edge
@@ -259,6 +261,11 @@ b.edge('a', 'b')
  .label('*', { position: 'end' })
  .arrow()
 
+// Rich text labels (mixed formatting)
+b.edge('a', 'b')
+ .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms'))
+ .arrow()
+
 // Edge markers / arrowhead types
 b.edge('a', 'b').markerEnd('arrowOpen')                    // Open arrow (inheritance)
 b.edge('a', 'b').markerStart('diamond').markerEnd('arrow')  // UML composition
@@ -291,6 +298,7 @@ b.edge('a', 'b').fromPort('right').toPort('left').arrow()
 | `.routing(mode)` | Set mode programmatically. |
 | `.via(x, y)` | Add an intermediate waypoint (chainable). |
 | `.label(text, opts?)` | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`. |
+| `.richLabel(cb, opts?)` | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks. |
 | `.arrow([enabled])` | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
 | `.markerEnd(type)` | Set marker type at the target end (see `EdgeMarkerType`). |
 | `.markerStart(type)` | Set marker type at the source end (see `EdgeMarkerType`). |

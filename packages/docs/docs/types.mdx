@@ -127,10 +127,53 @@ A text label rendered on an edge path.
 | Property     | Type                        | Description                                                                                                                                      |
 | ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `text`       | `string`                    | The label text.                                                                                                                                  |
+| `rich?`      | `RichText`                  | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`.                                                       |
 | `position`   | `'start' \| 'mid' \| 'end'` | Where on the path to place the label. `'start'` is ~15 % from the source, `'mid'` (default) is the midpoint, `'end'` is ~85 % toward the target. |
 | `className?` | `string`                    | Optional CSS class applied to the `<text>` element.                                                                                              |
 | `dx?`        | `number`                    | Horizontal offset (SVG `dx` attribute).                                                                                                          |
 | `dy?`        | `number`                    | Vertical offset (SVG `dy` attribute). Defaults to `-10` to sit above the path.                                                                   |
+
+### NodeLabel
+
+A text label rendered inside (or near) a node.
+
+| Property     | Type       | Description                                                                                |
+| ------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| `text`       | `string`   | The label text.                                                                            |
+| `rich?`      | `RichText` | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`. |
+| `className?` | `string`   | Optional CSS class applied to the `<text>` element.                                        |
+| `dx?`        | `number`   | Horizontal offset.                                                                         |
+| `dy?`        | `number`   | Vertical offset.                                                                           |
+
+### RichText
+
+`RichText` is a small token model used by `.richLabel((l) => ...)` and by declarative options (`label.rich`).
+
+```ts
+type RichText = { kind: 'rich'; tokens: RichTextToken[] };
+
+type RichTextToken =
+  | {
+      kind: 'span';
+      text: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      code?: boolean;
+      href?: string;
+      fill?: string;
+      fontSize?: number | string;
+      fontWeight?: number | string;
+      fontFamily?: string;
+      baselineShift?: 'sub' | 'super';
+      className?: string;
+    }
+  | { kind: 'newline' };
+```
+
+:::note
+Rich text labels currently don’t auto-wrap to a `maxWidth`. Use newline tokens (or `.newline()` in the builder) to control line breaks.
+:::
 
 ---
 
