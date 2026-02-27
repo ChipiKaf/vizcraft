@@ -88,18 +88,18 @@ import { viz } from 'vizcraft';
 const builder = viz().view(400, 200);
 
 builder
-  .node('db')
-  .at(200, 100)
-  .cylinder(80, 60)
-  .fill('#fab387')
-  .label('Database')
-  .done()
-  .edge('db', 'db')
-  .loopSide('right')
-  .loopSize(60)
-  .arrow()
-  .label('Ping', { position: 'mid', dy: 0, dx: -32 })
-  .done();
+.node('db')
+.at(200, 100)
+.cylinder(80, 60)
+.fill('#fab387')
+.label('Database')
+.done()
+.edge('db', 'db')
+.loopSide('right')
+.loopSize(60)
+.arrow()
+.label('Ping', { position: 'mid', dy: 0, dx: -32 })
+.done();
 
 const container = document.getElementById('viz-self-loop');
 if (container) builder.mount(container);
@@ -179,9 +179,24 @@ import { viz } from 'vizcraft';
 
 const builder = viz()
   .view(600, 300)
-  .node('back', { circle: { r: 50 }, at: { x: 250, y: 150 }, zIndex: 1, fill: 'blue' })
-  .node('front', { circle: { r: 50 }, at: { x: 300, y: 150 }, zIndex: 5, fill: 'green' })
-  .node('dynamic', { circle: { r: 60 }, at: { x: 275, y: 100 }, zIndex: 0, fill: 'red' });
+  .node('back', {
+    circle: { r: 50 },
+    at: { x: 250, y: 150 },
+    zIndex: 1,
+    fill: 'blue',
+  })
+  .node('front', {
+    circle: { r: 50 },
+    at: { x: 300, y: 150 },
+    zIndex: 5,
+    fill: 'green',
+  })
+  .node('dynamic', {
+    circle: { r: 60 },
+    at: { x: 275, y: 100 },
+    zIndex: 0,
+    fill: 'red',
+  });
 
 const container = document.getElementById('viz');
 builder.mount(container);
@@ -201,25 +216,26 @@ import { viz, VizPlugin } from 'vizcraft';
 
 // A simple plugin that adds a watermark to the scene
 const watermarkPlugin: VizPlugin<{ text: string }> = (builder, options) => {
-  builder.node('watermark', {
-    at: { x: 50, y: 50 },
-    rect: { w: 100, h: 30 },
-    label: options?.text ?? 'Watermark',
-    zIndex: 999,
-    opacity: 0.5
-  });
+builder.node('watermark', {
+at: { x: 50, y: 50 },
+rect: { w: 100, h: 30 },
+label: options?.text ?? 'Watermark',
+zIndex: 999,
+opacity: 0.5
+});
 };
 
 const builder = viz().view(400, 200);
 
 builder
-  .node('a', { circle: { r: 20 }, at: { x: 150, y: 100 } })
-  // Attach the plugin fluently
-  .use(watermarkPlugin, { text: 'Draft Version' });
+.node('a', { circle: { r: 20 }, at: { x: 150, y: 100 } })
+// Attach the plugin fluently
+.use(watermarkPlugin, { text: 'Draft Version' });
 
 // const container = document.getElementById('viz');
 // if (container) builder.mount(container);
-```
+
+````
 </CodePreview>
 
 ### Event Hooks
@@ -233,18 +249,18 @@ const exportUiPlugin: VizPlugin = (builder) => {
   builder.on('mount', ({ container, controller }) => {
      const btn = document.createElement('button');
      btn.innerText = "Download PNG";
-     btn.onclick = () => { 
+     btn.onclick = () => {
         // Logic to export `builder.svg()` to PNG.
         // For animated export (frame snapshots), use: builder.svg({ includeRuntime: true })
      };
-     
+
      btn.style.position = 'absolute';
      btn.style.top = '10px';
      btn.style.right = '10px';
      container.appendChild(btn);
   });
 };
-```
+````
 
 See the [types documentation](./types#vizplugin) for details on the `VizPlugin` signature.
 
@@ -338,7 +354,9 @@ When `panZoom` is activated, interactions work out-of-the-box:
         arrow: true,
         dash: 'dotted',
       })}
-  />
+
+/>
+
 </CodePreview>
 
 ```ts
