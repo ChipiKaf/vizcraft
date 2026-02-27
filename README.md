@@ -232,6 +232,18 @@ b.edge('a', 'c').orthogonal().arrow()
 // Waypoints — intermediate points the edge passes through
 b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow()
 
+// Arbitrary edge metadata (for routing flags, categories, etc.)
+b.edge('a', 'b').meta({ customRouting: true, padding: 10 })
+
+// Override edge path computation with a resolver hook
+b.setEdgePathResolver((edge, scene, defaultResolver) => {
+  if (edge.meta?.customRouting) {
+    // Return an SVG path `d` string
+    return `M 0 0 L 10 10`;
+  }
+  return defaultResolver(edge, scene);
+});
+
 // Per-edge styling (overrides CSS defaults)
 b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8)
 

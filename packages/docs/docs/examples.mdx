@@ -112,6 +112,58 @@ yOffset: 18,
 return builder;
 })();
 
+export const edgeResolverScene = (() => {
+  const builder = viz().view(560, 240);
+
+builder.setEdgePathResolver((edge, scene, defaultResolver) => {
+const meta = edge.meta;
+const metaObj = meta && typeof meta === 'object' ? meta : null;
+if (!metaObj || metaObj.customRouting !== true)
+return defaultResolver(edge, scene);
+
+    const from = scene.nodes.find((n) => n.id === edge.from);
+    const to = scene.nodes.find((n) => n.id === edge.to);
+    if (!from || !to) return defaultResolver(edge, scene);
+
+    const bend = typeof metaObj.bend === 'number' ? metaObj.bend : 80;
+    const cx = (from.pos.x + to.pos.x) / 2;
+    const cy = Math.min(from.pos.y, to.pos.y) - bend;
+
+    // Consumer-supplied SVG path `d` (quadratic curve)
+    return `M ${from.pos.x} ${from.pos.y} Q ${cx} ${cy} ${to.pos.x} ${to.pos.y}`;
+
+});
+
+return builder
+.node('a')
+.at(100, 160)
+.circle(18)
+.label('A', { fontWeight: 600 })
+.done()
+.node('b')
+.at(460, 160)
+.rect(70, 44, 10)
+.label('B', { fontWeight: 600 })
+.done()
+.node('c')
+.at(280, 80)
+.diamond(64, 64)
+.label('Obstacle', { fontWeight: 600 })
+.done()
+// Default edge
+.edge('a', 'b', 'e-default')
+.arrow()
+.label('default', { dy: 12 })
+.done()
+// Same endpoints, but custom routing via `edge.meta`
+.edge('a', 'b', 'e-custom')
+.meta({ customRouting: true, bend: 90 })
+.dashed()
+.arrow()
+.label('custom', { dy: -14 })
+.done();
+})();
+
 export const dagCss = `
 .vc-node-start .viz-node-shape { fill: #DCFCE7; stroke: #166534; stroke-width: 2; }
 .vc-node-task .viz-node-shape { fill: #DBEAFE; stroke: #1D4ED8; stroke-width: 2; }
@@ -150,6 +202,68 @@ if (container) builder.mount(container);
 
   <div style={{ height: '400px', width: '100%', position: 'relative' }}>
     <VizMount builder={basicScene} style={{ height: '100%', width: '100%' }} />
+  </div>
+</CodePreview>
+
+---
+
+## Custom Edge Paths (Resolver Hook)
+
+Use `builder.setEdgePathResolver()` to override how edge path geometry is computed.
+
+The resolver receives the edge, the full scene, and a `defaultResolver` you can fall back to.
+This works nicely with `edge.meta` as an opt-in flag.
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(560, 240);
+
+builder.setEdgePathResolver((edge, scene, defaultResolver) => {
+if (!edge.meta?.customRouting) return defaultResolver(edge, scene);
+
+const from = scene.nodes.find(n => n.id === edge.from);
+const to = scene.nodes.find(n => n.id === edge.to);
+if (!from || !to) return defaultResolver(edge, scene);
+
+const bend = typeof edge.meta?.bend === 'number' ? edge.meta.bend : 80;
+const cx = (from.pos.x + to.pos.x) / 2;
+const cy = Math.min(from.pos.y, to.pos.y) - bend;
+
+return (
+  'M ' +
+  from.pos.x +
+  ' ' +
+  from.pos.y +
+  ' Q ' +
+  cx +
+  ' ' +
+  cy +
+  ' ' +
+  to.pos.x +
+  ' ' +
+  to.pos.y
+);
+});
+
+builder
+.node('a').at(100, 160).circle(18).label('A', { fontWeight: 600 }).done()
+.node('b').at(460, 160).rect(70, 44, 10).label('B', { fontWeight: 600 }).done()
+
+.edge('a', 'b', 'e-default').arrow().label('default', { dy: 12 }).done()
+.edge('a', 'b', 'e-custom')
+.meta({ customRouting: true, bend: 90 })
+.dashed()
+.arrow()
+.label('custom', { dy: -14 })
+.done();
+
+const container = document.getElementById('viz-edge-resolver');
+if (container) builder.mount(container);
+`}>
+
+  <div style={{ height: '300px', width: '100%', position: 'relative' }}>
+    <VizMount builder={edgeResolverScene} style={{ height: '100%', width: '100%' }} />
   </div>
 </CodePreview>
 

@@ -12,6 +12,7 @@ import type {
   ContainerConfig,
   EdgeRouting,
   EdgeMarkerType,
+  EdgePathResolver,
   NodeOptions,
   EdgeOptions,
   PanZoomOptions,
@@ -310,6 +311,14 @@ export interface VizBuilder extends VizSceneMutator {
     callback: (ev: VizEventMap[K]) => void
   ): () => void;
 
+  /**
+   * Override edge SVG path computation.
+   *
+   * Intended to be installed before `mount()`. Applies to DOM reconciliation and
+   * `patchRuntime()`.
+   */
+  setEdgePathResolver(resolver: EdgePathResolver | null): VizBuilder;
+
   view(w: number, h: number): VizBuilder;
   grid(
     cols: number,
@@ -598,6 +607,8 @@ interface EdgeBuilder {
 
   /** Sugar for `animate(a => a.to(...))`. */
   animateTo(props: AnimatableProps, opts: TweenOptions): EdgeBuilder;
+  /** Attach arbitrary consumer-defined metadata to the edge. */
+  meta(meta: Record<string, unknown>): EdgeBuilder;
   data(payload: unknown): EdgeBuilder;
   onClick(handler: (id: string, edge: VizEdge) => void): EdgeBuilder;
 
@@ -792,6 +803,7 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.hitArea !== undefined) eb.hitArea(opts.hitArea);
 
   // Extras
+  if (opts.meta !== undefined) eb.meta(opts.meta);
   if (opts.data !== undefined) eb.data(opts.data);
   if (opts.onClick) eb.onClick(opts.onClick);
 }
@@ -807,6 +819,7 @@ class VizBuilderImpl implements VizBuilder {
   private _animationSpecs: AnimationSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
   private _panZoomController?: PanZoomController;
+  private _edgePathResolver: EdgePathResolver | null = null;
 
   // Scene Mutation State
   private _changes: SceneChanges = {
@@ -986,7 +999,9 @@ class VizBuilderImpl implements VizBuilder {
     // Apply runtime overrides (if any)
     let ctx = runtimePatchCtxBySvg.get(svg);
     if (!ctx) {
-      ctx = createRuntimePatchCtx(svg);
+      ctx = createRuntimePatchCtx(svg, {
+        edgePathResolver: this._edgePathResolver,
+      });
       runtimePatchCtxBySvg.set(svg, ctx);
     }
     patchRuntime(scene, ctx);
@@ -1022,6 +1037,30 @@ class VizBuilderImpl implements VizBuilder {
       for (const [id, edgeResult] of Object.entries(result.edges)) {
         if (edgeResult.waypoints !== undefined) {
           this.updateEdge(id, { waypoints: edgeResult.waypoints });
+        }
+      }
+    }
+
+    return this;
+  }
+
+  setEdgePathResolver(resolver: EdgePathResolver | null): VizBuilder {
+    this._edgePathResolver = resolver;
+
+    // If already mounted, update (or create) the runtime patch ctx so
+    // `patchRuntime()` uses the resolver immediately.
+    const container = this._mountedContainer;
+    if (container) {
+      const svg = container.querySelector('svg') as SVGSVGElement | null;
+      if (svg) {
+        const existing = runtimePatchCtxBySvg.get(svg);
+        if (existing) {
+          existing.edgePathResolver = resolver;
+        } else {
+          runtimePatchCtxBySvg.set(
+            svg,
+            createRuntimePatchCtx(svg, { edgePathResolver: resolver })
+          );
         }
       }
     }
@@ -1440,7 +1479,9 @@ class VizBuilderImpl implements VizBuilder {
 
     let ctx = runtimePatchCtxBySvg.get(svg);
     if (!ctx) {
-      ctx = createRuntimePatchCtx(svg);
+      ctx = createRuntimePatchCtx(svg, {
+        edgePathResolver: this._edgePathResolver,
+      });
       runtimePatchCtxBySvg.set(svg, ctx);
     }
 
@@ -1770,6 +1811,33 @@ class VizBuilderImpl implements VizBuilder {
           edge.routing,
           edge.waypoints
         );
+      }
+
+      // Allow consumer override of the SVG path `d` string.
+      if (this._edgePathResolver) {
+        const defaultResolver = (e: VizEdge): string => {
+          const s = nodesById.get(e.from);
+          const t = nodesById.get(e.to);
+          if (!s || !t) return '';
+          if (s === t) return computeSelfLoop(s, e).d;
+          const endpoints = computeEdgeEndpoints(s, t, e);
+          return computeEdgePath(
+            endpoints.start,
+            endpoints.end,
+            e.routing,
+            e.waypoints
+          ).d;
+        };
+
+        try {
+          const d = this._edgePathResolver(edge, scene, defaultResolver);
+          if (typeof d === 'string' && d) edgePath.d = d;
+        } catch (err) {
+          console.warn(
+            `VizBuilder: edge path resolver threw for edge ${edge.id}`,
+            err
+          );
+        }
       }
 
       // Apply Edge Runtime Overrides
@@ -2322,7 +2390,10 @@ class VizBuilderImpl implements VizBuilder {
     });
 
     // Build/refresh patch context after reconcile so animation flush can patch in-place.
-    runtimePatchCtxBySvg.set(svg, createRuntimePatchCtx(svg));
+    runtimePatchCtxBySvg.set(
+      svg,
+      createRuntimePatchCtx(svg, { edgePathResolver: this._edgePathResolver })
+    );
   }
 
   /**
@@ -2435,6 +2506,34 @@ class VizBuilderImpl implements VizBuilder {
           edge.routing,
           edge.waypoints
         );
+      }
+
+      if (this._edgePathResolver) {
+        const defaultResolver = (e: VizEdge): string => {
+          const s = nodesById.get(e.from);
+          const t = nodesById.get(e.to);
+          if (!s || !t) return '';
+          if (s === t) return computeSelfLoop(s, e).d;
+          const endpoints = computeEdgeEndpoints(s, t, e);
+          return computeEdgePath(
+            endpoints.start,
+            endpoints.end,
+            e.routing,
+            e.waypoints
+          ).d;
+        };
+
+        try {
+          const d = this._edgePathResolver(edge, scene, (e) =>
+            defaultResolver(e)
+          );
+          if (typeof d === 'string' && d) edgePath.d = d;
+        } catch (err) {
+          console.warn(
+            `VizBuilder: edge path resolver threw for edge ${edge.id}`,
+            err
+          );
+        }
       }
 
       // Runtime overrides for SVG export
@@ -3376,6 +3475,11 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   hitArea(px: number): EdgeBuilder {
     this.edgeDef.hitArea = px;
+    return this;
+  }
+
+  meta(meta: Record<string, unknown>): EdgeBuilder {
+    this.edgeDef.meta = meta;
     return this;
   }
 

@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = [
     // Core package
     {
@@ -5,7 +7,7 @@ module.exports = [
         languageOptions: {
             parser: require('@typescript-eslint/parser'),
             parserOptions: {
-                project: './packages/core/tsconfig.eslint.json',
+                project: path.resolve(__dirname, 'packages/core/tsconfig.eslint.json'),
                 sourceType: 'module',
             },
         },
