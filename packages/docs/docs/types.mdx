@@ -92,6 +92,7 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; strokeDasharray?: string }` — per-edge visual styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. When set, inline SVG attributes override the CSS class defaults.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
+- `meta?: Record<string, unknown>` — arbitrary consumer-defined metadata.
 - `data?: unknown` — your payload.
 
 ### EdgeRouting
@@ -447,5 +448,6 @@ Options object accepted by `viz().edge(from, to, opts)`. Configures an edge decl
 - `fromPort? / toPort?: string` — port ids for edge endpoints.
 - `label?: string | labelObj | labelObj[]` — single or multi-position labels.
 - `hitArea?: number` — invisible hit-area width.
+- `meta?: Record<string, unknown>` — arbitrary consumer-defined metadata.
 - `data?: unknown` — custom payload.
 - `onClick?: (id: string, edge: VizEdge) => void` — click handler.

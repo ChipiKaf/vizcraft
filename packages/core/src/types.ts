@@ -313,6 +313,8 @@ export interface VizEdge {
   id: string;
   from: string;
   to: string;
+  /** Arbitrary consumer-defined metadata associated with the edge. */
+  meta?: Record<string, unknown>;
   /** @deprecated Use `labels` for multi-position support. Kept for backwards compatibility. */
   label?: EdgeLabel;
   /** Multiple labels at different positions along the edge. */
@@ -519,9 +521,27 @@ export interface EdgeOptions {
   hitArea?: number;
 
   // --- Extras ---
+  /** Arbitrary consumer-defined metadata associated with the edge. */
+  meta?: Record<string, unknown>;
   data?: unknown;
   onClick?: (id: string, edge: VizEdge) => void;
 }
+
+/**
+ * Hook to override how an edge's SVG path `d` string is computed.
+ *
+ * Called during `mount()`/`commit()` DOM reconciliation and during `patchRuntime()`.
+ *
+ * The resolver receives:
+ * - the edge being rendered
+ * - the full scene (for obstacle-aware routing, etc.)
+ * - a `defaultResolver` that preserves VizCraft's built-in routing
+ */
+export type EdgePathResolver = (
+  edge: VizEdge,
+  scene: VizScene,
+  defaultResolver: (edge: VizEdge, scene: VizScene) => string
+) => string;
 
 /**
  * Overlay kind -> params mapping.

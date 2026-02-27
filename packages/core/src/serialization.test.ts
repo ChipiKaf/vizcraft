@@ -16,6 +16,7 @@ describe('Serialization and Deserialization', () => {
       .at(200, 200)
       .done()
       .edge('n1', 'n2')
+      .meta({ customRouting: true, padding: 10 })
       .onClick(() => console.log('clicked edge'))
       .done();
 
@@ -45,6 +46,11 @@ describe('Serialization and Deserialization', () => {
     expect(serialized.edges).toHaveLength(1);
     expect(serialized.edges[0].from).toBe('n1');
     expect(serialized.edges[0].to).toBe('n2');
+    // meta should be preserved
+    expect(serialized.edges[0].meta).toEqual({
+      customRouting: true,
+      padding: 10,
+    });
     // Should NOT have onClick function
     expect(serialized.edges[0].onClick).toBeUndefined();
 

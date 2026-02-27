@@ -1,4 +1,9 @@
-import type { VizScene, EdgeMarkerType } from './types';
+import type {
+  VizScene,
+  VizEdge,
+  EdgeMarkerType,
+  EdgePathResolver,
+} from './types';
 import { applyShapeGeometry, effectivePos, effectiveShape } from './shapes';
 import {
   computeEdgePath,
@@ -154,6 +159,9 @@ function ensureColoredMarker(
 export interface RuntimePatchCtx {
   svg: SVGSVGElement;
 
+  /** Optional hook to override how edge SVG paths are computed. */
+  edgePathResolver?: EdgePathResolver | null;
+
   nodeGroupsById: Map<string, SVGGElement>;
   nodeShapesById: Map<string, SVGElement>;
   nodeLabelsById: Map<string, SVGTextElement>;
@@ -167,7 +175,10 @@ export interface RuntimePatchCtx {
   edgeLabelsById: Map<string, SVGTextElement[]>;
 }
 
-export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
+export function createRuntimePatchCtx(
+  svg: SVGSVGElement,
+  opts?: { edgePathResolver?: EdgePathResolver | null }
+): RuntimePatchCtx {
   const nodeGroupsById = new Map<string, SVGGElement>();
   const nodeShapesById = new Map<string, SVGElement>();
   const nodeLabelsById = new Map<string, SVGTextElement>();
@@ -252,6 +263,7 @@ export function createRuntimePatchCtx(svg: SVGSVGElement): RuntimePatchCtx {
 
   return {
     svg,
+    edgePathResolver: opts?.edgePathResolver ?? null,
     nodeGroupsById,
     nodeShapesById,
     nodeLabelsById,
@@ -511,6 +523,8 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     }
   }
 
+  const edgePathResolver = ctx.edgePathResolver;
+
   // Edges: patch endpoints + runtime props (opacity, strokeDashoffset) + label + hit.
   for (const edge of scene.edges) {
     const group = ctx.edgeGroupsById.get(edge.id);
@@ -532,6 +546,32 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
         edge.routing,
         edge.waypoints
       );
+    }
+
+    if (edgePathResolver) {
+      const defaultResolver = (e: VizEdge): string => {
+        const s = nodesById.get(e.from);
+        const t = nodesById.get(e.to);
+        if (!s || !t) return '';
+        if (s === t) return computeSelfLoop(s, e).d;
+        const endpoints = computeEdgeEndpoints(s, t, e);
+        return computeEdgePath(
+          endpoints.start,
+          endpoints.end,
+          e.routing,
+          e.waypoints
+        ).d;
+      };
+
+      try {
+        const d = edgePathResolver(edge, scene, defaultResolver);
+        if (typeof d === 'string' && d) edgePath.d = d;
+      } catch (err) {
+        console.warn(
+          `RuntimePatcher: edge path resolver threw for edge ${edge.id}`,
+          err
+        );
+      }
     }
 
     // Path
