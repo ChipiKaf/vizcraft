@@ -4,6 +4,8 @@ import type {
   VizEdge,
   NodeLabel,
   EdgeLabel,
+  RichText,
+  RichTextToken,
   AnimationConfig,
   VizOverlaySpec,
   OverlayId,
@@ -410,6 +412,67 @@ export interface VizBuilder extends VizSceneMutator {
   destroy(): void;
 }
 
+export interface RichLabelBuilder {
+  text(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder;
+  bold(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder;
+  italic(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder;
+  code(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder;
+  color(
+    text: string,
+    fill: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text' | 'fill'>
+    >
+  ): RichLabelBuilder;
+  link(
+    text: string,
+    href: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text' | 'href'>
+    >
+  ): RichLabelBuilder;
+  sup(
+    text: string,
+    opts?: Partial<
+      Omit<
+        Extract<RichTextToken, { kind: 'span' }>,
+        'kind' | 'text' | 'baselineShift'
+      >
+    >
+  ): RichLabelBuilder;
+  sub(
+    text: string,
+    opts?: Partial<
+      Omit<
+        Extract<RichTextToken, { kind: 'span' }>,
+        'kind' | 'text' | 'baselineShift'
+      >
+    >
+  ): RichLabelBuilder;
+  newline(): RichLabelBuilder;
+  build(): RichText;
+}
+
 interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
   cell(
@@ -520,6 +583,15 @@ interface NodeBuilder {
     }
   ): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
+  /**
+   * Create a rich text label (mixed formatting) using nested SVG <tspan> spans.
+   *
+   * Note: Rich labels currently support explicit newlines via `l.newline()`.
+   */
+  richLabel(
+    cb: (l: RichLabelBuilder) => unknown,
+    opts?: Partial<Omit<NodeLabel, 'text' | 'rich'>>
+  ): NodeBuilder;
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
   opacity(value: number): NodeBuilder;
@@ -570,6 +642,15 @@ interface EdgeBuilder {
   routing(mode: EdgeRouting): EdgeBuilder;
   via(x: number, y: number): EdgeBuilder;
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder;
+  /**
+   * Create a rich text label (mixed formatting) using nested SVG <tspan> spans.
+   *
+   * Note: Rich labels currently support explicit newlines via `l.newline()`.
+   */
+  richLabel(
+    cb: (l: RichLabelBuilder) => unknown,
+    opts?: Partial<Omit<EdgeLabel, 'text' | 'rich'>>
+  ): EdgeBuilder;
   /**
    * Set arrow markers. Convenience method.
    * - `arrow(true)` or `arrow()` sets markerEnd to 'arrow'
@@ -712,7 +793,13 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   // Label & Image
   if (opts.label) {
     if (typeof opts.label === 'string') nb.label(opts.label);
-    else nb.label(opts.label.text, opts.label);
+    else {
+      const text =
+        'text' in opts.label && typeof opts.label.text === 'string'
+          ? opts.label.text
+          : '';
+      nb.label(text, opts.label as Partial<NodeLabel>);
+    }
   }
 
   if (opts.image) {
@@ -795,12 +882,21 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
     if (typeof opts.label === 'string') {
       eb.label(opts.label);
     } else if (Array.isArray(opts.label)) {
-      for (const lbl of opts.label) eb.label(lbl.text, lbl);
+      for (const lbl of opts.label) {
+        const text =
+          typeof (lbl as { text?: unknown }).text === 'string'
+            ? (lbl as { text: string }).text
+            : '';
+        eb.label(text, lbl as Partial<EdgeLabel>);
+      }
     } else {
-      eb.label(opts.label.text, opts.label);
+      const text =
+        'text' in opts.label && typeof opts.label.text === 'string'
+          ? opts.label.text
+          : '';
+      eb.label(text, opts.label as Partial<EdgeLabel>);
     }
   }
-
   // Hit area
   if (opts.hitArea !== undefined) eb.hitArea(opts.hitArea);
 
@@ -808,6 +904,100 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.meta !== undefined) eb.meta(opts.meta);
   if (opts.data !== undefined) eb.data(opts.data);
   if (opts.onClick) eb.onClick(opts.onClick);
+}
+
+class RichLabelBuilderImpl implements RichLabelBuilder {
+  private _tokens: RichTextToken[] = [];
+
+  text(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder {
+    this._tokens.push({ kind: 'span', text, ...(opts ?? {}) });
+    return this;
+  }
+
+  bold(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), bold: true });
+  }
+
+  italic(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), italic: true });
+  }
+
+  code(
+    text: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text'>
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), code: true });
+  }
+
+  color(
+    text: string,
+    fill: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text' | 'fill'>
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), fill });
+  }
+
+  link(
+    text: string,
+    href: string,
+    opts?: Partial<
+      Omit<Extract<RichTextToken, { kind: 'span' }>, 'kind' | 'text' | 'href'>
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), href });
+  }
+
+  sup(
+    text: string,
+    opts?: Partial<
+      Omit<
+        Extract<RichTextToken, { kind: 'span' }>,
+        'kind' | 'text' | 'baselineShift'
+      >
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), baselineShift: 'super' });
+  }
+
+  sub(
+    text: string,
+    opts?: Partial<
+      Omit<
+        Extract<RichTextToken, { kind: 'span' }>,
+        'kind' | 'text' | 'baselineShift'
+      >
+    >
+  ): RichLabelBuilder {
+    return this.text(text, { ...(opts ?? {}), baselineShift: 'sub' });
+  }
+
+  newline(): RichLabelBuilder {
+    this._tokens.push({ kind: 'newline' });
+    return this;
+  }
+
+  build(): RichText {
+    return { kind: 'rich', tokens: [...this._tokens] };
+  }
 }
 
 class VizBuilderImpl implements VizBuilder {
@@ -1945,7 +2135,7 @@ class VizBuilderImpl implements VizBuilder {
         const pos = resolveEdgeLabelPosition(lbl, edgePath);
         const labelClass = `viz-edge-label ${lbl.className || ''}`;
 
-        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.text, {
+        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.rich ?? lbl.text, {
           className: labelClass,
           textAnchor: 'middle',
           dominantBaseline: 'middle',
@@ -2263,18 +2453,23 @@ class VizBuilderImpl implements VizBuilder {
 
       if (node.label && showLabel) {
         const labelClass = `viz-node-label ${node.label.className || ''}`;
-        const nodeLabelSvg = renderSvgText(lx, ly, node.label.text, {
-          className: labelClass,
-          fill: node.label.fill,
-          fontSize: node.label.fontSize,
-          fontWeight: node.label.fontWeight,
-          textAnchor: node.label.textAnchor || 'middle',
-          dominantBaseline: node.label.dominantBaseline || 'middle',
-          maxWidth: node.label.maxWidth,
-          lineHeight: node.label.lineHeight,
-          verticalAlign: node.label.verticalAlign,
-          overflow: node.label.overflow,
-        }).replace('<text ', '<text data-viz-role="node-label" ');
+        const nodeLabelSvg = renderSvgText(
+          lx,
+          ly,
+          node.label.rich ?? node.label.text,
+          {
+            className: labelClass,
+            fill: node.label.fill,
+            fontSize: node.label.fontSize,
+            fontWeight: node.label.fontWeight,
+            textAnchor: node.label.textAnchor || 'middle',
+            dominantBaseline: node.label.dominantBaseline || 'middle',
+            maxWidth: node.label.maxWidth,
+            lineHeight: node.label.lineHeight,
+            verticalAlign: node.label.verticalAlign,
+            overflow: node.label.overflow,
+          }
+        ).replace('<text ', '<text data-viz-role="node-label" ');
 
         group.insertAdjacentHTML('beforeend', nodeLabelSvg);
         label = group.querySelector(
@@ -2636,7 +2831,7 @@ class VizBuilderImpl implements VizBuilder {
         const pos = resolveEdgeLabelPosition(lbl, edgePath);
         const labelClass = `viz-edge-label ${lbl.className || ''}`;
 
-        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.text, {
+        const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.rich ?? lbl.text, {
           className: labelClass,
           textAnchor: 'middle',
           dominantBaseline: 'middle',
@@ -2819,18 +3014,23 @@ class VizBuilderImpl implements VizBuilder {
 
         const labelClass = `viz-node-label ${node.label.className || ''}`;
 
-        const nodeLabelSvg = renderSvgText(lx, ly, node.label.text, {
-          className: labelClass,
-          fill: node.label.fill,
-          fontSize: node.label.fontSize,
-          fontWeight: node.label.fontWeight,
-          textAnchor: node.label.textAnchor || 'middle',
-          dominantBaseline: node.label.dominantBaseline || 'middle',
-          maxWidth: node.label.maxWidth,
-          lineHeight: node.label.lineHeight,
-          verticalAlign: node.label.verticalAlign,
-          overflow: node.label.overflow,
-        });
+        const nodeLabelSvg = renderSvgText(
+          lx,
+          ly,
+          node.label.rich ?? node.label.text,
+          {
+            className: labelClass,
+            fill: node.label.fill,
+            fontSize: node.label.fontSize,
+            fontWeight: node.label.fontWeight,
+            textAnchor: node.label.textAnchor || 'middle',
+            dominantBaseline: node.label.dominantBaseline || 'middle',
+            maxWidth: node.label.maxWidth,
+            lineHeight: node.label.lineHeight,
+            verticalAlign: node.label.verticalAlign,
+            overflow: node.label.overflow,
+          }
+        );
 
         const augmentedSvg = nodeLabelSvg.replace(
           '<text ',
@@ -3208,6 +3408,16 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  richLabel(
+    cb: (l: RichLabelBuilder) => unknown,
+    opts?: Partial<Omit<NodeLabel, 'text' | 'rich'>>
+  ): NodeBuilder {
+    const b = new RichLabelBuilderImpl();
+    cb(b);
+    this.nodeDef.label = { text: '', ...opts, rich: b.build() };
+    return this;
+  }
+
   fill(color: string): NodeBuilder {
     this.nodeDef.style = {
       ...(this.nodeDef.style || {}),
@@ -3404,6 +3614,30 @@ class EdgeBuilderImpl implements EdgeBuilder {
     }
     this.edgeDef.labels.push(lbl);
     // Backwards compat: keep the first mid label in `label`
+    if (lbl.position === 'mid' && !this.edgeDef.label) {
+      this.edgeDef.label = lbl;
+    }
+    return this;
+  }
+
+  richLabel(
+    cb: (l: RichLabelBuilder) => unknown,
+    opts?: Partial<Omit<EdgeLabel, 'text' | 'rich'>>
+  ): EdgeBuilder {
+    const b = new RichLabelBuilderImpl();
+    cb(b);
+    const lbl: EdgeLabel = {
+      position: 'mid',
+      text: '',
+      dy: -10,
+      ...opts,
+      rich: b.build(),
+    };
+
+    if (!this.edgeDef.labels) {
+      this.edgeDef.labels = [];
+    }
+    this.edgeDef.labels.push(lbl);
     if (lbl.position === 'mid' && !this.edgeDef.label) {
       this.edgeDef.label = lbl;
     }
