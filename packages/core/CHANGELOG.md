@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.2.0
+
+### Minor Changes
+
+- [`f72dc04`](https://github.com/ChipiKaf/vizcraft/commit/f72dc0405ccd752ad13eb746349b6a5945448c79) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Added rich text labels to VizCraft with support for mixed formatting and line breaks. Introduced fluent .richLabel() APIs and declarative label.rich support. Improved runtime updates to keep animations stable, extended React rendering, and added test coverage. Docs and READMEs now include a live example.
+
 ## 1.1.0
 
 ### Minor Changes
