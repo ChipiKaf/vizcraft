@@ -231,18 +231,18 @@ const cx = (from.pos.x + to.pos.x) / 2;
 const cy = Math.min(from.pos.y, to.pos.y) - bend;
 
 return (
-  'M ' +
-  from.pos.x +
-  ' ' +
-  from.pos.y +
-  ' Q ' +
-  cx +
-  ' ' +
-  cy +
-  ' ' +
-  to.pos.x +
-  ' ' +
-  to.pos.y
+'M ' +
+from.pos.x +
+' ' +
+from.pos.y +
+' Q ' +
+cx +
+' ' +
+cy +
+' ' +
+to.pos.x +
+' ' +
+to.pos.y
 );
 });
 
