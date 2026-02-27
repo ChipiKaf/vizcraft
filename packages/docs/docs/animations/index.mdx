@@ -176,6 +176,27 @@ Data-only animations are authored as a **portable timeline** (an [AnimationSpec]
 
 Under the hood, the player updates `node.runtime` / `edge.runtime` and VizCraft patches only the relevant SVG attrs/styles.
 
+### Exporting animated frames
+
+If you need to export an animation as a GIF/WebM, the host app typically samples many SVG snapshots (one per frame) and runs an SVG→Canvas→encoder pipeline.
+
+Use `builder.svg({ includeRuntime: true })` to export the **current animated pose** (including `node.runtime` / `edge.runtime`).
+
+```ts
+import { createBuilderPlayback } from 'vizcraft';
+
+// Mount once (often offscreen)
+builder.mount(container);
+
+const player = createBuilderPlayback({ builder, container });
+player.load(spec);
+
+// For each frame time t (ms):
+player.seek(t);
+const svgAtT = builder.svg({ includeRuntime: true });
+// -> feed svgAtT into your encoder pipeline
+```
+
 ---
 
 ## Create an [AnimationSpec](../types.mdx#animationspec) with `builder.animate(cb)`

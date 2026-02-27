@@ -98,6 +98,7 @@ Common lifecycle:
 - `builder.destroy()` tears down a mounted scene securely, cleaning up DOM and event listeners.
 - `builder.play()` plays any compiled timeline specs.
 - `builder.patchRuntime(container)` applies runtime-only updates (useful for per-frame updates without remounting).
+- `builder.svg({ includeRuntime: true })` exports an SVG snapshot including the current animated pose (useful for GIF/video pipelines).
 
 ### Plugins
 
