@@ -23,6 +23,7 @@ import type {
   VizEventMap,
   LayoutAlgorithm,
   LayoutGraph,
+  SvgExportOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './panZoom';
@@ -59,6 +60,7 @@ import { getAdapterExtensions } from './anim/specExtensions';
 import {
   applyShapeGeometry,
   effectivePos,
+  effectiveShape,
   getShapeBehavior,
   shapeSvgMarkup,
 } from './shapes';
@@ -359,7 +361,7 @@ export interface VizBuilder extends VizSceneMutator {
   // Internal helper for NodeBuilder to access grid config
   _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
-  svg(): string;
+  svg(opts?: SvgExportOptions): string;
   mount(container: HTMLElement): PanZoomController | undefined;
   mount(
     container: HTMLElement,
@@ -558,7 +560,7 @@ interface NodeBuilder {
   ): VizBuilder;
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
-  svg(): string;
+  svg(opts?: SvgExportOptions): string;
 }
 
 interface EdgeBuilder {
@@ -639,7 +641,7 @@ interface EdgeBuilder {
   ): VizBuilder;
   overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
-  svg(): string;
+  svg(opts?: SvgExportOptions): string;
 }
 
 // ---------------------------------------------------------------------------
@@ -1274,11 +1276,15 @@ class VizBuilderImpl implements VizBuilder {
 
   /**
    * Returns the SVG string representation of the scene.
+   *
+   * By default, this exports the **static scene** (ignores `node.runtime` / `edge.runtime`).
+   * For animated export (frame snapshots), pass `{ includeRuntime: true }`.
+   *
    * @deprecated Use `mount` instead
    */
-  svg(): string {
+  svg(opts?: SvgExportOptions): string {
     const scene = this.build();
-    return this._renderSceneToSvg(scene);
+    return this._renderSceneToSvg(scene, opts);
   }
 
   /**
@@ -2402,10 +2408,65 @@ class VizBuilderImpl implements VizBuilder {
    * @param scene The scene to render
    * @returns The SVG string representation of the scene
    */
-  private _renderSceneToSvg(scene: VizScene): string {
+  private _renderSceneToSvg(scene: VizScene, opts?: SvgExportOptions): string {
+    const includeRuntime = opts?.includeRuntime === true;
+
     const { viewBox, nodes, edges, overlays } = scene;
-    const nodesById = new Map(nodes.map((n) => [n.id, n]));
-    const edgesById = new Map(edges.map((e) => [e.id, e]));
+
+    // When exporting runtime, containers can move and their children should follow.
+    // We bake that into the exported node positions by writing `runtime.x/y` into cloned nodes.
+    const parentDeltas = new Map<string, { dx: number; dy: number }>();
+    if (includeRuntime) {
+      for (const n of nodes) {
+        if (!n.container) continue;
+        const dx = (n.runtime?.x ?? n.pos.x) - n.pos.x;
+        const dy = (n.runtime?.y ?? n.pos.y) - n.pos.y;
+        if (dx !== 0 || dy !== 0) parentDeltas.set(n.id, { dx, dy });
+      }
+    }
+
+    const exportNodes: VizNode[] = nodes.map((n) => {
+      if (!includeRuntime) return { ...n, runtime: undefined };
+
+      const runtime = n.runtime ? { ...n.runtime } : {};
+      let x = runtime.x ?? n.pos.x;
+      let y = runtime.y ?? n.pos.y;
+
+      if (n.parentId) {
+        const delta = parentDeltas.get(n.parentId);
+        if (delta) {
+          x += delta.dx;
+          y += delta.dy;
+        }
+      }
+
+      const shouldWriteXY =
+        runtime.x !== undefined ||
+        runtime.y !== undefined ||
+        x !== n.pos.x ||
+        y !== n.pos.y;
+
+      if (shouldWriteXY) {
+        runtime.x = x;
+        runtime.y = y;
+      }
+
+      const runtimeOut = Object.keys(runtime).length > 0 ? runtime : undefined;
+      return { ...n, runtime: runtimeOut };
+    });
+
+    const exportEdges: VizEdge[] = edges.map((e) =>
+      includeRuntime ? e : ({ ...e, runtime: undefined } as VizEdge)
+    );
+
+    const exportScene: VizScene = {
+      ...scene,
+      nodes: exportNodes,
+      edges: exportEdges,
+    };
+
+    const nodesById = new Map(exportNodes.map((n) => [n.id, n] as const));
+    const edgesById = new Map(exportEdges.map((e) => [e.id, e] as const));
 
     let svgContent = `<svg viewBox="0 0 ${viewBox.w} ${viewBox.h}" xmlns="http://www.w3.org/2000/svg">`;
 
@@ -2451,7 +2512,7 @@ class VizBuilderImpl implements VizBuilder {
 
     // Render Edges
     svgContent += '<g class="viz-layer-edges" data-viz-layer="edges">';
-    edges.forEach((edge) => {
+    exportEdges.forEach((edge) => {
       const start = nodesById.get(edge.from);
       const end = nodesById.get(edge.to);
       if (!start || !end) return;
@@ -2524,7 +2585,7 @@ class VizBuilderImpl implements VizBuilder {
         };
 
         try {
-          const d = this._edgePathResolver(edge, scene, (e) =>
+          const d = this._edgePathResolver(edge, exportScene, (e) =>
             defaultResolver(e)
           );
           if (typeof d === 'string' && d) edgePath.d = d;
@@ -2558,7 +2619,10 @@ class VizBuilderImpl implements VizBuilder {
         edgeInlineStyle += `stroke-width: ${edge.style.strokeWidth}; `;
       if (edge.style?.fill !== undefined)
         edgeInlineStyle += `fill: ${edge.style.fill}; `;
-      if (edge.style?.opacity !== undefined)
+      if (
+        edge.style?.opacity !== undefined &&
+        edge.runtime?.opacity === undefined
+      )
         edgeInlineStyle += `opacity: ${edge.style.opacity}; `;
       if (edge.style?.strokeDasharray !== undefined) {
         const resolved = resolveDasharray(edge.style.strokeDasharray);
@@ -2596,7 +2660,7 @@ class VizBuilderImpl implements VizBuilder {
 
     // Build parent→children map for container grouping
     const childrenByParent = new Map<string, VizNode[]>();
-    nodes.forEach((n) => {
+    exportNodes.forEach((n) => {
       if (n.parentId) {
         let arr = childrenByParent.get(n.parentId);
         if (!arr) {
@@ -2611,7 +2675,7 @@ class VizBuilderImpl implements VizBuilder {
     const renderNodeToSvg = (node: VizNode): string => {
       let content = '';
       const { x, y } = effectivePos(node);
-      const { shape } = node;
+      const shape = effectiveShape(node);
 
       // Animations (Nodes)
       let animClasses = '';
@@ -2650,13 +2714,21 @@ class VizBuilderImpl implements VizBuilder {
       const isContainer = !!node.container;
       const className = `viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''} ${animClasses}`;
 
-      content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}">`;
+      const scale = node.runtime?.scale;
+      const rotation = node.runtime?.rotation;
+      const transformAttr =
+        scale !== undefined || rotation !== undefined
+          ? ` transform="translate(${x} ${y}) rotate(${rotation ?? 0}) scale(${scale ?? 1}) translate(${-x} ${-y})"`
+          : '';
+
+      content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}"${transformAttr}>`;
 
       const shapeStyleAttrs = svgAttributeString({
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
         'stroke-width': node.style?.strokeWidth ?? 2,
-        opacity: node.style?.opacity,
+        opacity:
+          node.runtime?.opacity !== undefined ? undefined : node.style?.opacity,
       });
 
       // Shape
@@ -2793,7 +2865,7 @@ class VizBuilderImpl implements VizBuilder {
 
     // Render Nodes (only root nodes; children are rendered inside their containers)
     svgContent += '<g class="viz-layer-nodes" data-viz-layer="nodes">';
-    nodes.forEach((node) => {
+    exportNodes.forEach((node) => {
       if (!node.parentId) {
         svgContent += renderNodeToSvg(node);
       }
@@ -2810,7 +2882,7 @@ class VizBuilderImpl implements VizBuilder {
             spec,
             nodesById,
             edgesById,
-            scene,
+            scene: exportScene,
             registry: defaultCoreOverlayRegistry,
           });
         }
@@ -3282,8 +3354,8 @@ class NodeBuilderImpl implements NodeBuilder {
   build(): VizScene {
     return this._builder.build();
   }
-  svg(): string {
-    return this._builder.svg();
+  svg(opts?: SvgExportOptions): string {
+    return this._builder.svg(opts);
   }
 }
 
@@ -3544,8 +3616,8 @@ class EdgeBuilderImpl implements EdgeBuilder {
   build(): VizScene {
     return this.parent.build();
   }
-  svg(): string {
-    return this.parent.svg();
+  svg(opts?: SvgExportOptions): string {
+    return this.parent.svg(opts);
   }
 }
 

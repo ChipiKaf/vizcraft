@@ -85,6 +85,12 @@ pnpm -C packages/docs start
 
 The heart of VizCraft is the `VizBuilder`. It allows you to construct a `VizScene` which acts as the blueprint for your visualization.
 
+For exporting frame snapshots during data-only playback, you can export an SVG that includes runtime overrides:
+
+```ts
+const svg = builder.svg({ includeRuntime: true });
+```
+
 ```typescript
 b.view(width, height) // Set the coordinate space
   .grid(cols, rows) // (Optional) Define layout grid

@@ -154,6 +154,14 @@ export type VizRuntimeEdgeProps = Partial<{
   opacity: number;
 }>;
 
+export interface SvgExportOptions {
+  /**
+   * When true, include current runtime overrides (`node.runtime` / `edge.runtime`) in the exported SVG.
+   * This is useful for frame-by-frame animated export.
+   */
+  includeRuntime?: boolean;
+}
+
 export interface ContainerConfig {
   /** Layout direction for children (default 'free') */
   layout?: 'free' | 'vertical' | 'horizontal';
