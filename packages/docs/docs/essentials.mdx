@@ -1020,25 +1020,6 @@ export const richTextLabelScene = viz()
   .richLabel((l) => l.text('Postgres ').italic('14'))
   .edge('api', 'db')
   .arrow()
-  .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms').text(' ').link('docs', 'https://vizcraft.dev/docs'))
-  .done();
-
-<CodePreview code={`
-import { viz } from 'vizcraft';
-
-const builder = viz().view(680, 240);
-
-builder
-  .node('api')
-  .at(140, 120)
-  .rect(140, 64, 12)
-  .richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
-  .node('db')
-  .at(520, 120)
-  .cylinder(140, 64)
-  .richLabel((l) => l.text('Postgres ').italic('14'))
-  .edge('api', 'db')
-  .arrow()
   .richLabel((l) =>
     l
       .text('p')
@@ -1049,6 +1030,33 @@ builder
       .link('docs', 'https://vizcraft.dev/docs')
   )
   .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(680, 240);
+
+builder
+.node('api')
+.at(140, 120)
+.rect(140, 64, 12)
+.richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
+.node('db')
+.at(520, 120)
+.cylinder(140, 64)
+.richLabel((l) => l.text('Postgres ').italic('14'))
+.edge('api', 'db')
+.arrow()
+.richLabel((l) =>
+l
+.text('p')
+.sup('95')
+.text(' ')
+.bold('12ms')
+.text(' ')
+.link('docs', 'https://vizcraft.dev/docs')
+)
+.done();
 
 const el = document.getElementById('viz-rich-text-labels');
 if (el) builder.mount(el);
