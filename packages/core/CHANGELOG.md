@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.3.1
+
+### Patch Changes
+
+- [`086ef9e`](https://github.com/ChipiKaf/vizcraft/commit/086ef9e7b5d505cbb03f955e8d24297fb60a6b3e) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - The fix prevents commit() from using a stale cached runtimePatchCtx (which could reference detached DOM elements) by always recreating it after \_renderSceneToDOM, and removes the redundant strokeDasharray write from patchRuntime so that base style is owned by a single write path.
+
 ## 1.3.0
 
 ### Minor Changes
