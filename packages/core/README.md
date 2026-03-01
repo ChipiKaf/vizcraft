@@ -202,6 +202,8 @@ b.node('n1')
  .dashed()                // Dashed border (8, 4)
  .dotted()                // Dotted border (2, 4)
  .dash('12, 3, 3, 3')     // Custom dash pattern
+ .shadow()                // Drop shadow (default: dx=2 dy=2 blur=4)
+ .shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' }) // Custom shadow
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
  .port('out', { x: 50, y: 0 }) // Named connection port

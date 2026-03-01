@@ -97,6 +97,47 @@ function arrowMarkerIdFor(stroke: string | undefined): string {
   return markerIdFor('arrow', stroke);
 }
 
+const SHADOW_DEFAULTS = {
+  dx: 2,
+  dy: 2,
+  blur: 4,
+  color: 'rgba(0,0,0,0.2)',
+} as const;
+
+/** Apply defaults to a partial shadow config. */
+function resolveShadow(shadow: {
+  dx?: number;
+  dy?: number;
+  blur?: number;
+  color?: string;
+}): { dx: number; dy: number; blur: number; color: string } {
+  return {
+    dx: shadow.dx ?? SHADOW_DEFAULTS.dx,
+    dy: shadow.dy ?? SHADOW_DEFAULTS.dy,
+    blur: shadow.blur ?? SHADOW_DEFAULTS.blur,
+    color: shadow.color ?? SHADOW_DEFAULTS.color,
+  };
+}
+
+/** Deterministic filter id keyed by config tuple for dedup. */
+function shadowFilterId(cfg: {
+  dx: number;
+  dy: number;
+  blur: number;
+  color: string;
+}): string {
+  const colorSuffix = cfg.color.replace(/[^a-zA-Z0-9]/g, '_');
+  return `viz-shadow-${cfg.dx}-${cfg.dy}-${cfg.blur}-${colorSuffix}`;
+}
+
+/** SVG markup for a drop-shadow `<filter>`. */
+function shadowFilterSvg(
+  id: string,
+  cfg: { dx: number; dy: number; blur: number; color: string }
+): string {
+  return `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${cfg.dx}" dy="${cfg.dy}" stdDeviation="${cfg.blur}" flood-color="${escapeXmlAttr(cfg.color)}" flood-opacity="1"/></filter>`;
+}
+
 /**
  * Generate SVG markup for a single marker definition.
  * @param markerType The type of marker
@@ -603,6 +644,17 @@ interface NodeBuilder {
   dash(
     pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
   ): NodeBuilder;
+  /**
+   * Add a drop shadow behind the node shape.
+   *
+   * Call with no arguments for a sensible default, or pass a config object.
+   */
+  shadow(config?: {
+    dx?: number;
+    dy?: number;
+    blur?: number;
+    color?: string;
+  }): NodeBuilder;
   class(name: string): NodeBuilder;
   zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
@@ -796,6 +848,9 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   }
   if (opts.opacity !== undefined) nb.opacity(opts.opacity);
   if (opts.dash) nb.dash(opts.dash);
+  if (opts.shadow !== undefined && opts.shadow !== false) {
+    nb.shadow(opts.shadow === true ? {} : opts.shadow);
+  }
   if (opts.className) nb.class(opts.className);
   if (opts.zIndex !== undefined) nb.zIndex(opts.zIndex);
 
@@ -1893,6 +1948,28 @@ class VizBuilderImpl implements VizBuilder {
         defs.appendChild(markerEl);
       });
 
+      const neededShadows = new Map<
+        string,
+        { dx: number; dy: number; blur: number; color: string }
+      >();
+      nodes.forEach((n) => {
+        if (n.style?.shadow) {
+          const cfg = resolveShadow(n.style.shadow);
+          const fid = shadowFilterId(cfg);
+          if (!neededShadows.has(fid)) {
+            neededShadows.set(fid, cfg);
+          }
+        }
+      });
+      neededShadows.forEach((cfg, fid) => {
+        const tmp = document.createElementNS(svgNS, 'svg');
+        tmp.innerHTML = shadowFilterSvg(fid, cfg);
+        const filterEl = tmp.querySelector('filter');
+        if (filterEl) {
+          defs.appendChild(filterEl);
+        }
+      });
+
       svg.appendChild(defs);
 
       // Layers
@@ -2291,12 +2368,16 @@ class VizBuilderImpl implements VizBuilder {
       applyShapeGeometry(shape!, node.shape, { x, y });
 
       const resolvedNodeDash = resolveDasharray(node.style?.strokeDasharray);
+      const nodeShadowFilter = node.style?.shadow
+        ? `url(#${shadowFilterId(resolveShadow(node.style.shadow))})`
+        : undefined;
       setSvgAttributes(shape!, {
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
         'stroke-width': node.style?.strokeWidth ?? 2,
         opacity: node.runtime?.opacity ?? node.style?.opacity,
         'stroke-dasharray': resolvedNodeDash || undefined,
+        filter: nodeShadowFilter,
       });
 
       // Embedded media (rendered alongside the base shape)
@@ -2713,6 +2794,23 @@ class VizBuilderImpl implements VizBuilder {
       }
     });
 
+    const exportShadows = new Map<
+      string,
+      { dx: number; dy: number; blur: number; color: string }
+    >();
+    exportNodes.forEach((n) => {
+      if (n.style?.shadow) {
+        const cfg = resolveShadow(n.style.shadow);
+        const fid = shadowFilterId(cfg);
+        if (!exportShadows.has(fid)) {
+          exportShadows.set(fid, cfg);
+        }
+      }
+    });
+    exportShadows.forEach((cfg, fid) => {
+      svgContent += shadowFilterSvg(fid, cfg);
+    });
+
     svgContent += `
         </defs>`;
 
@@ -2932,6 +3030,9 @@ class VizBuilderImpl implements VizBuilder {
       const resolvedExportNodeDash = resolveDasharray(
         node.style?.strokeDasharray
       );
+      const exportShadowFilter = node.style?.shadow
+        ? `url(#${shadowFilterId(resolveShadow(node.style.shadow))})`
+        : undefined;
       const shapeStyleAttrs = svgAttributeString({
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
@@ -2939,6 +3040,7 @@ class VizBuilderImpl implements VizBuilder {
         opacity:
           node.runtime?.opacity !== undefined ? undefined : node.style?.opacity,
         'stroke-dasharray': resolvedExportNodeDash || undefined,
+        filter: exportShadowFilter,
       });
 
       // Shape
@@ -3480,6 +3582,19 @@ class NodeBuilderImpl implements NodeBuilder {
     this.nodeDef.style = {
       ...(this.nodeDef.style || {}),
       strokeDasharray: pattern,
+    };
+    return this;
+  }
+
+  shadow(config?: {
+    dx?: number;
+    dy?: number;
+    blur?: number;
+    color?: string;
+  }): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      shadow: config ?? {},
     };
     return this;
   }

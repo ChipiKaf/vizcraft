@@ -15,6 +15,66 @@ import { resolveDasharray } from './edgeStyles';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
+const SHADOW_DEFAULTS = {
+  dx: 2,
+  dy: 2,
+  blur: 4,
+  color: 'rgba(0,0,0,0.2)',
+} as const;
+
+function resolveShadow(shadow: {
+  dx?: number;
+  dy?: number;
+  blur?: number;
+  color?: string;
+}): { dx: number; dy: number; blur: number; color: string } {
+  return {
+    dx: shadow.dx ?? SHADOW_DEFAULTS.dx,
+    dy: shadow.dy ?? SHADOW_DEFAULTS.dy,
+    blur: shadow.blur ?? SHADOW_DEFAULTS.blur,
+    color: shadow.color ?? SHADOW_DEFAULTS.color,
+  };
+}
+
+function shadowFilterId(cfg: {
+  dx: number;
+  dy: number;
+  blur: number;
+  color: string;
+}): string {
+  const colorSuffix = cfg.color.replace(/[^a-zA-Z0-9]/g, '_');
+  return `viz-shadow-${cfg.dx}-${cfg.dy}-${cfg.blur}-${colorSuffix}`;
+}
+
+/** Lazily ensure a shadow `<filter>` definition exists in `<defs>`. */
+function ensureShadowFilter(
+  svg: SVGSVGElement,
+  shadow: { dx?: number; dy?: number; blur?: number; color?: string }
+): string {
+  const cfg = resolveShadow(shadow);
+  const fid = shadowFilterId(cfg);
+  if (!svg.querySelector(`#${CSS.escape(fid)}`)) {
+    const defs = svg.querySelector('defs');
+    if (defs) {
+      const filter = document.createElementNS(svgNS, 'filter');
+      filter.setAttribute('id', fid);
+      filter.setAttribute('x', '-50%');
+      filter.setAttribute('y', '-50%');
+      filter.setAttribute('width', '200%');
+      filter.setAttribute('height', '200%');
+      const drop = document.createElementNS(svgNS, 'feDropShadow');
+      drop.setAttribute('dx', String(cfg.dx));
+      drop.setAttribute('dy', String(cfg.dy));
+      drop.setAttribute('stdDeviation', String(cfg.blur));
+      drop.setAttribute('flood-color', cfg.color);
+      drop.setAttribute('flood-opacity', '1');
+      filter.appendChild(drop);
+      defs.appendChild(filter);
+    }
+  }
+  return fid;
+}
+
 /** Sanitise a CSS color for use as a marker ID suffix. */
 function colorToMarkerSuffix(color: string): string {
   return color.replace(/[^a-zA-Z0-9]/g, '_');
@@ -503,6 +563,13 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       }
     } else {
       shape.removeAttribute('stroke-dasharray');
+    }
+
+    if (node.style?.shadow) {
+      const fid = ensureShadowFilter(ctx.svg, node.style.shadow);
+      shape.setAttribute('filter', `url(#${fid})`);
+    } else {
+      shape.removeAttribute('filter');
     }
 
     // Transform conflict rule: runtime wins if it writes transform.
