@@ -670,17 +670,9 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       }
     }
 
-    // Stroke-dasharray: apply resolved value to shape.
-    if (node.style?.strokeDasharray !== undefined) {
-      const resolved = resolveDasharray(node.style.strokeDasharray);
-      if (resolved) {
-        shape.setAttribute('stroke-dasharray', resolved);
-      } else {
-        shape.removeAttribute('stroke-dasharray');
-      }
-    } else {
-      shape.removeAttribute('stroke-dasharray');
-    }
+    // NOTE: strokeDasharray is a static base style — written exclusively by
+    // _renderSceneToDOM via setSvgAttributes.  patchRuntime must NOT duplicate
+    // that write to avoid the stale-context overwrite described in #81.
 
     if (node.style?.shadow) {
       const fid = ensureShadowFilter(ctx.svg, node.style.shadow);

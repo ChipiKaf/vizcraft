@@ -1322,14 +1322,13 @@ class VizBuilderImpl implements VizBuilder {
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
 
-    // Apply runtime overrides (if any)
-    let ctx = runtimePatchCtxBySvg.get(svg);
-    if (!ctx) {
-      ctx = createRuntimePatchCtx(svg, {
-        edgePathResolver: this._edgePathResolver,
-      });
-      runtimePatchCtxBySvg.set(svg, ctx);
-    }
+    // Apply runtime overrides (if any).
+    // Always recreate the context after _renderSceneToDOM so patchRuntime
+    // never references stale / detached elements (fixes #81).
+    const ctx = createRuntimePatchCtx(svg, {
+      edgePathResolver: this._edgePathResolver,
+    });
+    runtimePatchCtxBySvg.set(svg, ctx);
     patchRuntime(scene, ctx);
   }
 
