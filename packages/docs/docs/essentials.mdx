@@ -328,6 +328,7 @@ Returns **`VizBuilder`** (not `NodeBuilder`), so you can chain the next element 
 | `fill`                         | `string`                            | `.fill(color)`                    |
 | `stroke`                       | `string \| { color, width? }`       | `.stroke(color, width)`           |
 | `opacity`                      | `number`                            | `.opacity(n)`                     |
+| `dash`                         | `'dashed' \| 'dotted' \| 'dash-dot' \| string` | `.dash(value)`                    |
 | `zIndex`                       | `number`                            | `.zIndex(value)`                  |
 | `className`                    | `string`                            | `.class(name)`                    |
 | `label`                        | `string \| { text, …labelOpts }`    | `.label(text, opts)`              |
@@ -721,6 +722,80 @@ if (container) builder.mount(container);
 
 - \`.at(x, y)\`: Absolute positioning.
 - \`.cell(col, row, [align])\` Grid-based positioning (requires \`.grid()\`).
+
+### Node Border Styles (Dash Patterns)
+
+Nodes support dashed, dotted, and custom border styles via \`.dashed()\`, \`.dotted()\`, or \`.dash(pattern)\`.
+This works the same way as [edge dash patterns](#dash-patterns) — preset names resolve to standard SVG \`stroke-dasharray\` values.
+
+| Preset       | \`stroke-dasharray\` |
+| ------------ | ------------------ |
+| \`'solid'\`    | none               |
+| \`'dashed'\`   | \`8, 4\`             |
+| \`'dotted'\`   | \`2, 4\`             |
+| \`'dash-dot'\` | \`8, 4, 2, 4\`       |
+
+export const nodeDashScene = viz()
+  .view(620, 180)
+  .node('solid')
+  .at(80, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .label('solid (default)')
+  .node('dashed')
+  .at(230, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dashed()
+  .label('dashed')
+  .node('dotted')
+  .at(380, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dotted()
+  .label('dotted')
+  .node('dashDot')
+  .at(530, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dash('dash-dot')
+  .label('dash-dot')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(620, 180);
+
+builder
+  .node('solid').at(80, 90).rect(120, 60).stroke('#6c7086').label('solid (default)')
+  .node('dashed').at(230, 90).rect(120, 60).stroke('#6c7086').dashed().label('dashed')
+  .node('dotted').at(380, 90).rect(120, 60).stroke('#6c7086').dotted().label('dotted')
+  .node('dashDot').at(530, 90).rect(120, 60).stroke('#6c7086').dash('dash-dot').label('dash-dot')
+  .done();
+
+const el = document.getElementById('viz-node-dash');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={nodeDashScene} style={{ height: '180px', width: '100%' }} />
+</CodePreview>
+
+You can also set dash patterns via the `style` property or the declarative `dash` option:
+
+```ts
+// via style object
+viz().node('boundary').rect(200, 120)
+  .stroke('#6c7086')
+  .dash('dashed')
+
+// via declarative options
+viz().node('boundary', {
+  rect: { w: 200, h: 120 },
+  stroke: '#6c7086',
+  dash: 'dashed',
+})
+```
 
 ## Edges
 

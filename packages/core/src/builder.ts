@@ -595,6 +595,14 @@ interface NodeBuilder {
   fill(color: string): NodeBuilder;
   stroke(color: string, width?: number): NodeBuilder;
   opacity(value: number): NodeBuilder;
+  /** Apply a dashed stroke pattern (`8, 4`). */
+  dashed(): NodeBuilder;
+  /** Apply a dotted stroke pattern (`2, 4`). */
+  dotted(): NodeBuilder;
+  /** Apply a custom SVG `stroke-dasharray` value, or a preset name (`'dashed'`, `'dotted'`, `'dash-dot'`). */
+  dash(
+    pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
+  ): NodeBuilder;
   class(name: string): NodeBuilder;
   zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
@@ -787,6 +795,7 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
     else nb.stroke(opts.stroke.color, opts.stroke.width);
   }
   if (opts.opacity !== undefined) nb.opacity(opts.opacity);
+  if (opts.dash) nb.dash(opts.dash);
   if (opts.className) nb.class(opts.className);
   if (opts.zIndex !== undefined) nb.zIndex(opts.zIndex);
 
@@ -2281,11 +2290,13 @@ class VizBuilderImpl implements VizBuilder {
 
       applyShapeGeometry(shape!, node.shape, { x, y });
 
+      const resolvedNodeDash = resolveDasharray(node.style?.strokeDasharray);
       setSvgAttributes(shape!, {
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
         'stroke-width': node.style?.strokeWidth ?? 2,
         opacity: node.runtime?.opacity ?? node.style?.opacity,
+        'stroke-dasharray': resolvedNodeDash || undefined,
       });
 
       // Embedded media (rendered alongside the base shape)
@@ -2918,12 +2929,16 @@ class VizBuilderImpl implements VizBuilder {
 
       content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}"${transformAttr}>`;
 
+      const resolvedExportNodeDash = resolveDasharray(
+        node.style?.strokeDasharray
+      );
       const shapeStyleAttrs = svgAttributeString({
         fill: node.style?.fill ?? 'none',
         stroke: node.style?.stroke ?? '#111',
         'stroke-width': node.style?.strokeWidth ?? 2,
         opacity:
           node.runtime?.opacity !== undefined ? undefined : node.style?.opacity,
+        'stroke-dasharray': resolvedExportNodeDash || undefined,
       });
 
       // Shape
@@ -3439,6 +3454,32 @@ class NodeBuilderImpl implements NodeBuilder {
     this.nodeDef.style = {
       ...(this.nodeDef.style || {}),
       opacity: value,
+    };
+    return this;
+  }
+
+  dashed(): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      strokeDasharray: 'dashed',
+    };
+    return this;
+  }
+
+  dotted(): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      strokeDasharray: 'dotted',
+    };
+    return this;
+  }
+
+  dash(
+    pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
+  ): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      strokeDasharray: pattern,
     };
     return this;
   }
