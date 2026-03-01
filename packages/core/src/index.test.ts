@@ -1928,6 +1928,155 @@ describe('vizcraft core', () => {
     });
   });
 
+  describe('node drop shadow', () => {
+    it('.shadow() stores default shadow config on the node', () => {
+      const scene = viz().node('a').at(100, 100).rect(120, 60).shadow().build();
+      expect(scene.nodes[0]!.style?.shadow).toEqual({});
+    });
+
+    it('.shadow(config) stores custom shadow config', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .shadow({ dx: 3, dy: 4, blur: 8, color: 'rgba(0,0,0,0.5)' })
+        .build();
+      expect(scene.nodes[0]!.style?.shadow).toEqual({
+        dx: 3,
+        dy: 4,
+        blur: 8,
+        color: 'rgba(0,0,0,0.5)',
+      });
+    });
+
+    it('.shadow() chains with other style methods', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .fill('#fff')
+        .stroke('#ccc', 1)
+        .shadow()
+        .build();
+      const style = scene.nodes[0]!.style!;
+      expect(style.fill).toBe('#fff');
+      expect(style.stroke).toBe('#ccc');
+      expect(style.strokeWidth).toBe(1);
+      expect(style.shadow).toEqual({});
+    });
+
+    it('shadow node renders filter attribute and <filter> def in svg()', () => {
+      const svgStr = viz().node('a').at(100, 100).rect(120, 60).shadow().svg();
+      // Should have a <filter> element in defs
+      expect(svgStr).toContain('<filter id="viz-shadow-2-2-4-');
+      expect(svgStr).toContain('feDropShadow');
+      // The shape element should reference a filter
+      const shapeMatch = svgStr.match(
+        /<rect[^>]*data-viz-role="node-shape"[^>]*>/
+      );
+      expect(shapeMatch).toBeTruthy();
+      expect(shapeMatch![0]).toContain('filter="url(#viz-shadow-');
+    });
+
+    it('custom shadow config renders correct filter values', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .shadow({ dx: 5, dy: 5, blur: 10, color: '#000' })
+        .svg();
+      expect(svgStr).toContain('viz-shadow-5-5-10-_000');
+      expect(svgStr).toContain('dx="5"');
+      expect(svgStr).toContain('dy="5"');
+      expect(svgStr).toContain('stdDeviation="10"');
+      expect(svgStr).toContain('flood-color="#000"');
+    });
+
+    it('nodes with same shadow config share a single filter def', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .shadow()
+        .node('b')
+        .at(300, 100)
+        .rect(120, 60)
+        .shadow()
+        .svg();
+      // Count how many <filter> elements exist — should be exactly one
+      const filterMatches = svgStr.match(/<filter /g);
+      expect(filterMatches).toHaveLength(1);
+    });
+
+    it('nodes with different shadow configs get separate filter defs', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .shadow({ blur: 4 })
+        .node('b')
+        .at(300, 100)
+        .rect(120, 60)
+        .shadow({ blur: 10 })
+        .svg();
+      const filterMatches = svgStr.match(/<filter /g);
+      expect(filterMatches).toHaveLength(2);
+    });
+
+    it('no filter when shadow is not set', () => {
+      const svgStr = viz().node('a').at(100, 100).rect(120, 60).svg();
+      expect(svgStr).not.toContain('<filter');
+      const shapeMatch = svgStr.match(
+        /<rect[^>]*data-viz-role="node-shape"[^>]*>/
+      );
+      expect(shapeMatch).toBeTruthy();
+      expect(shapeMatch![0]).not.toContain('filter=');
+    });
+
+    it('declarative node(id, opts) supports shadow: true', () => {
+      const scene = viz()
+        .node('a', {
+          at: { x: 100, y: 100 },
+          rect: { w: 120, h: 60 },
+          shadow: true,
+        })
+        .build();
+      expect(scene.nodes[0]!.style?.shadow).toEqual({});
+    });
+
+    it('declarative node(id, opts) supports shadow config object', () => {
+      const scene = viz()
+        .node('a', {
+          at: { x: 100, y: 100 },
+          rect: { w: 120, h: 60 },
+          shadow: { dx: 3, dy: 3, blur: 6, color: 'rgba(0,0,0,0.3)' },
+        })
+        .build();
+      expect(scene.nodes[0]!.style?.shadow).toEqual({
+        dx: 3,
+        dy: 3,
+        blur: 6,
+        color: 'rgba(0,0,0,0.3)',
+      });
+    });
+
+    it('shadow works with circle shape', () => {
+      const svgStr = viz().node('a').at(100, 100).circle(30).shadow().svg();
+      expect(svgStr).toContain('filter="url(#viz-shadow-');
+      expect(svgStr).toContain('<filter');
+    });
+
+    it('shadow works with diamond shape', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .diamond(80, 60)
+        .shadow({ blur: 6 })
+        .svg();
+      expect(svgStr).toContain('filter="url(#viz-shadow-');
+    });
+  });
+
   describe('edge marker types and markerStart', () => {
     it('.markerEnd() sets custom marker type on the edge', () => {
       const scene = viz()

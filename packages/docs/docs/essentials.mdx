@@ -795,6 +795,88 @@ viz().node('boundary', {
 });
 ```
 
+### Node Drop Shadow
+
+Add a drop shadow behind any node shape with `.shadow()`. Call it with no arguments for a sensible default,
+or pass a config object to customize offset, blur, and color.
+
+| Property | Type     | Default             | Description                         |
+| -------- | -------- | ------------------- | ----------------------------------- |
+| `dx`     | `number` | `2`                 | Horizontal offset                   |
+| `dy`     | `number` | `2`                 | Vertical offset                     |
+| `blur`   | `number` | `4`                 | Gaussian blur radius (stdDeviation) |
+| `color`  | `string` | `'rgba(0,0,0,0.2)'` | Shadow color                        |
+
+Shadows are rendered via SVG `<filter>` elements in `<defs>`.
+When multiple nodes share the same shadow config, a single filter definition is reused automatically.
+
+export const nodeShadowScene = viz()
+  .view(620, 200)
+  .node('default')
+  .at(100, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .shadow()
+  .label('default shadow')
+  .node('custom')
+  .at(310, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' })
+  .label('custom shadow')
+  .node('none')
+  .at(520, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .label('no shadow')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(620, 200);
+
+builder
+.node('default').at(100, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0').shadow().label('default shadow')
+.node('custom').at(310, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0')
+.shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' })
+.label('custom shadow')
+.node('none').at(520, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0').label('no shadow')
+.done();
+
+const el = document.getElementById('viz-node-shadow');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={nodeShadowScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+You can also set shadows via the declarative `shadow` option:
+
+```ts
+// shorthand — applies default shadow
+viz().node('card', {
+  rect: { w: 180, h: 100 },
+  fill: '#ffffff',
+  stroke: '#e0e0e0',
+  shadow: true,
+});
+
+// custom config
+viz().node('card', {
+  rect: { w: 180, h: 100 },
+  fill: '#ffffff',
+  stroke: '#e0e0e0',
+  shadow: { dx: 3, dy: 3, blur: 8, color: 'rgba(0,0,0,0.25)' },
+});
+```
+
 ## Edges
 
 Edges connect two nodes using \`.edge(fromId, toId)\`.

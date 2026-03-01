@@ -291,6 +291,20 @@ export interface VizNode {
      * `'solid'` (or omitting the property) renders a continuous stroke.
      */
     strokeDasharray?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
+    /**
+     * Drop shadow rendered behind the node shape via an SVG `<filter>`.
+     *
+     * - `dx` — horizontal offset (default `2`)
+     * - `dy` — vertical offset (default `2`)
+     * - `blur` — Gaussian blur radius / stdDeviation (default `4`)
+     * - `color` — shadow color (default `'rgba(0,0,0,0.2)'`)
+     */
+    shadow?: {
+      dx?: number;
+      dy?: number;
+      blur?: number;
+      color?: string;
+    };
   };
   className?: string; // e.g. "active", "input-layer"
   data?: unknown; // User payload
@@ -505,6 +519,13 @@ export interface NodeOptions {
   opacity?: number;
   /** Dash pattern preset or custom SVG dasharray string. */
   dash?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
+  /**
+   * Drop shadow behind the node shape.
+   * `true` for default shadow, or a config object `{ dx, dy, blur, color }`.
+   */
+  shadow?:
+    | boolean
+    | { dx?: number; dy?: number; blur?: number; color?: string };
   /** Explicit render order. Higher values render on top. Default: 0. */
   zIndex?: number;
   className?: string;
