@@ -877,6 +877,100 @@ viz().node('card', {
 });
 ```
 
+### Sketch / Hand-Drawn Mode
+
+Give nodes and edges a hand-drawn, sketchy appearance with `.sketch()`.
+The effect uses an SVG `feTurbulence` + `feDisplacementMap` filter for wobbly strokes, plus round line caps and joins.
+
+You can apply it **per-node**, **per-edge**, or **globally** on the builder.
+
+| Scope    | API                               | Description                              |
+| -------- | --------------------------------- | ---------------------------------------- |
+| Per-node | `.sketch()` / `.sketch({ seed })` | Sketchy rendering for a single node      |
+| Per-edge | `.sketch()`                       | Sketchy rendering for a single edge      |
+| Global   | `viz().sketch()`                  | Apply sketch mode to all nodes and edges |
+
+Pass a `seed` number for deterministic jitter — the same seed produces the same wobble across renders.
+Without a seed, VizCraft derives one from the element id.
+
+export const nodeSketchScene = viz()
+  .view(420, 200)
+  .sketch()
+  .node('a')
+  .at(110, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#333')
+  .label('Node A')
+  .node('b')
+  .at(310, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#333')
+  .label('Node B')
+  .edge('a', 'b')
+  .arrow()
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(420, 200)
+.sketch() // ← global sketch mode: nodes + edges
+.node('a').at(110, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#333').label('Node A')
+.node('b').at(310, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#333').label('Node B')
+.edge('a', 'b').arrow()
+.done();
+
+const el = document.getElementById('viz-node-sketch');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={nodeSketchScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+Global sketch mode applies the effect to every node and edge:
+
+```ts
+// All shapes and edges get the sketchy effect
+viz()
+  .sketch()
+  .node('a')
+  .at(100, 100)
+  .rect(120, 60)
+  .label('Idea')
+  .node('b')
+  .at(300, 100)
+  .rect(120, 60)
+  .label('Plan')
+  .edge('a', 'b')
+  .arrow()
+  .done();
+
+// Global sketch with a fixed seed for deterministic output
+viz().sketch(true, 42).node('a').at(100, 100).rect(120, 60).done();
+```
+
+You can also use the declarative API:
+
+```ts
+viz().node('card', {
+  rect: { w: 180, h: 100 },
+  sketch: true, // default seed derived from id
+});
+
+viz().node('card', {
+  rect: { w: 180, h: 100 },
+  sketch: { seed: 7 }, // explicit seed
+});
+
+viz().edge('a', 'b', {
+  sketch: true,
+});
+```
+
 ## Edges
 
 Edges connect two nodes using \`.edge(fromId, toId)\`.
@@ -985,6 +1079,10 @@ if (el) builder.mount(el);
 | `lineHeight`    | \`number\`                            | Vertical spacing multiplier between lines (default: \`1.2\`).                          |
 | `verticalAlign` | \`'top' \| 'middle' \| 'bottom'\`     | Aligns the text block vertically relative to the node's center (default \`'middle'\`). |
 | `overflow`      | \`'visible' \| 'ellipsis' \| 'clip'\` | Defines how to handle text that exceeds bounds after wrapping (basic support).         |
+| `fontFamily`    | \`string\`                            | Custom font family for the label (e.g. \`'Georgia'\`, \`'Comic Sans MS'\`).            |
+| `fontSize`      | \`number \| string\`                  | Font size for the label (e.g. \`14\` or \`'1.2em'\`).                                  |
+| `fontWeight`    | \`number \| string\`                  | Font weight (e.g. \`'bold'\`, \`700\`).                                                |
+| `fill`          | \`string\`                            | Text fill color.                                                                       |
 
 ### Edge Routing
 

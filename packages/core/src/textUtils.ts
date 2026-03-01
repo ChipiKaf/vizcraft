@@ -73,6 +73,7 @@ export interface RenderTextOptions {
   fill?: string;
   fontSize?: number | string;
   fontWeight?: number | string;
+  fontFamily?: string;
   textAnchor?: 'start' | 'middle' | 'end';
   dominantBaseline?: string;
 
@@ -102,6 +103,7 @@ export function renderSvgText(
     fill,
     fontSize,
     fontWeight,
+    fontFamily,
     textAnchor = 'middle',
     dominantBaseline = 'middle',
     maxWidth,
@@ -150,6 +152,8 @@ export function renderSvgText(
   if (fill !== undefined) attrs.push(`fill="${fill}"`);
   if (fontSize !== undefined) attrs.push(`font-size="${fontSize}"`);
   if (fontWeight !== undefined) attrs.push(`font-weight="${fontWeight}"`);
+  if (fontFamily !== undefined)
+    attrs.push(`font-family="${escapeXmlAttr(fontFamily)}"`);
   attrs.push(`text-anchor="${textAnchor}"`);
 
   // Only apply dominant-baseline if it evaluates to a single line safely,

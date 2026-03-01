@@ -75,6 +75,123 @@ function ensureShadowFilter(
   return fid;
 }
 
+function sketchFilterId(seed: number): string {
+  return `viz-sketch-${seed}`;
+}
+
+/** Simple seeded float in [0, 1) derived from a seed via xorshift-like mix. */
+function sketchRand(seed: number, salt: number): number {
+  let s = ((seed ^ (salt * 2654435761)) >>> 0) | 1;
+  s ^= s << 13;
+  s ^= s >>> 17;
+  s ^= s << 5;
+  return (s >>> 0) / 4294967296;
+}
+
+/** Lerp a value between min and max using a seeded random. */
+function sketchLerp(
+  seed: number,
+  salt: number,
+  min: number,
+  max: number
+): number {
+  return min + sketchRand(seed, salt) * (max - min);
+}
+
+/** Lazily ensure a sketch `<filter>` definition exists in `<defs>`. */
+function ensureSketchFilter(svg: SVGSVGElement, seed: number): string {
+  const fid = sketchFilterId(seed);
+  if (!svg.querySelector(`#${CSS.escape(fid)}`)) {
+    const defs = svg.querySelector('defs');
+    if (defs) {
+      const filter = document.createElementNS(svgNS, 'filter');
+      filter.setAttribute('id', fid);
+      filter.setAttribute('filterUnits', 'userSpaceOnUse');
+      filter.setAttribute('x', '-10000');
+      filter.setAttribute('y', '-10000');
+      filter.setAttribute('width', '20000');
+      filter.setAttribute('height', '20000');
+
+      const s2 = seed + 37;
+      // Derive unique per-seed parameters
+      const freq2 = sketchLerp(seed, 1, 0.009, 0.015).toFixed(4);
+      const scale1 = sketchLerp(seed, 2, 2.5, 4).toFixed(1);
+      const scale2 = sketchLerp(seed, 3, 3, 5).toFixed(1);
+      const dx = sketchLerp(seed, 4, 0.3, 1.6).toFixed(2);
+      const dy = sketchLerp(seed, 5, 0.2, 1.3).toFixed(2);
+
+      // First noise
+      const turb1 = document.createElementNS(svgNS, 'feTurbulence');
+      turb1.setAttribute('type', 'fractalNoise');
+      turb1.setAttribute('baseFrequency', '0.008');
+      turb1.setAttribute('numOctaves', '2');
+      turb1.setAttribute('seed', String(seed));
+      turb1.setAttribute('result', 'n1');
+      filter.appendChild(turb1);
+
+      // Second noise (different seed + frequency)
+      const turb2 = document.createElementNS(svgNS, 'feTurbulence');
+      turb2.setAttribute('type', 'fractalNoise');
+      turb2.setAttribute('baseFrequency', freq2);
+      turb2.setAttribute('numOctaves', '2');
+      turb2.setAttribute('seed', String(s2));
+      turb2.setAttribute('result', 'n2');
+      filter.appendChild(turb2);
+
+      // First stroke pass
+      const disp1 = document.createElementNS(svgNS, 'feDisplacementMap');
+      disp1.setAttribute('in', 'SourceGraphic');
+      disp1.setAttribute('in2', 'n1');
+      disp1.setAttribute('scale', scale1);
+      disp1.setAttribute('xChannelSelector', 'R');
+      disp1.setAttribute('yChannelSelector', 'G');
+      disp1.setAttribute('result', 's1');
+      filter.appendChild(disp1);
+
+      // Second stroke pass (different channels)
+      const disp2 = document.createElementNS(svgNS, 'feDisplacementMap');
+      disp2.setAttribute('in', 'SourceGraphic');
+      disp2.setAttribute('in2', 'n2');
+      disp2.setAttribute('scale', scale2);
+      disp2.setAttribute('xChannelSelector', 'G');
+      disp2.setAttribute('yChannelSelector', 'R');
+      disp2.setAttribute('result', 's2');
+      filter.appendChild(disp2);
+
+      // Offset second pass — variable gap
+      const offset = document.createElementNS(svgNS, 'feOffset');
+      offset.setAttribute('in', 's2');
+      offset.setAttribute('dx', dx);
+      offset.setAttribute('dy', dy);
+      offset.setAttribute('result', 's2off');
+      filter.appendChild(offset);
+
+      // Merge both passes
+      const comp = document.createElementNS(svgNS, 'feComposite');
+      comp.setAttribute('in', 's1');
+      comp.setAttribute('in2', 's2off');
+      comp.setAttribute('operator', 'over');
+      filter.appendChild(comp);
+
+      defs.appendChild(filter);
+    }
+  }
+  return fid;
+}
+
+/** Resolve the effective sketch seed for a node, falling back to the hash of its id. */
+function resolveSketchSeed(
+  nodeStyle: { sketchSeed?: number } | undefined,
+  id: string
+): number {
+  if (nodeStyle?.sketchSeed !== undefined) return nodeStyle.sketchSeed;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
 /** Sanitise a CSS color for use as a marker ID suffix. */
 function colorToMarkerSuffix(color: string): string {
   return color.replace(/[^a-zA-Z0-9]/g, '_');
@@ -572,6 +689,25 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       shape.removeAttribute('filter');
     }
 
+    const nodeSketched = node.style?.sketch || scene.sketch?.enabled;
+    if (nodeSketched) {
+      const seed = resolveSketchSeed(node.style, node.id);
+      const fid = ensureSketchFilter(ctx.svg, seed);
+      group.setAttribute('filter', `url(#${fid})`);
+      if (!group.classList.contains('viz-sketch')) {
+        group.classList.add('viz-sketch');
+      }
+    } else {
+      if (group.classList.contains('viz-sketch')) {
+        group.classList.remove('viz-sketch');
+      }
+      // Only remove group filter if it was a sketch filter
+      const cur = group.getAttribute('filter');
+      if (cur && cur.startsWith('url(#viz-sketch-')) {
+        group.removeAttribute('filter');
+      }
+    }
+
     // Transform conflict rule: runtime wins if it writes transform.
     const scale = node.runtime?.scale;
     const rotation = node.runtime?.rotation;
@@ -730,6 +866,28 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     } else {
       line.style.removeProperty('stroke-dashoffset');
       line.removeAttribute('stroke-dashoffset');
+    }
+
+    const edgeSketched = edge.style?.sketch || scene.sketch?.enabled;
+    if (edgeSketched) {
+      let h = 0;
+      for (let i = 0; i < edge.id.length; i++) {
+        h = (Math.imul(31, h) + edge.id.charCodeAt(i)) | 0;
+      }
+      const seed = Math.abs(h);
+      const fid = ensureSketchFilter(ctx.svg, seed);
+      line.setAttribute('filter', `url(#${fid})`);
+      if (!group.classList.contains('viz-sketch')) {
+        group.classList.add('viz-sketch');
+      }
+    } else {
+      const cur = line.getAttribute('filter');
+      if (cur && cur.startsWith('url(#viz-sketch-')) {
+        line.removeAttribute('filter');
+      }
+      if (group.classList.contains('viz-sketch')) {
+        group.classList.remove('viz-sketch');
+      }
     }
   }
 

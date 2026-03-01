@@ -138,6 +138,64 @@ function shadowFilterSvg(
   return `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${cfg.dx}" dy="${cfg.dy}" stdDeviation="${cfg.blur}" flood-color="${escapeXmlAttr(cfg.color)}" flood-opacity="1"/></filter>`;
 }
 
+/** Deterministic filter id for sketch displacement keyed by seed. */
+function sketchFilterId(seed: number): string {
+  return `viz-sketch-${seed}`;
+}
+
+/** Simple seeded float in [0, 1) derived from a seed via xorshift-like mix. */
+function sketchRand(seed: number, salt: number): number {
+  let s = ((seed ^ (salt * 2654435761)) >>> 0) | 1;
+  s ^= s << 13;
+  s ^= s >>> 17;
+  s ^= s << 5;
+  return (s >>> 0) / 4294967296;
+}
+
+/** Lerp a value between min and max using a seeded random. */
+function sketchLerp(
+  seed: number,
+  salt: number,
+  min: number,
+  max: number
+): number {
+  return min + sketchRand(seed, salt) * (max - min);
+}
+
+/** SVG markup for a sketch `<filter>` using dual-pass displacement for a hand-drawn double-stroke look. */
+function sketchFilterSvg(id: string, seed: number): string {
+  const s2 = seed + 37;
+  // Derive unique per-seed parameters
+  const freq2 = sketchLerp(seed, 1, 0.009, 0.015).toFixed(4);
+  const scale1 = sketchLerp(seed, 2, 2.5, 4).toFixed(1);
+  const scale2 = sketchLerp(seed, 3, 3, 5).toFixed(1);
+  const dx = sketchLerp(seed, 4, 0.3, 1.6).toFixed(2);
+  const dy = sketchLerp(seed, 5, 0.2, 1.3).toFixed(2);
+  return (
+    `<filter id="${id}" filterUnits="userSpaceOnUse" x="-10000" y="-10000" width="20000" height="20000">` +
+    `<feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="${seed}" result="n1"/>` +
+    `<feTurbulence type="fractalNoise" baseFrequency="${freq2}" numOctaves="2" seed="${s2}" result="n2"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n1" scale="${scale1}" xChannelSelector="R" yChannelSelector="G" result="s1"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n2" scale="${scale2}" xChannelSelector="G" yChannelSelector="R" result="s2"/>` +
+    `<feOffset in="s2" dx="${dx}" dy="${dy}" result="s2off"/>` +
+    '<feComposite in="s1" in2="s2off" operator="over"/>' +
+    '</filter>'
+  );
+}
+
+/** Resolve the effective sketch seed for a node, falling back to the hash of its id. */
+function resolveSketchSeed(
+  nodeStyle: { sketchSeed?: number } | undefined,
+  id: string
+): number {
+  if (nodeStyle?.sketchSeed !== undefined) return nodeStyle.sketchSeed;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
 /**
  * Generate SVG markup for a single marker definition.
  * @param markerType The type of marker
@@ -370,6 +428,9 @@ export interface VizBuilder extends VizSceneMutator {
     rows: number,
     padding?: { x: number; y: number }
   ): VizBuilder;
+
+  /** Enable global sketch / hand-drawn rendering for all nodes and edges. */
+  sketch(enabled?: boolean, seed?: number): VizBuilder;
 
   /**
    * Fluent, data-only animation authoring. Compiles immediately to an `AnimationSpec`.
@@ -655,6 +716,8 @@ interface NodeBuilder {
     blur?: number;
     color?: string;
   }): NodeBuilder;
+  /** Render this node with a hand-drawn / sketchy appearance. */
+  sketch(config?: { seed?: number }): NodeBuilder;
   class(name: string): NodeBuilder;
   zIndex(value: number): NodeBuilder;
   animate(type: string, config?: AnimationConfig): NodeBuilder;
@@ -743,6 +806,8 @@ interface EdgeBuilder {
   dash(
     pattern: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string
   ): EdgeBuilder;
+  /** Render this edge with a hand-drawn / sketchy appearance. */
+  sketch(): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
   animate(type: string, config?: AnimationConfig): EdgeBuilder;
@@ -851,6 +916,9 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   if (opts.shadow !== undefined && opts.shadow !== false) {
     nb.shadow(opts.shadow === true ? {} : opts.shadow);
   }
+  if (opts.sketch !== undefined && opts.sketch !== false) {
+    nb.sketch(opts.sketch === true ? {} : opts.sketch);
+  }
   if (opts.className) nb.class(opts.className);
   if (opts.zIndex !== undefined) nb.zIndex(opts.zIndex);
 
@@ -934,6 +1002,7 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.fill) eb.fill(opts.fill);
   if (opts.opacity !== undefined) eb.opacity(opts.opacity);
   if (opts.dash) eb.dash(opts.dash);
+  if (opts.sketch) eb.sketch();
   if (opts.className) eb.class(opts.className);
 
   // Anchor & ports
@@ -1072,6 +1141,7 @@ class VizBuilderImpl implements VizBuilder {
   private _nodeOrder: string[] = [];
   private _edgeOrder: string[] = [];
   private _gridConfig: VizGridConfig | null = null;
+  private _sketch: { enabled: boolean; seed?: number } | null = null;
   private _animationSpecs: AnimationSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
   private _panZoomController?: PanZoomController;
@@ -1351,6 +1421,11 @@ class VizBuilderImpl implements VizBuilder {
     return this;
   }
 
+  sketch(enabled: boolean = true, seed?: number): VizBuilder {
+    this._sketch = enabled ? { enabled: true, seed } : null;
+    return this;
+  }
+
   /**
    * Adds an overlay to the scene.
    * @param id The ID of the overlay
@@ -1481,6 +1556,10 @@ class VizBuilderImpl implements VizBuilder {
       this._animationSpecs = [...scene.animationSpecs];
     }
 
+    this._sketch = scene.sketch
+      ? { ...scene.sketch, enabled: scene.sketch.enabled ?? true }
+      : null;
+
     return this;
   }
 
@@ -1513,6 +1592,7 @@ class VizBuilderImpl implements VizBuilder {
       overlays: this._overlays,
       animationSpecs:
         this._animationSpecs.length > 0 ? [...this._animationSpecs] : undefined,
+      sketch: this._sketch ?? undefined,
     };
 
     this._dispatchEvent('build', { scene });
@@ -1970,6 +2050,32 @@ class VizBuilderImpl implements VizBuilder {
         }
       });
 
+      const neededSketchSeeds = new Set<number>();
+      const globalSketch = scene.sketch?.enabled;
+      nodes.forEach((n) => {
+        if (n.style?.sketch || globalSketch) {
+          neededSketchSeeds.add(resolveSketchSeed(n.style, n.id));
+        }
+      });
+      edges.forEach((e) => {
+        if (e.style?.sketch || globalSketch) {
+          let h = 0;
+          for (let i = 0; i < e.id.length; i++) {
+            h = (Math.imul(31, h) + e.id.charCodeAt(i)) | 0;
+          }
+          neededSketchSeeds.add(Math.abs(h));
+        }
+      });
+      neededSketchSeeds.forEach((seed) => {
+        const fid = sketchFilterId(seed);
+        const tmp = document.createElementNS(svgNS, 'svg');
+        tmp.innerHTML = sketchFilterSvg(fid, seed);
+        const filterEl = tmp.querySelector('filter');
+        if (filterEl) {
+          defs.appendChild(filterEl);
+        }
+      });
+
       svg.appendChild(defs);
 
       // Layers
@@ -2053,6 +2159,8 @@ class VizBuilderImpl implements VizBuilder {
 
       // Compute Classes & Styles
       let classes = `viz-edge-group ${edge.className || ''}`;
+      const edgeSketched = edge.style?.sketch || scene.sketch?.enabled;
+      if (edgeSketched) classes += ' viz-sketch';
       // Reset styles
       group.removeAttribute('style');
 
@@ -2189,6 +2297,17 @@ class VizBuilderImpl implements VizBuilder {
         line.style.removeProperty('stroke-dasharray');
       }
 
+      if (edgeSketched) {
+        let h = 0;
+        for (let i = 0; i < edge.id.length; i++) {
+          h = (Math.imul(31, h) + edge.id.charCodeAt(i)) | 0;
+        }
+        const seed = Math.abs(h);
+        line.setAttribute('filter', `url(#${sketchFilterId(seed)})`);
+      } else {
+        line.removeAttribute('filter');
+      }
+
       const oldHit =
         group.querySelector('[data-viz-role="edge-hit"]') ||
         group.querySelector('.viz-edge-hit');
@@ -2223,6 +2342,10 @@ class VizBuilderImpl implements VizBuilder {
 
         const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.rich ?? lbl.text, {
           className: labelClass,
+          fill: lbl.fill,
+          fontSize: lbl.fontSize,
+          fontWeight: lbl.fontWeight,
+          fontFamily: lbl.fontFamily,
           textAnchor: 'middle',
           dominantBaseline: 'middle',
           maxWidth: lbl.maxWidth,
@@ -2300,6 +2423,8 @@ class VizBuilderImpl implements VizBuilder {
 
       // Calculate Anim Classes
       let classes = `viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''}`;
+      const nodeSketched = node.style?.sketch || scene.sketch?.enabled;
+      if (nodeSketched) classes += ' viz-sketch';
       group.removeAttribute('style');
 
       if (node.animations) {
@@ -2379,6 +2504,13 @@ class VizBuilderImpl implements VizBuilder {
         'stroke-dasharray': resolvedNodeDash || undefined,
         filter: nodeShadowFilter,
       });
+
+      if (nodeSketched) {
+        const seed = resolveSketchSeed(node.style, node.id);
+        group.setAttribute('filter', `url(#${sketchFilterId(seed)})`);
+      } else {
+        group.removeAttribute('filter');
+      }
 
       // Embedded media (rendered alongside the base shape)
       const existingImg = group.querySelector(
@@ -2554,6 +2686,7 @@ class VizBuilderImpl implements VizBuilder {
             fill: node.label.fill,
             fontSize: node.label.fontSize,
             fontWeight: node.label.fontWeight,
+            fontFamily: node.label.fontFamily,
             textAnchor: node.label.textAnchor || 'middle',
             dominantBaseline: node.label.dominantBaseline || 'middle',
             maxWidth: node.label.maxWidth,
@@ -2811,6 +2944,26 @@ class VizBuilderImpl implements VizBuilder {
       svgContent += shadowFilterSvg(fid, cfg);
     });
 
+    const exportSketchSeeds = new Set<number>();
+    const globalSketchExport = exportScene.sketch?.enabled;
+    exportNodes.forEach((n) => {
+      if (n.style?.sketch || globalSketchExport) {
+        exportSketchSeeds.add(resolveSketchSeed(n.style, n.id));
+      }
+    });
+    exportEdges.forEach((e) => {
+      if (e.style?.sketch || globalSketchExport) {
+        let h = 0;
+        for (let i = 0; i < e.id.length; i++) {
+          h = (Math.imul(31, h) + e.id.charCodeAt(i)) | 0;
+        }
+        exportSketchSeeds.add(Math.abs(h));
+      }
+    });
+    exportSketchSeeds.forEach((seed) => {
+      svgContent += sketchFilterSvg(sketchFilterId(seed), seed);
+    });
+
     svgContent += `
         </defs>`;
 
@@ -2914,7 +3067,10 @@ class VizBuilderImpl implements VizBuilder {
         lineRuntimeAttrs += ` stroke-dashoffset="${edge.runtime.strokeDashoffset}"`;
       }
 
-      svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
+      const edgeSketched = edge.style?.sketch || globalSketchExport;
+      const sketchClass = edgeSketched ? ' viz-sketch' : '';
+
+      svgContent += `<g data-id="${edge.id}" data-viz-role="edge-group" class="viz-edge-group${sketchClass} ${edge.className || ''} ${animClasses}" style="${animStyleStr}${runtimeStyle}">`;
 
       let edgeInlineStyle = lineRuntimeStyle;
       if (edge.style?.stroke !== undefined)
@@ -2932,7 +3088,15 @@ class VizBuilderImpl implements VizBuilder {
         const resolved = resolveDasharray(edge.style.strokeDasharray);
         if (resolved) edgeInlineStyle += `stroke-dasharray: ${resolved}; `;
       }
-      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} ${markerStart} style="${edgeInlineStyle}"${lineRuntimeAttrs} />`;
+      let edgeSketchFilterAttr = '';
+      if (edgeSketched) {
+        let h = 0;
+        for (let i = 0; i < edge.id.length; i++) {
+          h = (Math.imul(31, h) + edge.id.charCodeAt(i)) | 0;
+        }
+        edgeSketchFilterAttr = ` filter="url(#${sketchFilterId(Math.abs(h))})"`;
+      }
+      svgContent += `<path d="${edgePath.d}" class="viz-edge" data-viz-role="edge-line" ${markerEnd} ${markerStart} style="${edgeInlineStyle}"${lineRuntimeAttrs}${edgeSketchFilterAttr} />`;
 
       // Edge Labels (multi-position)
       const allLabels = collectEdgeLabels(edge);
@@ -2942,6 +3106,10 @@ class VizBuilderImpl implements VizBuilder {
 
         const edgeLabelSvg = renderSvgText(pos.x, pos.y, lbl.rich ?? lbl.text, {
           className: labelClass,
+          fill: lbl.fill,
+          fontSize: lbl.fontSize,
+          fontWeight: lbl.fontWeight,
+          fontFamily: lbl.fontFamily,
           textAnchor: 'middle',
           dominantBaseline: 'middle',
           maxWidth: lbl.maxWidth,
@@ -3016,16 +3184,22 @@ class VizBuilderImpl implements VizBuilder {
       }
 
       const isContainer = !!node.container;
-      const className = `viz-node-group${isContainer ? ' viz-container' : ''} ${node.className || ''} ${animClasses}`;
+      const nodeSketched = node.style?.sketch || globalSketchExport;
+      const className = `viz-node-group${isContainer ? ' viz-container' : ''}${nodeSketched ? ' viz-sketch' : ''} ${node.className || ''} ${animClasses}`;
 
       const scale = node.runtime?.scale;
       const rotation = node.runtime?.rotation;
+      let groupFilterAttr = '';
+      if (nodeSketched) {
+        const seed = resolveSketchSeed(node.style, node.id);
+        groupFilterAttr = ` filter="url(#${sketchFilterId(seed)})"`;
+      }
       const transformAttr =
         scale !== undefined || rotation !== undefined
           ? ` transform="translate(${x} ${y}) rotate(${rotation ?? 0}) scale(${scale ?? 1}) translate(${-x} ${-y})"`
           : '';
 
-      content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}"${transformAttr}>`;
+      content += `<g data-id="${node.id}" data-viz-role="node-group" class="${className}" style="${animStyleStr}"${transformAttr}${groupFilterAttr}>`;
 
       const resolvedExportNodeDash = resolveDasharray(
         node.style?.strokeDasharray
@@ -3140,6 +3314,7 @@ class VizBuilderImpl implements VizBuilder {
             fill: node.label.fill,
             fontSize: node.label.fontSize,
             fontWeight: node.label.fontWeight,
+            fontFamily: node.label.fontFamily,
             textAnchor: node.label.textAnchor || 'middle',
             dominantBaseline: node.label.dominantBaseline || 'middle',
             maxWidth: node.label.maxWidth,
@@ -3599,6 +3774,15 @@ class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  sketch(config?: { seed?: number }): NodeBuilder {
+    this.nodeDef.style = {
+      ...(this.nodeDef.style || {}),
+      sketch: true,
+      sketchSeed: config?.seed,
+    };
+    return this;
+  }
+
   class(name: string): NodeBuilder {
     if (this.nodeDef.className) {
       this.nodeDef.className += ` ${name}`;
@@ -3888,6 +4072,14 @@ class EdgeBuilderImpl implements EdgeBuilder {
     this.edgeDef.style = {
       ...(this.edgeDef.style || {}),
       strokeDasharray: pattern,
+    };
+    return this;
+  }
+
+  sketch(): EdgeBuilder {
+    this.edgeDef.style = {
+      ...(this.edgeDef.style || {}),
+      sketch: true,
     };
     return this;
   }
