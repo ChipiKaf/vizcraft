@@ -2077,6 +2077,255 @@ describe('vizcraft core', () => {
     });
   });
 
+  describe('label fontFamily', () => {
+    it('node label with fontFamily renders font-family attribute in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .label('Hello', { fontFamily: 'Comic Sans MS' })
+        .svg();
+      expect(svgStr).toContain('font-family="Comic Sans MS"');
+    });
+
+    it('node label with fontFamily via declarative opts', () => {
+      const b = viz();
+      b.node('a', {
+        x: 100,
+        y: 100,
+        shape: 'rect',
+        w: 120,
+        h: 60,
+        label: { text: 'Hi', fontFamily: 'Virgil' },
+      });
+      const svgStr = b.svg();
+      expect(svgStr).toContain('font-family="Virgil"');
+    });
+
+    it('edge label with fontFamily renders font-family attribute in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .rect(40, 40)
+        .node('b')
+        .at(200, 50)
+        .rect(40, 40)
+        .edge('a', 'b')
+        .label('link', { fontFamily: 'Georgia' })
+        .svg();
+      expect(svgStr).toContain('font-family="Georgia"');
+    });
+
+    it('edge label with fill/fontSize/fontWeight renders in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(50, 50)
+        .rect(40, 40)
+        .node('b')
+        .at(200, 50)
+        .rect(40, 40)
+        .edge('a', 'b')
+        .label('link', { fill: 'red', fontSize: 18, fontWeight: 'bold' })
+        .svg();
+      expect(svgStr).toContain('fill="red"');
+      expect(svgStr).toContain('font-size="18"');
+      expect(svgStr).toContain('font-weight="bold"');
+    });
+
+    it('fontFamily with special chars is escaped', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .label('Test', { fontFamily: 'Font "Name" & Co' })
+        .svg();
+      expect(svgStr).toContain('font-family=');
+      expect(svgStr).not.toContain('font-family="Font "Name"');
+    });
+  });
+
+  describe('sketch / hand-drawn rendering', () => {
+    it('.sketch() stores sketch flag on the node', () => {
+      const scene = viz().node('a').at(100, 100).rect(120, 60).sketch().build();
+      expect(scene.nodes[0]!.style?.sketch).toBe(true);
+    });
+
+    it('.sketch({ seed }) stores sketch flag and seed', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .sketch({ seed: 42 })
+        .build();
+      expect(scene.nodes[0]!.style?.sketch).toBe(true);
+      expect(scene.nodes[0]!.style?.sketchSeed).toBe(42);
+    });
+
+    it('.sketch() chains with other style methods', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .fill('#fff')
+        .stroke('#ccc', 1)
+        .sketch()
+        .build();
+      const style = scene.nodes[0]!.style!;
+      expect(style.fill).toBe('#fff');
+      expect(style.stroke).toBe('#ccc');
+      expect(style.sketch).toBe(true);
+    });
+
+    it('sketch node renders filter and viz-sketch class in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .sketch({ seed: 7 })
+        .svg();
+      expect(svgStr).toContain('<filter id="viz-sketch-7"');
+      expect(svgStr).toContain('feTurbulence');
+      expect(svgStr).toContain('feDisplacementMap');
+      expect(svgStr).toContain('viz-sketch');
+      expect(svgStr).toContain('filter="url(#viz-sketch-7)"');
+    });
+
+    it('edge .sketch() stores sketch flag', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .sketch()
+        .build();
+      expect(scene.edges[0]!.style?.sketch).toBe(true);
+    });
+
+    it('sketch edge renders filter and viz-sketch class in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b')
+        .sketch()
+        .svg();
+      expect(svgStr).toContain('viz-sketch');
+      expect(svgStr).toContain('feTurbulence');
+      expect(svgStr).toContain('filter="url(#viz-sketch-');
+    });
+
+    it('global sketch mode applies to all nodes and edges', () => {
+      const b = viz()
+        .sketch()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .node('b')
+        .at(200, 0)
+        .circle(10)
+        .edge('a', 'b');
+      const scene = b.build();
+      expect(scene.sketch?.enabled).toBe(true);
+
+      const svgStr = b.svg();
+      // Both node groups should have viz-sketch class
+      const nodeGroups = svgStr.match(/data-viz-role="node-group"[^>]*/g);
+      expect(nodeGroups).toBeTruthy();
+      nodeGroups!.forEach((g) => {
+        expect(g).toContain('viz-sketch');
+      });
+      // Edge group should also have viz-sketch
+      const edgeGroup = svgStr.match(/data-viz-role="edge-group"[^>]*/);
+      expect(edgeGroup).toBeTruthy();
+      expect(edgeGroup![0]).toContain('viz-sketch');
+    });
+
+    it('global sketch mode with seed stores seed on scene', () => {
+      const scene = viz()
+        .sketch(true, 42)
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .build();
+      expect(scene.sketch).toEqual({ enabled: true, seed: 42 });
+    });
+
+    it('nodes with different seeds get separate sketch filter defs', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .sketch({ seed: 1 })
+        .node('b')
+        .at(300, 100)
+        .rect(120, 60)
+        .sketch({ seed: 2 })
+        .svg();
+      expect(svgStr).toContain('viz-sketch-1');
+      expect(svgStr).toContain('viz-sketch-2');
+      const filterMatches = svgStr.match(/<filter id="viz-sketch-/g);
+      expect(filterMatches).toHaveLength(2);
+    });
+
+    it('no sketch filter when sketch is not set', () => {
+      const svgStr = viz().node('a').at(100, 100).rect(120, 60).svg();
+      expect(svgStr).not.toContain('viz-sketch-');
+      expect(svgStr).not.toContain('feTurbulence');
+    });
+
+    it('declarative node(id, opts) supports sketch: true', () => {
+      const scene = viz()
+        .node('a', {
+          at: { x: 100, y: 100 },
+          rect: { w: 120, h: 60 },
+          sketch: true,
+        })
+        .build();
+      expect(scene.nodes[0]!.style?.sketch).toBe(true);
+    });
+
+    it('declarative node(id, opts) supports sketch with seed', () => {
+      const scene = viz()
+        .node('a', {
+          at: { x: 100, y: 100 },
+          rect: { w: 120, h: 60 },
+          sketch: { seed: 99 },
+        })
+        .build();
+      expect(scene.nodes[0]!.style?.sketch).toBe(true);
+      expect(scene.nodes[0]!.style?.sketchSeed).toBe(99);
+    });
+
+    it('declarative edge opts supports sketch: true', () => {
+      const scene = viz()
+        .node('a', { at: { x: 0, y: 0 }, circle: { r: 10 } })
+        .node('b', { at: { x: 200, y: 0 }, circle: { r: 10 } })
+        .edge('a', 'b', { sketch: true })
+        .build();
+      expect(scene.edges[0]!.style?.sketch).toBe(true);
+    });
+
+    it('sketch and shadow can coexist on a node', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .shadow()
+        .sketch({ seed: 5 })
+        .svg();
+      expect(svgStr).toContain('viz-shadow-');
+      expect(svgStr).toContain('viz-sketch-5');
+      expect(svgStr).toContain('feDropShadow');
+      expect(svgStr).toContain('feTurbulence');
+    });
+  });
+
   describe('edge marker types and markerStart', () => {
     it('.markerEnd() sets custom marker type on the edge', () => {
       const scene = viz()

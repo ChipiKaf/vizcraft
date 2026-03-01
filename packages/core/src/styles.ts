@@ -96,4 +96,11 @@ export const DEFAULT_VIZ_CSS = `
 .viz-node-group:hover .viz-port {
   opacity: 1;
 }
+
+/* Sketch / hand-drawn rendering */
+.viz-sketch {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
 `;

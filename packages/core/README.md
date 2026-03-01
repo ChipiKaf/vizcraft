@@ -204,6 +204,8 @@ b.node('n1')
  .dash('12, 3, 3, 3')     // Custom dash pattern
  .shadow()                // Drop shadow (default: dx=2 dy=2 blur=4)
  .shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' }) // Custom shadow
+ .sketch()                // Sketch / hand-drawn look (SVG turbulence filter)
+ .sketch({ seed: 42 })    // Sketch with explicit seed for deterministic jitter
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
  .port('out', { x: 50, y: 0 }) // Named connection port
@@ -269,6 +271,9 @@ b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8);
 b.edge('a', 'b').dashed().stroke('#6c7086'); // dashed line
 b.edge('a', 'b').dotted(); // dotted line
 b.edge('a', 'b').dash('12, 3, 3, 3').stroke('#cba6f7'); // custom pattern
+
+// Sketch / hand-drawn edges
+b.edge('a', 'b').sketch(); // sketchy look
 
 // Multi-position edge labels (start / mid / end)
 b.edge('a', 'b')

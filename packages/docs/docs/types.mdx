@@ -22,6 +22,7 @@ A scene is the complete, serializable description of what to render.
 - `edges: VizEdge[]` — edges to render.
 - `overlays?: VizOverlaySpec[]` — optional overlay layer.
 - `animationSpecs?: AnimationSpec[]` — optional data-only timelines compiled via `builder.animate(...)`.
+- `sketch?: { enabled?: boolean; seed?: number }` — global sketch / hand-drawn rendering mode.
 
 ---
 
@@ -50,7 +51,7 @@ A node in the scene graph.
 - `pos: { x: number; y: number }` — base position.
 - `shape: NodeShape` — geometry.
 - `label?: NodeLabel` — optional text label.
-- `style?: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; strokeDasharray?: string; shadow?: { dx?: number; dy?: number; blur?: number; color?: string } }` — base styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. `shadow` adds a drop shadow via an SVG filter (defaults: dx=2, dy=2, blur=4, color=rgba(0,0,0,0.2)).
+- `style?: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; strokeDasharray?: string; shadow?: { dx?: number; dy?: number; blur?: number; color?: string }; sketch?: boolean; sketchSeed?: number }` — base styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. `shadow` adds a drop shadow via an SVG filter (defaults: dx=2, dy=2, blur=4, color=rgba(0,0,0,0.2)). `sketch` enables hand-drawn rendering; `sketchSeed` controls deterministic jitter.
 - `className?: string` — extra CSS class.
 - `runtime?: VizRuntimeNodeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests (e.g. `pulse`, `flow`).
@@ -89,7 +90,7 @@ An edge connecting two nodes. All edges are rendered as `<path>` elements.
 - `anchor?: 'center' | 'boundary'` — connection behavior.
 - `labels?: EdgeLabel[]` — text labels at various positions along the edge. Each label has a `position` (`'start'`, `'mid'`, or `'end'`). Chain `.label()` calls on the builder to add multiple labels.
 - `label?: EdgeLabel` — _(deprecated)_ single label. Kept for backwards compatibility; prefer `labels`.
-- `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; strokeDasharray?: string }` — per-edge visual styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. When set, inline SVG attributes override the CSS class defaults.
+- `style?: { stroke?: string; strokeWidth?: number; fill?: string; opacity?: number; strokeDasharray?: string; sketch?: boolean }` — per-edge visual styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string. `sketch` enables hand-drawn rendering. When set, inline SVG attributes override the CSS class defaults.
 - `runtime?: VizRuntimeEdgeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests.
 - `meta?: Record<string, unknown>` — arbitrary consumer-defined metadata.
@@ -124,26 +125,34 @@ Marker/arrowhead styles for edge endpoints. Used by both `markerEnd` and `marker
 
 A text label rendered on an edge path.
 
-| Property     | Type                        | Description                                                                                                                                      |
-| ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `text`       | `string`                    | The label text.                                                                                                                                  |
-| `rich?`      | `RichText`                  | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`.                                                       |
-| `position`   | `'start' \| 'mid' \| 'end'` | Where on the path to place the label. `'start'` is ~15 % from the source, `'mid'` (default) is the midpoint, `'end'` is ~85 % toward the target. |
-| `className?` | `string`                    | Optional CSS class applied to the `<text>` element.                                                                                              |
-| `dx?`        | `number`                    | Horizontal offset (SVG `dx` attribute).                                                                                                          |
-| `dy?`        | `number`                    | Vertical offset (SVG `dy` attribute). Defaults to `-10` to sit above the path.                                                                   |
+| Property      | Type                        | Description                                                                                                                                      |
+| ------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `text`        | `string`                    | The label text.                                                                                                                                  |
+| `rich?`       | `RichText`                  | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`.                                                       |
+| `position`    | `'start' \| 'mid' \| 'end'` | Where on the path to place the label. `'start'` is ~15 % from the source, `'mid'` (default) is the midpoint, `'end'` is ~85 % toward the target. |
+| `className?`  | `string`                    | Optional CSS class applied to the `<text>` element.                                                                                              |
+| `dx?`         | `number`                    | Horizontal offset (SVG `dx` attribute).                                                                                                          |
+| `dy?`         | `number`                    | Vertical offset (SVG `dy` attribute). Defaults to `-10` to sit above the path.                                                                   |
+| `fill?`       | `string`                    | Text fill color.                                                                                                                                 |
+| `fontSize?`   | `number \| string`          | Font size (e.g. `14` or `'1.2em'`).                                                                                                              |
+| `fontWeight?` | `number \| string`          | Font weight (e.g. `'bold'`, `700`).                                                                                                              |
+| `fontFamily?` | `string`                    | Custom font family (e.g. `'Georgia'`).                                                                                                           |
 
 ### NodeLabel
 
 A text label rendered inside (or near) a node.
 
-| Property     | Type       | Description                                                                                |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| `text`       | `string`   | The label text.                                                                            |
-| `rich?`      | `RichText` | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`. |
-| `className?` | `string`   | Optional CSS class applied to the `<text>` element.                                        |
-| `dx?`        | `number`   | Horizontal offset.                                                                         |
-| `dy?`        | `number`   | Vertical offset.                                                                           |
+| Property      | Type               | Description                                                                                |
+| ------------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `text`        | `string`           | The label text.                                                                            |
+| `rich?`       | `RichText`         | Optional rich / mixed-format label. When present, VizCraft renders this instead of `text`. |
+| `className?`  | `string`           | Optional CSS class applied to the `<text>` element.                                        |
+| `dx?`         | `number`           | Horizontal offset.                                                                         |
+| `dy?`         | `number`           | Vertical offset.                                                                           |
+| `fill?`       | `string`           | Text fill color.                                                                           |
+| `fontSize?`   | `number \| string` | Font size (e.g. `14` or `'1.2em'`).                                                        |
+| `fontWeight?` | `number \| string` | Font weight (e.g. `'bold'`, `700`).                                                        |
+| `fontFamily?` | `string`           | Custom font family (e.g. `'Comic Sans MS'`).                                               |
 
 ### RichText
 
