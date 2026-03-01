@@ -493,6 +493,18 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
       }
     }
 
+    // Stroke-dasharray: apply resolved value to shape.
+    if (node.style?.strokeDasharray !== undefined) {
+      const resolved = resolveDasharray(node.style.strokeDasharray);
+      if (resolved) {
+        shape.setAttribute('stroke-dasharray', resolved);
+      } else {
+        shape.removeAttribute('stroke-dasharray');
+      }
+    } else {
+      shape.removeAttribute('stroke-dasharray');
+    }
+
     // Transform conflict rule: runtime wins if it writes transform.
     const scale = node.runtime?.scale;
     const rotation = node.runtime?.rotation;

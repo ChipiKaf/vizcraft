@@ -190,6 +190,12 @@ b.node('n1')
  .image(href, w, h, opts?) // Embed an <image> inside the node
  .icon(id, opts?)         // Embed an icon from the icon registry (see registerIcon)
  .svgContent(svg, opts)   // Embed inline SVG content inside the node
+ .fill('#f0f0f0')          // Fill color
+ .stroke('#333', 2)       // Stroke color and optional width
+ .opacity(0.8)            // Opacity
+ .dashed()                // Dashed border (8, 4)
+ .dotted()                // Dotted border (2, 4)
+ .dash('12, 3, 3, 3')     // Custom dash pattern
  .class('css-class')     // Custom CSS class
  .data({ ... })          // Attach custom data
  .port('out', { x: 50, y: 0 }) // Named connection port

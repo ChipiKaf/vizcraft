@@ -284,6 +284,13 @@ export interface VizNode {
     stroke?: string;
     strokeWidth?: number;
     opacity?: number;
+    /**
+     * SVG `stroke-dasharray` value.
+     * Use the presets `'dashed'` (`8,4`), `'dotted'` (`2,4`), `'dash-dot'` (`8,4,2,4`),
+     * or pass any valid SVG dasharray string (e.g. `'12, 3, 3, 3'`).
+     * `'solid'` (or omitting the property) renders a continuous stroke.
+     */
+    strokeDasharray?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
   };
   className?: string; // e.g. "active", "input-layer"
   data?: unknown; // User payload
@@ -496,6 +503,8 @@ export interface NodeOptions {
   /** Stroke color, or `{ color, width }`. */
   stroke?: string | { color: string; width?: number };
   opacity?: number;
+  /** Dash pattern preset or custom SVG dasharray string. */
+  dash?: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | string;
   /** Explicit render order. Higher values render on top. Default: 0. */
   zIndex?: number;
   className?: string;

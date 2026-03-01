@@ -50,7 +50,7 @@ A node in the scene graph.
 - `pos: { x: number; y: number }` — base position.
 - `shape: NodeShape` — geometry.
 - `label?: NodeLabel` — optional text label.
-- `style?: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }` — base styling.
+- `style?: { fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; strokeDasharray?: string }` — base styling. `strokeDasharray` accepts presets (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`) or any SVG dasharray string.
 - `className?: string` — extra CSS class.
 - `runtime?: VizRuntimeNodeProps` — **runtime-only** overrides (what the animation system writes).
 - `animations?: VizAnimSpec[]` — registry/CSS animation requests (e.g. `pulse`, `flow`).

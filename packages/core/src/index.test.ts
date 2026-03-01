@@ -1811,6 +1811,123 @@ describe('vizcraft core', () => {
     });
   });
 
+  describe('node dash patterns (dashed, dotted, dash)', () => {
+    it('.dashed() sets strokeDasharray to "dashed"', () => {
+      const scene = viz().node('a').at(100, 100).rect(120, 60).dashed().build();
+      expect(scene.nodes[0]!.style?.strokeDasharray).toBe('dashed');
+    });
+
+    it('.dotted() sets strokeDasharray to "dotted"', () => {
+      const scene = viz().node('a').at(100, 100).rect(120, 60).dotted().build();
+      expect(scene.nodes[0]!.style?.strokeDasharray).toBe('dotted');
+    });
+
+    it('.dash() sets a custom dasharray pattern', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .dash('12, 3, 3, 3')
+        .build();
+      expect(scene.nodes[0]!.style?.strokeDasharray).toBe('12, 3, 3, 3');
+    });
+
+    it('.dash("dash-dot") sets dash-dot preset', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .dash('dash-dot')
+        .build();
+      expect(scene.nodes[0]!.style?.strokeDasharray).toBe('dash-dot');
+    });
+
+    it('.dashed() chains with .stroke()', () => {
+      const scene = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .stroke('#ef4444', 3)
+        .dashed()
+        .build();
+      const style = scene.nodes[0]!.style!;
+      expect(style.stroke).toBe('#ef4444');
+      expect(style.strokeWidth).toBe(3);
+      expect(style.strokeDasharray).toBe('dashed');
+    });
+
+    it('dashed node renders stroke-dasharray in svg()', () => {
+      const svgStr = viz().node('a').at(100, 100).rect(120, 60).dashed().svg();
+      // The shape element should have stroke-dasharray attribute
+      expect(svgStr).toContain('stroke-dasharray="8, 4"');
+    });
+
+    it('dotted node renders stroke-dasharray in svg()', () => {
+      const svgStr = viz().node('a').at(100, 100).rect(120, 60).dotted().svg();
+      expect(svgStr).toContain('stroke-dasharray="2, 4"');
+    });
+
+    it('custom dash pattern renders in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .dash('12, 3, 3, 3')
+        .svg();
+      expect(svgStr).toContain('stroke-dasharray="12, 3, 3, 3"');
+    });
+
+    it('.dash("solid") produces no stroke-dasharray on node shape in svg()', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .rect(120, 60)
+        .dash('solid')
+        .svg();
+      // The shape element should not have stroke-dasharray attribute
+      const shapeMatch = svgStr.match(
+        /<rect[^>]*data-viz-role="node-shape"[^>]*>/
+      );
+      expect(shapeMatch).toBeTruthy();
+      expect(shapeMatch![0]).not.toContain('stroke-dasharray');
+    });
+
+    it('works with circle shape', () => {
+      const svgStr = viz().node('a').at(100, 100).circle(30).dashed().svg();
+      expect(svgStr).toContain('stroke-dasharray="8, 4"');
+    });
+
+    it('works with diamond shape', () => {
+      const svgStr = viz()
+        .node('a')
+        .at(100, 100)
+        .diamond(80, 60)
+        .dotted()
+        .svg();
+      expect(svgStr).toContain('stroke-dasharray="2, 4"');
+    });
+
+    it('style({ strokeDasharray }) works directly', () => {
+      const scene = viz().node('a').at(100, 100).rect(120, 60).done();
+      scene.updateNode('a', {
+        style: { strokeDasharray: 'dashed' },
+      });
+      const built = scene.build();
+      expect(built.nodes[0]!.style?.strokeDasharray).toBe('dashed');
+    });
+
+    it('declarative node(id, opts) supports dash option', () => {
+      const scene = viz()
+        .node('a', {
+          at: { x: 100, y: 100 },
+          rect: { w: 120, h: 60 },
+          dash: 'dashed',
+        })
+        .build();
+      expect(scene.nodes[0]!.style?.strokeDasharray).toBe('dashed');
+    });
+  });
+
   describe('edge marker types and markerStart', () => {
     it('.markerEnd() sets custom marker type on the edge', () => {
       const scene = viz()
