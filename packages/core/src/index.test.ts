@@ -1926,6 +1926,96 @@ describe('vizcraft core', () => {
         .build();
       expect(scene.nodes[0]!.style?.strokeDasharray).toBe('dashed');
     });
+
+    it('updateNode + commit correctly renders stroke-dasharray in the DOM (#81)', () => {
+      const builder = viz()
+        .view(400, 300)
+        .node('a')
+        .at(200, 150)
+        .rect(120, 60, 10)
+        .stroke('#111', 2)
+        .done();
+
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      // Initially there should be no stroke-dasharray
+      let shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape).not.toBeNull();
+      expect(shape!.getAttribute('stroke-dasharray')).toBeNull();
+
+      // Update to dashed and commit
+      (builder as unknown as VizSceneMutator).updateNode('a', {
+        style: { strokeDasharray: 'dashed' },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBe('8, 4');
+
+      // Switch to dotted
+      (builder as unknown as VizSceneMutator).updateNode('a', {
+        style: { strokeDasharray: 'dotted' },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBe('2, 4');
+
+      // Switch back to solid
+      (builder as unknown as VizSceneMutator).updateNode('a', {
+        style: { strokeDasharray: 'solid' },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBeNull();
+    });
+
+    it('multiple commits preserve correct stroke-dasharray without stale overwrite (#81)', () => {
+      const builder = viz()
+        .view(400, 300)
+        .node('a')
+        .at(200, 150)
+        .rect(120, 60)
+        .dashed()
+        .done();
+
+      const container = document.createElement('div');
+      builder.mount(container);
+
+      // Verify initial dashed state
+      let shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBe('8, 4');
+
+      // Commit again (no changes) — dasharray should remain
+      (builder as unknown as VizSceneMutator).commit(container);
+      shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBe('8, 4');
+
+      // Update to dash-dot
+      (builder as unknown as VizSceneMutator).updateNode('a', {
+        style: { strokeDasharray: 'dash-dot' },
+      });
+      (builder as unknown as VizSceneMutator).commit(container);
+
+      shape = container.querySelector(
+        '[data-id="a"] [data-viz-role="node-shape"]'
+      ) as SVGElement | null;
+      expect(shape!.getAttribute('stroke-dasharray')).toBe('8, 4, 2, 4');
+    });
   });
 
   describe('node drop shadow', () => {
