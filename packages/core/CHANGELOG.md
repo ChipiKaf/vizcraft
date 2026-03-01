@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.3.0
+
+### Minor Changes
+
+- [`3f55212`](https://github.com/ChipiKaf/vizcraft/commit/3f55212e56557994710d65a99fe339c6826cb2a7) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add new visual styling options for nodes and edges: a hand-drawn "sketch" rendering mode, configurable drop-shadow support for nodes, and node stroke dasharray (dashed strokes)
+
 ## 1.2.0
 
 ### Minor Changes
