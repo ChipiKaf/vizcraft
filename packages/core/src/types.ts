@@ -389,8 +389,14 @@ export type EdgeMarkerType =
 
 export interface VizEdge {
   id: string;
-  from: string;
-  to: string;
+  /** Source node id. Optional for dangling edges (use `fromAt` instead). */
+  from?: string;
+  /** Target node id. Optional for dangling edges (use `toAt` instead). */
+  to?: string;
+  /** Free-endpoint coordinate for the source end (when `from` is omitted). */
+  fromAt?: Vec2;
+  /** Free-endpoint coordinate for the target end (when `to` is omitted). */
+  toAt?: Vec2;
   /** Arbitrary consumer-defined metadata associated with the edge. */
   meta?: Record<string, unknown>;
   /** @deprecated Use `labels` for multi-position support. Kept for backwards compatibility. */
@@ -578,6 +584,16 @@ export interface NodeOptions {
 export interface EdgeOptions {
   /** Custom edge id (defaults to `"from->to"`). */
   id?: string;
+
+  /** Source node id. Use with `danglingEdge()` to attach one end to a node. */
+  from?: string;
+  /** Target node id. Use with `danglingEdge()` to attach one end to a node. */
+  to?: string;
+
+  /** Free-endpoint coordinate for the source end (when `from` is omitted). */
+  fromAt?: Vec2;
+  /** Free-endpoint coordinate for the target end (when `to` is omitted). */
+  toAt?: Vec2;
 
   // --- Routing ---
   routing?: EdgeRouting;

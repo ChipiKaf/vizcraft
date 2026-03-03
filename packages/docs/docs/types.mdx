@@ -75,12 +75,14 @@ Configuration for a container / group node. Applied via `.container(config?)` on
 
 ## VizEdge
 
-An edge connecting two nodes. All edges are rendered as `<path>` elements.
+An edge connecting two nodes — or a **dangling edge** with one (or both) endpoints at a free canvas coordinate. All edges are rendered as `<path>` elements.
 
 **Key properties**
 
 - `id: string` — unique id (commonly `"a->b"`).
-- `from: string` / `to: string` — node ids.
+- `from?: string` / `to?: string` — node ids. Both are optional: omit one to create a dangling edge.
+- `fromAt?: Vec2` — free-endpoint coordinate for the source end (used when `from` is omitted).
+- `toAt?: Vec2` — free-endpoint coordinate for the target end (used when `to` is omitted).
 - `fromPort?: string` — connect from a specific port on the source node (by port `id`).
 - `toPort?: string` — connect to a specific port on the target node (by port `id`).
 - `routing?: 'straight' | 'curved' | 'orthogonal'` — path routing algorithm (default `'straight'`).

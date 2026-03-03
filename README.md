@@ -20,6 +20,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Two Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`) and data-only timeline animations (`AnimationSpec`).
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
+- **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
 
 ## 📦 Installation
 
@@ -301,6 +302,16 @@ b.edge('srv', 'db').fromPort('out-1').toPort('in').arrow()
 
 // Default ports (no .port() needed) — every shape has built-in ports
 b.edge('a', 'b').fromPort('right').toPort('left').arrow()
+
+// Dangling edges — one or both endpoints at a free coordinate
+b.danglingEdge('preview')
+ .from('srv')
+ .toAt({ x: 300, y: 200 })
+ .arrow()
+ .dashed()
+
+// Declarative dangling edge
+b.danglingEdge('e1', { from: 'srv', toAt: { x: 300, y: 200 }, arrow: true })
 ```
 
 | Method | Description |
@@ -317,6 +328,10 @@ b.edge('a', 'b').fromPort('right').toPort('left').arrow()
 | `.markerStart(type)` | Set marker type at the source end (see `EdgeMarkerType`). |
 | `.fromPort(portId)` | Connect from a specific named port on the source node. |
 | `.toPort(portId)` | Connect to a specific named port on the target node. |
+| `.from(nodeId)` | Attach the source end to an existing node (useful with `danglingEdge()`). |
+| `.to(nodeId)` | Attach the target end to an existing node (useful with `danglingEdge()`). |
+| `.fromAt(pos)` | Set the free-endpoint coordinate for the source end (`{ x, y }`). |
+| `.toAt(pos)` | Set the free-endpoint coordinate for the target end (`{ x, y }`). |
 | `.stroke(color, width?)` | Set stroke color and optional width. |
 | `.fill(color)` | Set fill color. |
 | `.opacity(value)` | Set opacity (0–1). |
