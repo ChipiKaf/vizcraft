@@ -1916,6 +1916,76 @@ builder.danglingEdge('e1', {
 Dangling edges work with all edge features — routing, markers, labels, styling, and animations.
 :::
 
+### Perimeter Anchors (fromAngle / toAngle)
+
+By default, edge endpoints are computed by projecting from one node center toward the other. **Perimeter anchors** let you pin an edge to a specific angle on the node's shape boundary — useful for feedback loops, bus-style wiring, or diagrams where you need precise visual control over where edges attach.
+
+The angle is in **degrees**: 0 = right, 90 = down, 180 = left, 270 = up.
+
+export const perimeterAnchorScene = viz()
+  .view(500, 250)
+  .node('server')
+  .at(130, 125)
+  .rect(110, 55, 6)
+  .label('Server')
+  .fill('#89b4fa')
+  .node('db')
+  .at(370, 125)
+  .cylinder(90, 55)
+  .label('Database')
+  .fill('#a6e3a1')
+  .edge('server', 'db')
+  .fromAngle(315)
+  .toAngle(200)
+  .arrow()
+  .label('query')
+  .curved()
+  .edge('db', 'server')
+  .fromAngle(160)
+  .toAngle(225)
+  .arrow()
+  .label('result')
+  .curved()
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 250);
+
+builder
+.node('server').at(130, 125).rect(110, 55, 6)
+  .label('Server').fill('#89b4fa')
+.node('db').at(370, 125).cylinder(90, 55)
+  .label('Database').fill('#a6e3a1')
+// Edge leaves server at 315° (upper-right) and enters db at 200° (lower-left)
+.edge('server', 'db')
+  .fromAngle(315).toAngle(200).arrow().label('query').curved()
+// Return edge: exits db at 160° and enters server at 225° (lower-left)
+.edge('db', 'server')
+  .fromAngle(160).toAngle(225).arrow().label('result').curved()
+.done();
+
+const el = document.getElementById('viz-perimeter');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={perimeterAnchorScene} style={{ height: '250px', width: '100%' }} />
+</CodePreview>
+
+#### Angle reference
+
+| Angle | Direction  |
+| ----- | ---------- |
+| 0°    | Right      |
+| 90°   | Down       |
+| 180°  | Left       |
+| 270°  | Up         |
+| 45°   | Lower-right |
+| 315°  | Upper-right |
+
+When `fromAngle` or `toAngle` is set, it takes precedence over `fromPort`/`toPort` and the default boundary projection. You can mix them freely — for example, use a port on one end and an angle on the other.
+
 ## Animations
 
 For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:
