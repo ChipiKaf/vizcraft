@@ -21,6 +21,12 @@ export interface ShapeBehavior<K extends NodeShape['kind']> {
     target: Vec2,
     shape: Extract<NodeShape, { kind: K }>
   ): Vec2;
+  /** Resolve a perimeter point at the given angle (degrees, 0 = right, 90 = down). */
+  anchorAtAngle(
+    pos: Vec2,
+    angleDeg: number,
+    shape: Extract<NodeShape, { kind: K }>
+  ): Vec2;
 }
 
 export function effectivePos(node: VizNode): Vec2 {
@@ -53,6 +59,23 @@ export function effectiveShape(node: VizNode): NodeShape {
   return shape as NodeShape;
 }
 
+const DEG_TO_RAD = Math.PI / 180;
+
+/** Resolve a rect boundary point at the given angle (degrees). */
+function rectAnchorAtAngle(
+  pos: Vec2,
+  angleDeg: number,
+  hw: number,
+  hh: number
+): Vec2 {
+  const rad = angleDeg * DEG_TO_RAD;
+  const dx = Math.cos(rad);
+  const dy = Math.sin(rad);
+  if (dx === 0 && dy === 0) return { ...pos };
+  const scale = Math.min(hw / Math.abs(dx || 1e-6), hh / Math.abs(dy || 1e-6));
+  return { x: pos.x + dx * scale, y: pos.y + dy * scale };
+}
+
 function diamondPoints(pos: Vec2, w: number, h: number): string {
   const hw = w / 2;
   const hh = h / 2;
@@ -79,6 +102,13 @@ const circleBehavior: ShapeBehavior<'circle'> = {
     return {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
+    };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    return {
+      x: pos.x + shape.r * Math.cos(rad),
+      y: pos.y + shape.r * Math.sin(rad),
     };
   },
 };
@@ -113,6 +143,9 @@ const rectBehavior: ShapeBehavior<'rect'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 const diamondBehavior: ShapeBehavior<'diamond'> = {
@@ -137,6 +170,17 @@ const diamondBehavior: ShapeBehavior<'diamond'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    const dx = Math.cos(rad);
+    const dy = Math.sin(rad);
+    if (dx === 0 && dy === 0) return { ...pos };
+    const hw = shape.w / 2;
+    const hh = shape.h / 2;
+    const denom = Math.abs(dx) / hw + Math.abs(dy) / hh;
+    const scale = denom === 0 ? 0 : 1 / denom;
+    return { x: pos.x + dx * scale, y: pos.y + dy * scale };
   },
 };
 
@@ -243,6 +287,9 @@ const cylinderBehavior: ShapeBehavior<'cylinder'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 function hexagonPoints(
@@ -287,6 +334,13 @@ const hexagonBehavior: ShapeBehavior<'hexagon'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    return {
+      x: pos.x + shape.r * Math.cos(rad),
+      y: pos.y + shape.r * Math.sin(rad),
+    };
+  },
 };
 
 const ellipseBehavior: ShapeBehavior<'ellipse'> = {
@@ -312,6 +366,13 @@ const ellipseBehavior: ShapeBehavior<'ellipse'> = {
     return {
       x: pos.x + (shape.rx * shape.ry * dx) / denom,
       y: pos.y + (shape.rx * shape.ry * dy) / denom,
+    };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    return {
+      x: pos.x + shape.rx * Math.cos(rad),
+      y: pos.y + shape.ry * Math.sin(rad),
     };
   },
 };
@@ -357,6 +418,13 @@ const arcBehavior: ShapeBehavior<'arc'> = {
     return {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
+    };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    return {
+      x: pos.x + shape.r * Math.cos(rad),
+      y: pos.y + shape.r * Math.sin(rad),
     };
   },
 };
@@ -426,6 +494,14 @@ const blockArrowBehavior: ShapeBehavior<'blockArrow'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const dir = shape.direction ?? 'right';
+    const hw =
+      dir === 'up' || dir === 'down' ? shape.headWidth / 2 : shape.length / 2;
+    const hh =
+      dir === 'up' || dir === 'down' ? shape.length / 2 : shape.headWidth / 2;
+    return rectAnchorAtAngle(pos, angleDeg, hw, hh);
   },
 };
 
@@ -538,6 +614,9 @@ const calloutBehavior: ShapeBehavior<'callout'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 /**
@@ -608,6 +687,12 @@ const cloudBehavior: ShapeBehavior<'cloud'> = {
       y: pos.y + (a * b * dy) / denom,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    const a = shape.w / 2;
+    const b = shape.h / 2;
+    return { x: pos.x + a * Math.cos(rad), y: pos.y + b * Math.sin(rad) };
+  },
 };
 
 function crossPoints(
@@ -656,6 +741,9 @@ const crossBehavior: ShapeBehavior<'cross'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.size / 2, shape.size / 2);
   },
 };
 
@@ -745,6 +833,15 @@ const cubeBehavior: ShapeBehavior<'cube'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const d = shape.depth ?? Math.round(shape.w * 0.2);
+    return rectAnchorAtAngle(
+      pos,
+      angleDeg,
+      shape.w / 2 + d / 2,
+      shape.h / 2 + d / 2
+    );
+  },
 };
 
 const pathBehavior: ShapeBehavior<'path'> = {
@@ -776,6 +873,9 @@ const pathBehavior: ShapeBehavior<'path'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
   },
 };
 
@@ -824,6 +924,9 @@ const documentBehavior: ShapeBehavior<'document'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
   },
 };
 
@@ -898,6 +1001,9 @@ const noteBehavior: ShapeBehavior<'note'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 function parallelogramPoints(
@@ -942,6 +1048,10 @@ const parallelogramBehavior: ShapeBehavior<'parallelogram'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const sk = shape.skew ?? Math.round(shape.w * 0.2);
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2 + sk / 2, shape.h / 2);
+  },
 };
 
 function starPoints(
@@ -979,6 +1089,13 @@ const starBehavior: ShapeBehavior<'star'> = {
     return {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
+    };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const rad = angleDeg * DEG_TO_RAD;
+    return {
+      x: pos.x + shape.outerR * Math.cos(rad),
+      y: pos.y + shape.outerR * Math.sin(rad),
     };
   },
 };
@@ -1022,6 +1139,10 @@ const trapezoidBehavior: ShapeBehavior<'trapezoid'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    const hw = Math.max(shape.topW, shape.bottomW) / 2;
+    return rectAnchorAtAngle(pos, angleDeg, hw, shape.h / 2);
   },
 };
 
@@ -1085,6 +1206,9 @@ const triangleBehavior: ShapeBehavior<'triangle'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 const imageBehavior: ShapeBehavior<'image'> = {
@@ -1131,6 +1255,9 @@ const imageBehavior: ShapeBehavior<'image'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
   },
 };
 
@@ -1190,6 +1317,9 @@ const iconBehavior: ShapeBehavior<'icon'> = {
       y: pos.y + dy * scale,
     };
   },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
+  },
 };
 
 const svgBehavior: ShapeBehavior<'svg'> = {
@@ -1235,6 +1365,9 @@ const svgBehavior: ShapeBehavior<'svg'> = {
       x: pos.x + dx * scale,
       y: pos.y + dy * scale,
     };
+  },
+  anchorAtAngle(pos, angleDeg, shape) {
+    return rectAnchorAtAngle(pos, angleDeg, shape.w / 2, shape.h / 2);
   },
 };
 
@@ -1295,6 +1428,17 @@ export function computeNodeAnchor(
   const shape = effectiveShape(node);
   const behavior = getShapeBehavior(shape);
   return behavior.anchorBoundary(pos, target, shape as never);
+}
+
+/** Resolve the perimeter point on a node's shape at the given angle (degrees, 0 = right, 90 = down). */
+export function computeNodeAnchorAtAngle(
+  node: VizNode,
+  angleDeg: number
+): Vec2 {
+  const pos = effectivePos(node);
+  const shape = effectiveShape(node);
+  const behavior = getShapeBehavior(shape);
+  return behavior.anchorAtAngle(pos, angleDeg, shape as never);
 }
 
 // ── Connection Ports ────────────────────────────────────────────────────────

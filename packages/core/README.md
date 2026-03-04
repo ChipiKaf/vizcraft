@@ -330,6 +330,8 @@ b.danglingEdge('e1', { from: 'srv', toAt: { x: 300, y: 200 }, arrow: true });
 | `.markerStart(type)`     | Set marker type at the source end. See `EdgeMarkerType`.                                                                              |
 | `.fromPort(portId)`      | Connect from a specific named port on the source node.                                                                                |
 | `.toPort(portId)`        | Connect to a specific named port on the target node.                                                                                  |
+| `.fromAngle(deg)`        | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node.                                                       |
+| `.toAngle(deg)`          | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node.                                                       |
 | `.from(nodeId)`          | Attach the source end to an existing node (useful with `danglingEdge()`).                                                             |
 | `.to(nodeId)`            | Attach the target end to an existing node (useful with `danglingEdge()`).                                                             |
 | `.fromAt(pos)`           | Set the free-endpoint coordinate for the source end (`{ x, y }`).                                                                     |

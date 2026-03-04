@@ -264,6 +264,68 @@ const exportUiPlugin: VizPlugin = (builder) => {
 
 See the [types documentation](./types#vizplugin) for details on the `VizPlugin` signature.
 
+# Freeform Perimeter Anchors
+
+By default, VizCraft computes edge endpoints by projecting from one node center toward the other and intersecting the shape boundary. This works well for most graphs, but sometimes you need an edge to leave or arrive at a specific angle — for example, a feedback loop that exits the bottom of a node and enters from the right.
+
+## `.fromAngle(deg)` / `.toAngle(deg)`
+
+Set a fixed angle (in degrees, where **0 = right**, **90 = down**, **180 = left**, **270 = up**) for the source or target endpoint. The edge endpoint is computed as the intersection of a ray at that angle with the node's shape perimeter.
+
+```ts
+viz()
+  .node('a')
+  .at(100, 100)
+  .circle(30)
+  .node('b')
+  .at(300, 100)
+  .circle(30)
+  // Edge leaves node A from the bottom (90°) and enters node B from the top (270°)
+  .edge('a', 'b')
+  .fromAngle(90)
+  .toAngle(270)
+  .arrow()
+  .build();
+```
+
+### Declarative form
+
+You can also set angles via `EdgeOptions`:
+
+```ts
+viz()
+  .node('a')
+  .at(100, 100)
+  .circle(30)
+  .node('b')
+  .at(300, 100)
+  .circle(30)
+  .edge('a', 'b', { fromAngle: 90, toAngle: 270, arrow: true })
+  .build();
+```
+
+### Precedence
+
+When `fromAngle` or `toAngle` is set, it takes precedence over `fromPort`/`toPort` and boundary auto-resolution. This lets you combine ports on one end with a fixed angle on the other:
+
+```ts
+.edge('a', 'b').fromPort('right').toAngle(180).arrow()
+```
+
+### Shape support
+
+Every built-in shape supports angle-based anchoring. Shapes with exact mathematical boundaries (circle, ellipse, rect, diamond) produce precise results. Complex shapes (cloud, star, cross, etc.) use their bounding approximation — the same geometry used for standard boundary anchoring.
+
+### `computeNodeAnchorAtAngle(node, angleDeg)`
+
+For advanced use (e.g. custom renderers), you can call `computeNodeAnchorAtAngle` directly to resolve where a given angle intersects a node's shape perimeter:
+
+```ts
+import { computeNodeAnchorAtAngle } from 'vizcraft';
+
+const point = computeNodeAnchorAtAngle(node, 45); // { x, y }
+```
+
 # Viewport & Pan/Zoom
 
 As your diagrams grow larger, a fixed-size SVG isn't always enough to comfortably display all content. VizCraft includes a built-in pan & zoom viewport controller to make exploring large scenes intuitive.

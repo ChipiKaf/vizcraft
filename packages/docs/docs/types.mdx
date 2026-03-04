@@ -85,6 +85,8 @@ An edge connecting two nodes — or a **dangling edge** with one (or both) endpo
 - `toAt?: Vec2` — free-endpoint coordinate for the target end (used when `to` is omitted).
 - `fromPort?: string` — connect from a specific port on the source node (by port `id`).
 - `toPort?: string` — connect to a specific port on the target node (by port `id`).
+- `fromAngle?: number` — fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node. Overrides port and boundary resolution.
+- `toAngle?: number` — fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node. Overrides port and boundary resolution.
 - `routing?: 'straight' | 'curved' | 'orthogonal'` — path routing algorithm (default `'straight'`).
 - `waypoints?: Vec2[]` — intermediate points the edge must pass through.
 - `markerEnd?: EdgeMarkerType` — marker/arrowhead at the target end of the edge.
@@ -500,6 +502,7 @@ Options object accepted by `viz().edge(from, to, opts)`. Configures an edge decl
 - `className?: string` — CSS class.
 - `anchor?: 'center' | 'boundary'` — connection anchor mode.
 - `fromPort? / toPort?: string` — port ids for edge endpoints.
+- `fromAngle? / toAngle?: number` — fixed perimeter angles (degrees, 0 = right, 90 = down). Overrides port and boundary resolution.
 - `label?: string | labelObj | labelObj[]` — single or multi-position labels.
 - `hitArea?: number` — invisible hit-area width.
 - `meta?: Record<string, unknown>` — arbitrary consumer-defined metadata.
