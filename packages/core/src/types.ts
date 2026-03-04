@@ -397,6 +397,10 @@ export interface VizEdge {
   fromAt?: Vec2;
   /** Free-endpoint coordinate for the target end (when `to` is omitted). */
   toAt?: Vec2;
+  /** Angle (degrees) for the source perimeter anchor. 0 = right, 90 = down. */
+  fromAngle?: number;
+  /** Angle (degrees) for the target perimeter anchor. 0 = right, 90 = down. */
+  toAngle?: number;
   /** Arbitrary consumer-defined metadata associated with the edge. */
   meta?: Record<string, unknown>;
   /** @deprecated Use `labels` for multi-position support. Kept for backwards compatibility. */
@@ -594,6 +598,11 @@ export interface EdgeOptions {
   fromAt?: Vec2;
   /** Free-endpoint coordinate for the target end (when `to` is omitted). */
   toAt?: Vec2;
+
+  /** Angle (degrees) for the source perimeter anchor. 0 = right, 90 = down. */
+  fromAngle?: number;
+  /** Angle (degrees) for the target perimeter anchor. 0 = right, 90 = down. */
+  toAngle?: number;
 
   // --- Routing ---
   routing?: EdgeRouting;

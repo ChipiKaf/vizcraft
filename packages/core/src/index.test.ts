@@ -10,6 +10,7 @@ import {
   resolvePortPosition,
   circularLayout,
   gridLayout,
+  computeEdgeEndpoints,
 } from './index';
 import type { VizNode } from './index';
 import type { SceneChanges, VizSceneMutator, VizPlugin } from './types';
@@ -4325,6 +4326,229 @@ describe('vizcraft core', () => {
       unsubscribe();
       builder.build();
       expect(buildCount).toBe(1); // Should not increment
+    });
+  });
+
+  describe('Freeform perimeter anchors (fromAngle / toAngle)', () => {
+    describe('builder .fromAngle() / .toAngle()', () => {
+      it('sets fromAngle and toAngle on the edge', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .circle(30)
+          .node('b')
+          .at(300, 100)
+          .circle(30)
+          .edge('a', 'b')
+          .fromAngle(0)
+          .toAngle(180)
+          .arrow()
+          .build();
+
+        const edge = scene.edges[0]!;
+        expect(edge.fromAngle).toBe(0);
+        expect(edge.toAngle).toBe(180);
+      });
+
+      it('chains with other edge builder methods', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(80, 40)
+          .node('b')
+          .at(300, 100)
+          .rect(80, 40)
+          .edge('a', 'b')
+          .fromAngle(45)
+          .toAngle(225)
+          .curved()
+          .stroke('#f00')
+          .build();
+
+        const edge = scene.edges[0]!;
+        expect(edge.fromAngle).toBe(45);
+        expect(edge.toAngle).toBe(225);
+        expect(edge.routing).toBe('curved');
+        expect(edge.style?.stroke).toBe('#f00');
+      });
+
+      it('accepts angles via declarative EdgeOptions', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .circle(30)
+          .node('b')
+          .at(300, 100)
+          .circle(30)
+          .edge('a', 'b', { fromAngle: 90, toAngle: 270 })
+          .build();
+
+        const edge = scene.edges[0]!;
+        expect(edge.fromAngle).toBe(90);
+        expect(edge.toAngle).toBe(270);
+      });
+    });
+
+    describe('anchorAtAngle geometry', () => {
+      it('circle: 0° anchors to the right', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .circle(30)
+          .node('b')
+          .at(300, 100)
+          .circle(30)
+          .edge('a', 'b')
+          .fromAngle(0)
+          .toAngle(180)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(130, 1);
+        expect(endpoints.start.y).toBeCloseTo(100, 1);
+        expect(endpoints.end.x).toBeCloseTo(270, 1);
+        expect(endpoints.end.y).toBeCloseTo(100, 1);
+      });
+
+      it('circle: 90° anchors to the bottom', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .circle(20)
+          .node('b')
+          .at(100, 300)
+          .circle(20)
+          .edge('a', 'b')
+          .fromAngle(90)
+          .toAngle(270)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(100, 1);
+        expect(endpoints.start.y).toBeCloseTo(120, 1);
+        expect(endpoints.end.x).toBeCloseTo(100, 1);
+        expect(endpoints.end.y).toBeCloseTo(280, 1);
+      });
+
+      it('rect: 0° anchors to mid-right edge', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(80, 40)
+          .node('b')
+          .at(300, 100)
+          .rect(80, 40)
+          .edge('a', 'b')
+          .fromAngle(0)
+          .toAngle(180)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(140, 1);
+        expect(endpoints.start.y).toBeCloseTo(100, 1);
+        expect(endpoints.end.x).toBeCloseTo(260, 1);
+        expect(endpoints.end.y).toBeCloseTo(100, 1);
+      });
+
+      it('rect: 45° anchors to top-right corner area', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .rect(40, 40)
+          .node('b')
+          .at(300, 100)
+          .rect(40, 40)
+          .edge('a', 'b')
+          .fromAngle(315)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(120, 1);
+        expect(endpoints.start.y).toBeCloseTo(80, 1);
+      });
+
+      it('ellipse: anchors at parametric angle', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .ellipse(40, 20)
+          .node('b')
+          .at(300, 100)
+          .ellipse(40, 20)
+          .edge('a', 'b')
+          .fromAngle(0)
+          .toAngle(180)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(140, 1);
+        expect(endpoints.start.y).toBeCloseTo(100, 1);
+      });
+
+      it('diamond: anchors along the L1 boundary', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .diamond(60, 60)
+          .node('b')
+          .at(300, 100)
+          .diamond(60, 60)
+          .edge('a', 'b')
+          .fromAngle(0)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(130, 1);
+        expect(endpoints.start.y).toBeCloseTo(100, 1);
+      });
+    });
+
+    describe('angle takes precedence over port', () => {
+      it('fromAngle overrides fromPort', () => {
+        const scene = viz()
+          .node('a')
+          .at(100, 100)
+          .circle(30)
+          .node('b')
+          .at(300, 100)
+          .circle(30)
+          .edge('a', 'b')
+          .fromPort('top')
+          .fromAngle(0)
+          .build();
+
+        const endpoints = computeEdgeEndpoints(
+          scene.nodes.find((n) => n.id === 'a')!,
+          scene.nodes.find((n) => n.id === 'b')!,
+          scene.edges[0]!
+        );
+        expect(endpoints.start.x).toBeCloseTo(130, 1);
+        expect(endpoints.start.y).toBeCloseTo(100, 1);
+      });
     });
   });
 });

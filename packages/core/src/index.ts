@@ -13,6 +13,7 @@ export {
   getNodePorts,
   findPort,
   resolvePortPosition,
+  computeNodeAnchorAtAngle,
 } from './shapes';
 export * from './anim/spec';
 export * from './anim/animationBuilder';

@@ -828,6 +828,10 @@ interface EdgeBuilder {
   fromPort(portId: string): EdgeBuilder;
   /** Connect the edge to a specific port on the target node. */
   toPort(portId: string): EdgeBuilder;
+  /** Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node. */
+  fromAngle(deg: number): EdgeBuilder;
+  /** Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node. */
+  toAngle(deg: number): EdgeBuilder;
   connect(anchor: 'center' | 'boundary'): EdgeBuilder;
   /** Sets the fill color of the edge path. */
   fill(color: string): EdgeBuilder;
@@ -1053,6 +1057,8 @@ function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.anchor) eb.connect(opts.anchor);
   if (opts.fromPort) eb.fromPort(opts.fromPort);
   if (opts.toPort) eb.toPort(opts.toPort);
+  if (opts.fromAngle !== undefined) eb.fromAngle(opts.fromAngle);
+  if (opts.toAngle !== undefined) eb.toAngle(opts.toAngle);
 
   // Labels
   if (opts.label) {
@@ -4109,6 +4115,16 @@ class EdgeBuilderImpl implements EdgeBuilder {
 
   toPort(portId: string): EdgeBuilder {
     this.edgeDef.toPort = portId;
+    return this;
+  }
+
+  fromAngle(deg: number): EdgeBuilder {
+    this.edgeDef.fromAngle = deg;
+    return this;
+  }
+
+  toAngle(deg: number): EdgeBuilder {
+    this.edgeDef.toAngle = deg;
     return this;
   }
 

@@ -10,6 +10,7 @@
 import type { Vec2, VizNode, VizEdge, EdgeRouting, NodeShape } from './types';
 import {
   computeNodeAnchor,
+  computeNodeAnchorAtAngle,
   effectivePos,
   effectiveShape,
   resolvePortPosition,
@@ -60,10 +61,14 @@ export function computeEdgeEndpoints(
   // Source endpoint
   let startAnchor: Vec2;
   if (start) {
-    startAnchor = edge.fromPort
-      ? (resolvePortPosition(start, edge.fromPort) ??
-        computeNodeAnchor(start, endTarget, anchor))
-      : computeNodeAnchor(start, endTarget, anchor);
+    if (edge.fromAngle !== undefined) {
+      startAnchor = computeNodeAnchorAtAngle(start, edge.fromAngle);
+    } else {
+      startAnchor = edge.fromPort
+        ? (resolvePortPosition(start, edge.fromPort) ??
+          computeNodeAnchor(start, endTarget, anchor))
+        : computeNodeAnchor(start, endTarget, anchor);
+    }
   } else {
     startAnchor = freeStart ?? { x: 0, y: 0 };
   }
@@ -71,10 +76,14 @@ export function computeEdgeEndpoints(
   // Target endpoint
   let endAnchor: Vec2;
   if (end) {
-    endAnchor = edge.toPort
-      ? (resolvePortPosition(end, edge.toPort) ??
-        computeNodeAnchor(end, startTarget, anchor))
-      : computeNodeAnchor(end, startTarget, anchor);
+    if (edge.toAngle !== undefined) {
+      endAnchor = computeNodeAnchorAtAngle(end, edge.toAngle);
+    } else {
+      endAnchor = edge.toPort
+        ? (resolvePortPosition(end, edge.toPort) ??
+          computeNodeAnchor(end, startTarget, anchor))
+        : computeNodeAnchor(end, startTarget, anchor);
+    }
   } else {
     endAnchor = freeEnd ?? { x: 0, y: 0 };
   }
