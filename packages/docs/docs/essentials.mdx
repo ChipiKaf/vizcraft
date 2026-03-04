@@ -357,7 +357,7 @@ Returns **`VizBuilder`** (not `EdgeBuilder`).
 | `className`                 | `string`                                       | `.class(name)`                            |
 | `anchor`                    | `'center' \| 'boundary'`                       | `.connect(anchor)`                        |
 | `fromPort` / `toPort`       | `string`                                       | `.fromPort(id)` / `.toPort(id)`           |
-| `fromAngle` / `toAngle`    | `number`                                       | `.fromAngle(deg)` / `.toAngle(deg)`       |
+| `fromAngle` / `toAngle`     | `number`                                       | `.fromAngle(deg)` / `.toAngle(deg)`       |
 | `label`                     | `string \| labelObj \| labelObj[]`             | `.label(text, opts)`                      |
 | `hitArea`                   | `number`                                       | `.hitArea(width)`                         |
 | `meta`                      | `Record<string, unknown>`                      | `.meta(value)`                            |
@@ -1955,15 +1955,15 @@ const builder = viz().view(500, 250);
 
 builder
 .node('server').at(130, 125).rect(110, 55, 6)
-  .label('Server').fill('#89b4fa')
+.label('Server').fill('#89b4fa')
 .node('db').at(370, 125).cylinder(90, 55)
-  .label('Database').fill('#a6e3a1')
+.label('Database').fill('#a6e3a1')
 // Edge leaves server at 315° (upper-right) and enters db at 200° (lower-left)
 .edge('server', 'db')
-  .fromAngle(315).toAngle(200).arrow().label('query').curved()
+.fromAngle(315).toAngle(200).arrow().label('query').curved()
 // Return edge: exits db at 160° and enters server at 225° (lower-left)
 .edge('db', 'server')
-  .fromAngle(160).toAngle(225).arrow().label('result').curved()
+.fromAngle(160).toAngle(225).arrow().label('result').curved()
 .done();
 
 const el = document.getElementById('viz-perimeter');
@@ -1975,12 +1975,12 @@ if (el) builder.mount(el);
 
 #### Angle reference
 
-| Angle | Direction  |
-| ----- | ---------- |
-| 0°    | Right      |
-| 90°   | Down       |
-| 180°  | Left       |
-| 270°  | Up         |
+| Angle | Direction   |
+| ----- | ----------- |
+| 0°    | Right       |
+| 90°   | Down        |
+| 180°  | Left        |
+| 270°  | Up          |
 | 45°   | Lower-right |
 | 315°  | Upper-right |
 

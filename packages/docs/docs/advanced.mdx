@@ -274,10 +274,17 @@ Set a fixed angle (in degrees, where **0 = right**, **90 = down**, **180 = left*
 
 ```ts
 viz()
-  .node('a').at(100, 100).circle(30)
-  .node('b').at(300, 100).circle(30)
+  .node('a')
+  .at(100, 100)
+  .circle(30)
+  .node('b')
+  .at(300, 100)
+  .circle(30)
   // Edge leaves node A from the bottom (90°) and enters node B from the top (270°)
-  .edge('a', 'b').fromAngle(90).toAngle(270).arrow()
+  .edge('a', 'b')
+  .fromAngle(90)
+  .toAngle(270)
+  .arrow()
   .build();
 ```
 
@@ -287,8 +294,12 @@ You can also set angles via `EdgeOptions`:
 
 ```ts
 viz()
-  .node('a').at(100, 100).circle(30)
-  .node('b').at(300, 100).circle(30)
+  .node('a')
+  .at(100, 100)
+  .circle(30)
+  .node('b')
+  .at(300, 100)
+  .circle(30)
   .edge('a', 'b', { fromAngle: 90, toAngle: 270, arrow: true })
   .build();
 ```
