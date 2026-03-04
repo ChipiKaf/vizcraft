@@ -402,9 +402,11 @@ export function VizCanvas(props: VizCanvasProps) {
         {/* 1. Edges (Visual + Hit + Labels) */}
         <g className="viz-layer-edges">
           {edges.map((edge: VizEdge) => {
-            const start = nodesById.get(edge.from);
-            const end = nodesById.get(edge.to);
-            if (!start || !end) return null;
+            const start = edge.from ? (nodesById.get(edge.from) ?? null) : null;
+            const end = edge.to ? (nodesById.get(edge.to) ?? null) : null;
+            if (edge.from && !start) return null;
+            if (edge.to && !end) return null;
+            if (!start && !edge.fromAt && !end && !edge.toAt) return null;
 
             // Animation Logic
             // The user can provide a custom registry, or we fall back to default

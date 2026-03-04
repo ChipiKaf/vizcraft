@@ -1840,6 +1840,81 @@ Port elements carry `data-node` and `data-port` attributes for easy DOM querying
 For the full type reference (including default ports per shape and utility functions), see [NodePort](./types#nodeport).
 :::
 
+### Dangling Edges
+
+A **dangling edge** has one (or both) endpoints at an arbitrary canvas coordinate rather than attached to a node. This is essential for interactive editors — for example, while a user drags to connect two nodes, the "in-progress" edge starts at a port and follows the cursor.
+
+#### Mental model
+
+- Omit `from` and supply `fromAt: { x, y }` to place the source end at a free coordinate.
+- Omit `to` and supply `toAt: { x, y }` to place the target end at a free coordinate.
+- At least one endpoint (`from`/`fromAt` or `to`/`toAt`) must be specified.
+- Once the user completes the connection, convert it to a regular edge by setting `from`/`to` and clearing `fromAt`/`toAt`.
+
+export const danglingEdgeScene = viz()
+  .view(500, 200)
+  .node('src')
+  .at(100, 100)
+  .circle(26)
+  .label('Source')
+  .fill('#89b4fa')
+  .danglingEdge('drag-preview')
+  .from('src')
+  .toAt({ x: 400, y: 100 })
+  .arrow()
+  .dashed()
+  .stroke('#6c7086')
+  .done();
+
+<CodePreview code={`
+import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 200);
+
+builder
+.node('src').at(100, 100).circle(26).label('Source').fill('#89b4fa')
+// A dangling edge — source is a node, target is a free coordinate
+.danglingEdge('drag-preview')
+.from('src')
+.toAt({ x: 400, y: 100 })
+.arrow()
+.dashed()
+.stroke('#6c7086')
+.done();
+
+const el = document.getElementById('viz-dangling');
+if (el) builder.mount(el);
+`}>
+
+  <VizMount builder={danglingEdgeScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+#### Declarative form
+
+```typescript
+builder.danglingEdge('e1', {
+  from: 'nodeA',
+  toAt: { x: 300, y: 150 },
+  arrow: true,
+  dash: 'dashed',
+});
+```
+
+#### Builder API reference
+
+| Builder method            | Effect                                                        |
+| ------------------------- | ------------------------------------------------------------- |
+| `.danglingEdge(id)`       | Start defining a dangling edge. Returns an `EdgeBuilder`.     |
+| `.danglingEdge(id, opts)` | Declarative form. Returns the parent `VizBuilder`.            |
+| `.from(nodeId)`           | Attach the source end to an existing node (by id).            |
+| `.to(nodeId)`             | Attach the target end to an existing node (by id).            |
+| `.fromAt(pos)`            | Set the free-endpoint coordinate for the source end (`Vec2`). |
+| `.toAt(pos)`              | Set the free-endpoint coordinate for the target end (`Vec2`). |
+
+:::tip
+Dangling edges work with all edge features — routing, markers, labels, styling, and animations.
+:::
+
 ## Animations
 
 For a full breakdown (registry/CSS animations, data-only timelines, playback controls, and live examples), see the dedicated guide:

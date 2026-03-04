@@ -738,12 +738,14 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
     const line = ctx.edgeLinesById.get(edge.id);
     if (!group || !line) continue;
 
-    const start = nodesById.get(edge.from);
-    const end = nodesById.get(edge.to);
-    if (!start || !end) continue;
+    const start = edge.from ? (nodesById.get(edge.from) ?? null) : null;
+    const end = edge.to ? (nodesById.get(edge.to) ?? null) : null;
+    if (edge.from && !start) continue;
+    if (edge.to && !end) continue;
+    if (!start && !edge.fromAt && !end && !edge.toAt) continue;
 
     let edgePath;
-    if (start === end) {
+    if (start && end && start === end) {
       edgePath = computeSelfLoop(start, edge);
     } else {
       const endpoints = computeEdgeEndpoints(start, end, edge);
@@ -757,10 +759,12 @@ export function patchRuntime(scene: VizScene, ctx: RuntimePatchCtx) {
 
     if (edgePathResolver) {
       const defaultResolver = (e: VizEdge): string => {
-        const s = nodesById.get(e.from);
-        const t = nodesById.get(e.to);
-        if (!s || !t) return '';
-        if (s === t) return computeSelfLoop(s, e).d;
+        const s = e.from ? (nodesById.get(e.from) ?? null) : null;
+        const t = e.to ? (nodesById.get(e.to) ?? null) : null;
+        if (e.from && !s) return '';
+        if (e.to && !t) return '';
+        if (!s && !e.fromAt && !t && !e.toAt) return '';
+        if (s && t && s === t) return computeSelfLoop(s, e).d;
         const endpoints = computeEdgeEndpoints(s, t, e);
         return computeEdgePath(
           endpoints.start,

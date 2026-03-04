@@ -320,19 +320,29 @@ export function hitTestRect(
   // Check edges
   // Roughly test if the edge's bounding box intersects the rect
   for (const edge of scene.edges) {
-    const startNode = scene.nodes.find((n) => n.id === edge.from);
-    const endNode = scene.nodes.find((n) => n.id === edge.to);
-    if (!startNode || !endNode) continue;
+    const startNode = edge.from
+      ? scene.nodes.find((n) => n.id === edge.from)
+      : undefined;
+    const endNode = edge.to
+      ? scene.nodes.find((n) => n.id === edge.to)
+      : undefined;
+    if (edge.from && !startNode) continue;
+    if (edge.to && !endNode) continue;
+    if (!startNode && !edge.fromAt && !endNode && !edge.toAt) continue;
 
     // Simplistic edge bounding box
-    const startPos = {
-      x: startNode.runtime?.x ?? startNode.pos.x,
-      y: startNode.runtime?.y ?? startNode.pos.y,
-    };
-    const endPos = {
-      x: endNode.runtime?.x ?? endNode.pos.x,
-      y: endNode.runtime?.y ?? endNode.pos.y,
-    };
+    const startPos = startNode
+      ? {
+          x: startNode.runtime?.x ?? startNode.pos.x,
+          y: startNode.runtime?.y ?? startNode.pos.y,
+        }
+      : (edge.fromAt ?? { x: 0, y: 0 });
+    const endPos = endNode
+      ? {
+          x: endNode.runtime?.x ?? endNode.pos.x,
+          y: endNode.runtime?.y ?? endNode.pos.y,
+        }
+      : (edge.toAt ?? { x: 0, y: 0 });
 
     const minX = Math.min(startPos.x, endPos.x) - 10;
     const maxX = Math.max(startPos.x, endPos.x) + 10;
@@ -406,11 +416,19 @@ export function edgeDistance(
   const edge = scene.edges.find((e) => e.id === edgeId);
   if (!edge) return Infinity;
 
-  const startNode = scene.nodes.find((n) => n.id === edge.from);
-  const endNode = scene.nodes.find((n) => n.id === edge.to);
-  if (!startNode || !endNode) return Infinity;
+  const startNode = edge.from
+    ? scene.nodes.find((n) => n.id === edge.from)
+    : null;
+  const endNode = edge.to ? scene.nodes.find((n) => n.id === edge.to) : null;
+  if (edge.from && !startNode) return Infinity;
+  if (edge.to && !endNode) return Infinity;
+  if (!startNode && !edge.fromAt && !endNode && !edge.toAt) return Infinity;
 
-  const { start, end } = computeEdgeEndpoints(startNode, endNode, edge);
+  const { start, end } = computeEdgeEndpoints(
+    startNode ?? null,
+    endNode ?? null,
+    edge
+  );
   const pathData = computeEdgePath(start, end, edge.routing, edge.waypoints);
 
   const polyline = samplePath(pathData.d, 10);

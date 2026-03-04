@@ -2181,11 +2181,8 @@ describe('vizcraft core', () => {
     it('node label with fontFamily via declarative opts', () => {
       const b = viz();
       b.node('a', {
-        x: 100,
-        y: 100,
-        shape: 'rect',
-        w: 120,
-        h: 60,
+        at: { x: 100, y: 100 },
+        rect: { w: 120, h: 60 },
         label: { text: 'Hi', fontFamily: 'Virgil' },
       });
       const svgStr = b.svg();

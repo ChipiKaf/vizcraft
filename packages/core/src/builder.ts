@@ -1,4 +1,5 @@
 import type {
+  Vec2,
   VizScene,
   VizNode,
   VizEdge,
@@ -103,6 +104,24 @@ const SHADOW_DEFAULTS = {
   blur: 4,
   color: 'rgba(0,0,0,0.2)',
 } as const;
+
+/**
+ * Resolves edge endpoints for dangling edges.
+ * Returns `null` when a referenced node id doesn't exist.
+ */
+function resolveDanglingEdge(
+  edge: VizEdge,
+  nodesById: Map<string, VizNode>
+): { start: VizNode | null; end: VizNode | null } | null {
+  const start = edge.from ? (nodesById.get(edge.from) ?? null) : null;
+  const end = edge.to ? (nodesById.get(edge.to) ?? null) : null;
+
+  if (edge.from && !start) return null;
+  if (edge.to && !end) return null;
+  if (!start && !edge.fromAt && !end && !edge.toAt) return null;
+
+  return { start, end };
+}
 
 /** Apply defaults to a partial shadow config. */
 function resolveShadow(shadow: {
@@ -457,6 +476,14 @@ export interface VizBuilder extends VizSceneMutator {
   /** Create a fully-configured edge declaratively and return the parent VizBuilder. */
   edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
 
+  /**
+   * Create a dangling edge with at least one free endpoint.
+   * The free end renders at a canvas coordinate (`fromAt`/`toAt`) rather than a node.
+   */
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  /** Declarative overload — returns the parent VizBuilder. */
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
+
   /** Hydrates the builder from an existing VizScene. */
   fromScene(scene: VizScene): VizBuilder;
 
@@ -747,6 +774,8 @@ interface NodeBuilder {
   node(id: string, opts: NodeOptions): VizBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
   edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
   overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
   overlay<K extends OverlayId>(
     id: K,
@@ -764,6 +793,14 @@ interface EdgeBuilder {
   orthogonal(): EdgeBuilder;
   routing(mode: EdgeRouting): EdgeBuilder;
   via(x: number, y: number): EdgeBuilder;
+  /** Set the source node id (useful with `danglingEdge()`). */
+  from(nodeId: string): EdgeBuilder;
+  /** Set the target node id (useful with `danglingEdge()`). */
+  to(nodeId: string): EdgeBuilder;
+  /** Set the free-endpoint source position (when `from` is omitted). */
+  fromAt(pos: Vec2): EdgeBuilder;
+  /** Set the free-endpoint target position (when `to` is omitted). */
+  toAt(pos: Vec2): EdgeBuilder;
   label(text: string, opts?: Partial<EdgeLabel>): EdgeBuilder;
   /**
    * Create a rich text label (mixed formatting) using nested SVG <tspan> spans.
@@ -839,6 +876,8 @@ interface EdgeBuilder {
   node(id: string, opts: NodeOptions): VizBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
   edge(from: string, to: string, opts: EdgeOptions): VizBuilder;
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
   overlay(cb: (overlay: OverlayBuilder) => unknown): VizBuilder;
   overlay<K extends OverlayId>(
     id: K,
@@ -978,8 +1017,13 @@ function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   if (opts.parent) nb.parent(opts.parent);
 }
 
-/** Apply an `EdgeOptions` object to an `EdgeBuilder` (sugar over chaining). */
+/** Applies an `EdgeOptions` object to an `EdgeBuilder`. */
 function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
+  if (opts.from) eb.from(opts.from);
+  if (opts.to) eb.to(opts.to);
+  if (opts.fromAt) eb.fromAt(opts.fromAt);
+  if (opts.toAt) eb.toAt(opts.toAt);
+
   // Routing
   if (opts.routing) eb.routing(opts.routing);
   if (opts.waypoints) {
@@ -1513,6 +1557,23 @@ class VizBuilderImpl implements VizBuilder {
     return this;
   }
 
+  /** Creates a dangling edge with at least one free endpoint. */
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder | VizBuilder {
+    if (!this._edges.has(id)) {
+      const edgeDef: VizEdge = { id } as VizEdge;
+      if (opts?.fromAt) edgeDef.fromAt = opts.fromAt;
+      if (opts?.toAt) edgeDef.toAt = opts.toAt;
+      this._edges.set(id, edgeDef);
+      this._edgeOrder.push(id);
+    }
+    const eb = new EdgeBuilderImpl(this, this._edges.get(id)!);
+    if (!opts) return eb;
+    applyEdgeOptions(eb, opts);
+    return this;
+  }
+
   /**
    * Hydrates the builder from an existing VizScene.
    * @param scene The scene to hydrate from
@@ -1568,12 +1629,14 @@ class VizBuilderImpl implements VizBuilder {
    */
   build(): VizScene {
     this._edges.forEach((edge) => {
-      if (!this._nodes.has(edge.from!)) {
+      // Only warn about missing nodes when a node id is specified
+      // (dangling edges intentionally omit from/to).
+      if (edge.from && !this._nodes.has(edge.from)) {
         console.warn(
           `VizBuilder: Edge ${edge.id} references missing source node ${edge.from}`
         );
       }
-      if (!this._nodes.has(edge.to!)) {
+      if (edge.to && !this._nodes.has(edge.to)) {
         console.warn(
           `VizBuilder: Edge ${edge.id} references missing target node ${edge.to}`
         );
@@ -2134,9 +2197,9 @@ class VizBuilderImpl implements VizBuilder {
     const processedEdgeIds = new Set<string>();
 
     edges.forEach((edge) => {
-      const start = nodesById.get(edge.from);
-      const end = nodesById.get(edge.to);
-      if (!start || !end) return;
+      const resolved = resolveDanglingEdge(edge, nodesById);
+      if (!resolved) return;
+      const { start, end } = resolved;
 
       processedEdgeIds.add(edge.id);
 
@@ -2190,7 +2253,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Use effective positions (handles runtime overrides internally via helper)
       let edgePath;
-      if (start === end) {
+      if (start && end && start === end) {
         edgePath = computeSelfLoop(start, edge);
       } else {
         const endpoints = computeEdgeEndpoints(start, end, edge);
@@ -2205,11 +2268,11 @@ class VizBuilderImpl implements VizBuilder {
       // Allow consumer override of the SVG path `d` string.
       if (this._edgePathResolver) {
         const defaultResolver = (e: VizEdge): string => {
-          const s = nodesById.get(e.from);
-          const t = nodesById.get(e.to);
-          if (!s || !t) return '';
-          if (s === t) return computeSelfLoop(s, e).d;
-          const endpoints = computeEdgeEndpoints(s, t, e);
+          const r = resolveDanglingEdge(e, nodesById);
+          if (!r) return '';
+          if (r.start && r.end && r.start === r.end)
+            return computeSelfLoop(r.start, e).d;
+          const endpoints = computeEdgeEndpoints(r.start, r.end, e);
           return computeEdgePath(
             endpoints.start,
             endpoints.end,
@@ -2969,9 +3032,9 @@ class VizBuilderImpl implements VizBuilder {
     // Render Edges
     svgContent += '<g class="viz-layer-edges" data-viz-layer="edges">';
     exportEdges.forEach((edge) => {
-      const start = nodesById.get(edge.from);
-      const end = nodesById.get(edge.to);
-      if (!start || !end) return;
+      const resolved = resolveDanglingEdge(edge, nodesById);
+      if (!resolved) return;
+      const { start, end } = resolved;
 
       // Animations
       let animClasses = '';
@@ -3013,7 +3076,7 @@ class VizBuilderImpl implements VizBuilder {
           : '';
 
       let edgePath;
-      if (start === end) {
+      if (start && end && start === end) {
         edgePath = computeSelfLoop(start, edge);
       } else {
         const endpoints = computeEdgeEndpoints(start, end, edge);
@@ -3027,11 +3090,11 @@ class VizBuilderImpl implements VizBuilder {
 
       if (this._edgePathResolver) {
         const defaultResolver = (e: VizEdge): string => {
-          const s = nodesById.get(e.from);
-          const t = nodesById.get(e.to);
-          if (!s || !t) return '';
-          if (s === t) return computeSelfLoop(s, e).d;
-          const endpoints = computeEdgeEndpoints(s, t, e);
+          const r = resolveDanglingEdge(e, nodesById);
+          if (!r) return '';
+          if (r.start && r.end && r.start === r.end)
+            return computeSelfLoop(r.start, e).d;
+          const endpoints = computeEdgeEndpoints(r.start, r.end, e);
           return computeEdgePath(
             endpoints.start,
             endpoints.end,
@@ -3881,6 +3944,11 @@ class NodeBuilderImpl implements NodeBuilder {
   ): EdgeBuilder | VizBuilder {
     return this._builder.edge(from, to, idOrOpts as string);
   }
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder | VizBuilder {
+    return this._builder.danglingEdge(id, opts as EdgeOptions);
+  }
   overlay<K extends OverlayId>(
     id: K,
     params: OverlayParams<K>,
@@ -3942,6 +4010,26 @@ class EdgeBuilderImpl implements EdgeBuilder {
       this.edgeDef.waypoints = [];
     }
     this.edgeDef.waypoints.push({ x, y });
+    return this;
+  }
+
+  from(nodeId: string): EdgeBuilder {
+    this.edgeDef.from = nodeId;
+    return this;
+  }
+
+  to(nodeId: string): EdgeBuilder {
+    this.edgeDef.to = nodeId;
+    return this;
+  }
+
+  fromAt(pos: Vec2): EdgeBuilder {
+    this.edgeDef.fromAt = pos;
+    return this;
+  }
+
+  toAt(pos: Vec2): EdgeBuilder {
+    this.edgeDef.toAt = pos;
     return this;
   }
 
@@ -4174,6 +4262,11 @@ class EdgeBuilderImpl implements EdgeBuilder {
     idOrOpts?: string | EdgeOptions
   ): EdgeBuilder | VizBuilder {
     return this.parent.edge(from, to, idOrOpts as string);
+  }
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
+  danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
+  danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder | VizBuilder {
+    return this.parent.danglingEdge(id, opts as EdgeOptions);
   }
   overlay<K extends OverlayId>(
     id: K,
