@@ -1,5 +1,13 @@
 # @vizcraft/docs
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [[`04df81d`](https://github.com/ChipiKaf/vizcraft/commit/04df81dfa0e2f6f4a54232f28382d285de3030c6), [`28390fc`](https://github.com/ChipiKaf/vizcraft/commit/28390fc49d614dbb5c5f3c6a576b52a527a2b4dc)]:
+  - vizcraft@1.4.0
+  - react-vizcraft@8.0.0
+
 ## 0.0.10
 
 ### Patch Changes
