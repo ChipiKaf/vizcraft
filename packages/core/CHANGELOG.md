@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.4.0
+
+### Minor Changes
+
+- [#86](https://github.com/ChipiKaf/vizcraft/pull/86) [`04df81d`](https://github.com/ChipiKaf/vizcraft/commit/04df81dfa0e2f6f4a54232f28382d285de3030c6) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Support dangling edges with free endpoints (source-only or target-only) for interactive diagrams. Added `danglingEdge()` builder method, `fromAt()`/`toAt()` on `EdgeBuilder`, and made `VizEdge.from`/`VizEdge.to` optional. Dangling edges work with all edge features including routing, markers, labels, styling, hit testing, SVG export, and DOM mounting.
+
 ## 1.3.1
 
 ### Patch Changes
