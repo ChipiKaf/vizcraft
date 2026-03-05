@@ -1,4 +1,4 @@
-import type { LayoutAlgorithm, LayoutGraph, LayoutResult } from './types';
+import type { LayoutAlgorithm, LayoutGraph, LayoutResult } from '../types';
 
 export interface CircularLayoutOptions {
   /** X coordinate of the center (default: 0) */

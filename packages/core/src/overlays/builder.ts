@@ -1,10 +1,10 @@
-import type { OverlayId, OverlayParams, VizOverlaySpec } from './types';
+import type { OverlayId, OverlayParams, VizOverlaySpec } from '../types';
 import type {
   CircleOverlayParams,
   GroupOverlayParams,
   RectOverlayParams,
   TextOverlayParams,
-} from './overlays';
+} from './registry';
 
 export type OverlayAddOptions = {
   /** Optional stable key used to uniquely identify an overlay instance. */

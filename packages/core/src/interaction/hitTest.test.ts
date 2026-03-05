@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { viz } from './builder';
+import { viz } from '../builder';
 import { hitTest, hitTestRect, nearestPort, edgeDistance } from './hitTest';
 
 describe('Hit Testing Module', () => {

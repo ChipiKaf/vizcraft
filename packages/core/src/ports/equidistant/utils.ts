@@ -1,4 +1,4 @@
-import type { NodeShape, Vec2 } from '../types';
+import type { NodeShape, Vec2 } from '../../types';
 import type { EquidistantPort, PerimeterStrategy } from './types';
 
 export const DEG = 180 / Math.PI;

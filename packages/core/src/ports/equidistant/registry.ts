@@ -1,4 +1,4 @@
-import type { NodePort, NodeShape } from '../types';
+import type { NodePort, NodeShape } from '../../types';
 import type { EquidistantPort, PerimeterStrategy } from './types';
 import { walkPolygonEquidistant } from './utils';
 import { builtInStrategies } from './strategies';

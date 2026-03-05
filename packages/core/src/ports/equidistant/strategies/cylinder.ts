@@ -1,4 +1,4 @@
-import type { Vec2 } from '../../types';
+import type { Vec2 } from '../../../types';
 import type { PerimeterStrategy } from '../types';
 import { ARC_SAMPLES, sampledCurveStrategy } from '../utils';
 

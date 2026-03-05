@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { circularLayout, gridLayout } from './layouts';
-import { LayoutGraph, VizNode } from './types';
+import { circularLayout, gridLayout } from './algorithms';
+import { LayoutGraph, VizNode } from '../types';
 
 function createMockNodes(count: number): VizNode[] {
   return Array.from({ length: count }, (_, i) => ({

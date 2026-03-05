@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getEquidistantPorts, toNodePorts } from './equidistantPorts';
-import type { EquidistantPort } from './equidistantPorts';
-import type { NodeShape } from './types';
+import { getEquidistantPorts, toNodePorts } from './equidistant';
+import type { EquidistantPort } from './equidistant';
+import type { NodeShape } from '../types';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */

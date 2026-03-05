@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from 'vitest';
-import { viz } from './builder';
+import { viz } from '../builder';
 
 function getEdgeLineD(container: HTMLElement): string {
   const el = container.querySelector(

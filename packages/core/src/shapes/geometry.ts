@@ -1,4 +1,4 @@
-import type { NodePort, NodeShape, Vec2, VizNode } from './types';
+import type { NodePort, NodeShape, Vec2, VizNode } from '../types';
 import { defaultCoreIconRegistry } from './icons';
 
 export type AnchorMode = 'center' | 'boundary';

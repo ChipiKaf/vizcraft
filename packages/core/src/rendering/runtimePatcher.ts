@@ -3,15 +3,19 @@ import type {
   VizEdge,
   EdgeMarkerType,
   EdgePathResolver,
-} from './types';
-import { applyShapeGeometry, effectivePos, effectiveShape } from './shapes';
+} from '../types';
+import {
+  applyShapeGeometry,
+  effectivePos,
+  effectiveShape,
+} from '../shapes/geometry';
 import {
   computeEdgePath,
   computeEdgeEndpoints,
   computeSelfLoop,
-} from './edgePaths';
-import { resolveEdgeLabelPosition, collectEdgeLabels } from './edgeLabels';
-import { resolveDasharray } from './edgeStyles';
+} from '../edges/paths';
+import { resolveEdgeLabelPosition, collectEdgeLabels } from '../edges/labels';
+import { resolveDasharray } from '../edges/styles';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 

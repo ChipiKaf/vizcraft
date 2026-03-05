@@ -7,14 +7,14 @@
  *   2. A midpoint along the path (for label positioning).
  */
 
-import type { Vec2, VizNode, VizEdge, EdgeRouting, NodeShape } from './types';
+import type { Vec2, VizNode, VizEdge, EdgeRouting, NodeShape } from '../types';
 import {
   computeNodeAnchor,
   computeNodeAnchorAtAngle,
   effectivePos,
   effectiveShape,
   resolvePortPosition,
-} from './shapes';
+} from '../shapes/geometry';
 
 // ── Public API ──────────────────────────────────────────────────────────────
 

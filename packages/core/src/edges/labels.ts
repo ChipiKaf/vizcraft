@@ -1,5 +1,5 @@
-import type { EdgeLabel, VizEdge } from './types';
-import type { EdgePathResult } from './edgePaths';
+import type { EdgeLabel, VizEdge } from '../types';
+import type { EdgePathResult } from './paths';
 
 /**
  * Resolve the (x, y) position of an edge label given an EdgePathResult.

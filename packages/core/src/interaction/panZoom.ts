@@ -3,7 +3,7 @@ import type {
   PanZoomController,
   Vec2,
   VizScene,
-} from './types';
+} from '../types';
 
 export function setupPanZoom(
   svg: SVGSVGElement,

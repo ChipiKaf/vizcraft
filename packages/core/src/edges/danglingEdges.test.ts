@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi } from 'vitest';
-import { viz } from './builder';
-import { computeEdgeEndpoints, computeEdgePath } from './edgePaths';
-import { hitTestRect, edgeDistance } from './hitTest';
-import type { VizEdge, VizNode } from './types';
+import { viz } from '../builder';
+import { computeEdgeEndpoints, computeEdgePath } from './paths';
+import { hitTestRect, edgeDistance } from '../interaction/hitTest';
+import type { VizEdge, VizNode } from '../types';
 
 describe('Dangling edges — types & build', () => {
   it('builds a scene with a toAt-only dangling edge', () => {

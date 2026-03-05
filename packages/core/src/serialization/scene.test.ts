@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { viz } from '../src/builder';
-import { serializeScene, deserializeScene } from '../src/serialization';
+import { viz } from '../builder';
+import { serializeScene, deserializeScene } from './scene';
 
 describe('Serialization and Deserialization', () => {
   it('should serialize a scene by preserving primitive data and stripping functions', () => {

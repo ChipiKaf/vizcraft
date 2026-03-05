@@ -1,5 +1,5 @@
-import type { VizScene, VizNode, Vec2 } from './types';
-import { computeEdgePath, computeEdgeEndpoints } from './edgePaths';
+import type { VizScene, VizNode, Vec2 } from '../types';
+import { computeEdgePath, computeEdgeEndpoints } from '../edges/paths';
 
 /** Result of a point hit test. */
 export type HitResult =

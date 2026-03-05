@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { viz } from './builder';
-import { renderSvgText } from './textUtils';
+import { viz } from '../builder';
+import { renderSvgText } from '../utils/text';
 import { patchRuntime, type RuntimePatchCtx } from './runtimePatcher';
 
 function stripWhitespace(s: string) {

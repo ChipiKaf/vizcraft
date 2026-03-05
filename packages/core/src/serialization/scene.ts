@@ -1,4 +1,4 @@
-import type { VizEdge, VizNode, VizScene } from './types';
+import type { VizEdge, VizNode, VizScene } from '../types';
 
 /**
  * Scene data structure that represents a serialised VizScene.

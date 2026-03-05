@@ -1,4 +1,4 @@
-import type { NodeShape } from '../types';
+import type { NodeShape } from '../../types';
 
 /**
  * A port positioned equidistantly along a shape's perimeter.

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { VizNode, VizEdge, VizAnimSpec } from './types';
+import type { VizNode, VizEdge, VizAnimSpec } from '../types';
 
 export interface CoreAnimRendererContext<T = any> {
   spec: VizAnimSpec<T>;

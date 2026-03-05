@@ -6,7 +6,7 @@
  * generate multi-line `<tspan>` nodes.
  */
 
-import type { RichText, RichTextToken } from './types';
+import type { RichText, RichTextToken } from '../types';
 
 // Rough approximation of character widths relative to font-size.
 // Without DOM measurement, we assume an average character is ~0.6em wide,

@@ -1,4 +1,4 @@
-import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from './types';
+import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from '../types';
 
 export type SignalOverlayParams = {
   from: string;
@@ -102,7 +102,7 @@ export type GroupOverlayParams = {
   children: VizOverlaySpec[];
 };
 
-declare module './types' {
+declare module '../types' {
   interface OverlayKindRegistry {
     signal: SignalOverlayParams;
     'grid-labels': GridLabelsOverlayParams;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { viz } from './builder';
+import { viz } from '../builder';
 
 function stripWhitespace(s: string) {
   return s.replace(/\s+/g, ' ');
