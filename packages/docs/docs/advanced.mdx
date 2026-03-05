@@ -3,7 +3,7 @@ sidebar_position: 4
 title: Advanced
 ---
 
-import { viz } from 'vizcraft';
+import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
@@ -325,6 +325,103 @@ import { computeNodeAnchorAtAngle } from 'vizcraft';
 
 const point = computeNodeAnchorAtAngle(node, 45); // { x, y }
 ```
+
+## Equidistant Port Distribution
+
+`getEquidistantPorts(shape, count?)` computes **N points equally spaced by perimeter arc length** along any shape. This is useful for port-based editors, circuit diagrams, or any scenario where ports must be evenly distributed around a node.
+
+The example below places 10 equidistant ports on a **cylinder** shape and connects edges to several of them:
+
+export const equidistantPortsScene = (() => {
+  const shape = { kind: 'cylinder', w: 120, h: 80 };
+  const ports = getEquidistantPorts(shape, 10);
+  const nodePorts = toNodePorts(ports);
+  const b = viz().view(600, 350);
+  const db = b
+    .node('db')
+    .at(300, 175)
+    .cylinder(120, 80)
+    .label('Database')
+    .fill('#DBEAFE')
+    .stroke('#1D4ED8', 2);
+  for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
+  b.node('svc1')
+    .at(80, 60)
+    .rect(80, 40, 6)
+    .label('Svc A')
+    .fill('#DCFCE7')
+    .stroke('#166534', 2);
+  b.node('svc2')
+    .at(80, 280)
+    .rect(80, 40, 6)
+    .label('Svc B')
+    .fill('#FEF3C7')
+    .stroke('#92400E', 2);
+  b.node('svc3')
+    .at(520, 60)
+    .rect(80, 40, 6)
+    .label('Svc C')
+    .fill('#FCE7F3')
+    .stroke('#9D174D', 2);
+  b.node('svc4')
+    .at(520, 280)
+    .rect(80, 40, 6)
+    .label('Svc D')
+    .fill('#E0E7FF')
+    .stroke('#3730A3', 2);
+  b.edge('svc1', 'db').toPort('p8').arrow();
+  b.edge('svc2', 'db').toPort('p6').arrow();
+  b.edge('db', 'svc3').fromPort('p2').arrow();
+  b.edge('db', 'svc4').fromPort('p4').arrow();
+  return b;
+})();
+
+<CodePreview code={`
+import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
+
+// 1. Define the shape and compute 10 equidistant ports
+const shape = { kind: 'cylinder', w: 120, h: 80 };
+const ports = getEquidistantPorts(shape, 10);
+const nodePorts = toNodePorts(ports);
+
+// 2. Build the scene, adding ports via the builder
+const b = viz().view(600, 350);
+const db = b.node('db').at(300, 175).cylinder(120, 80)
+.label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
+for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
+
+// 3. Add service nodes and connect to specific ports
+b.node('svc1').at(80, 60).rect(80,40,6).label('Svc A').fill('#DCFCE7').stroke('#166534',2);
+b.node('svc2').at(80, 280).rect(80,40,6).label('Svc B').fill('#FEF3C7').stroke('#92400E',2);
+b.node('svc3').at(520, 60).rect(80,40,6).label('Svc C').fill('#FCE7F3').stroke('#9D174D',2);
+b.node('svc4').at(520,280).rect(80,40,6).label('Svc D').fill('#E0E7FF').stroke('#3730A3',2);
+
+b.edge('svc1', 'db').toPort('p8').arrow();
+b.edge('svc2', 'db').toPort('p6').arrow();
+b.edge('db', 'svc3').fromPort('p2').arrow();
+b.edge('db', 'svc4').fromPort('p4').arrow();
+
+const el = document.getElementById('viz-equidistant');
+if (el) b.mount(el);
+`}>
+
+  <VizMount builder={equidistantPortsScene} style={{ height: '350px', width: '100%' }} />
+</CodePreview>
+
+Each returned `EquidistantPort` includes:
+
+| Field    | Description                                         |
+| -------- | --------------------------------------------------- |
+| `id`     | Stable identifier (`p0`, `p1`, …)                   |
+| `angle`  | Angle from center in degrees (0 = right, 90 = down) |
+| `t`      | Parametric proportion along perimeter \[0, 1)       |
+| `x`, `y` | Offset from node center                             |
+
+Use `toNodePorts()` to convert the result into standard `NodePort[]` objects that you can assign directly to `node.ports`.
+
+:::tip
+When `count` is omitted, a shape-specific smart default is used (e.g. 8 for rect, 6 for hexagon, 4 for diamond). See [EquidistantPort](./types#equidistant-port) for the full reference.
+:::
 
 # Viewport & Pan/Zoom
 

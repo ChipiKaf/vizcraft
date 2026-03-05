@@ -1861,12 +1861,12 @@ const nodePorts = toNodePorts(ports);
 
 Unlike simple angular spacing, `getEquidistantPorts` distributes points by **perimeter arc length** — so ports on a tall rectangle are truly evenly spaced around the edges, not bunched at corners. Each port includes:
 
-| Field | Description |
-| ----- | ----------- |
-| `id` | Stable identifier (`p0`, `p1`, …) |
-| `angle` | Angle from center in degrees (0 = right, 90 = down) |
-| `t` | Parametric proportion along perimeter \[0, 1) |
-| `x`, `y` | Offset from node center |
+| Field    | Description                                         |
+| -------- | --------------------------------------------------- |
+| `id`     | Stable identifier (`p0`, `p1`, …)                   |
+| `angle`  | Angle from center in degrees (0 = right, 90 = down) |
+| `t`      | Parametric proportion along perimeter \[0, 1)       |
+| `x`, `y` | Offset from node center                             |
 
 :::tip
 See [EquidistantPort](./types#equidistant-port) for the full type reference and smart-default counts per shape.

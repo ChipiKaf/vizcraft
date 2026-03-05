@@ -357,16 +357,53 @@ describe('getEquidistantPorts', () => {
     });
   });
 
-  /* ---- Fallback shapes ------------------------------------------- */
+  /* ---- Cylinder (dedicated strategy) ------------------------------ */
 
-  describe('fallback (bounding-box)', () => {
-    it('works for cylinder (falls back to rect)', () => {
+  describe('cylinder', () => {
+    it('uses dedicated perimeter strategy with default count 10', () => {
       const shape: NodeShape = { kind: 'cylinder', w: 80, h: 100 };
       const ports = getEquidistantPorts(shape);
-      expect(ports).toHaveLength(8);
+      expect(ports).toHaveLength(10);
       expectUniqueIds(ports);
     });
 
+    it('ports lie on the visible perimeter, not the bbox center', () => {
+      const shape: NodeShape = { kind: 'cylinder', w: 120, h: 80 };
+      const ry = Math.round(80 * 0.15); // default arcHeight
+      const hh = 40;
+      const ports = getEquidistantPorts(shape, 8);
+      // No port should sit exactly at (0, ±hh) — those are the ellipse
+      // centers, not the visible outline.
+      for (const p of ports) {
+        const atTopCenter = Math.abs(p.x) < 0.5 && Math.abs(p.y + hh) < 0.5;
+        const atBotCenter = Math.abs(p.x) < 0.5 && Math.abs(p.y - hh) < 0.5;
+        expect(atTopCenter).toBe(false);
+        expect(atBotCenter).toBe(false);
+      }
+      // The topmost port should be above -hh (extends by ry)
+      const minY = Math.min(...ports.map((p) => p.y));
+      expect(minY).toBeLessThan(-hh);
+      expect(minY).toBeGreaterThanOrEqual(-hh - ry - 0.5);
+    });
+
+    it('respects custom arcHeight', () => {
+      const shape: NodeShape = {
+        kind: 'cylinder',
+        w: 100,
+        h: 80,
+        arcHeight: 20,
+      };
+      const ports = getEquidistantPorts(shape, 12);
+      expect(ports).toHaveLength(12);
+      const minY = Math.min(...ports.map((p) => p.y));
+      expect(minY).toBeLessThan(-40);
+      expect(minY).toBeGreaterThanOrEqual(-60.5); // -hh - arcHeight
+    });
+  });
+
+  /* ---- Fallback shapes ------------------------------------------- */
+
+  describe('fallback (bounding-box)', () => {
     it('works for cloud', () => {
       const shape: NodeShape = { kind: 'cloud', w: 100, h: 80 };
       const ports = getEquidistantPorts(shape);
