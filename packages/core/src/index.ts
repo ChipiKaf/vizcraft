@@ -24,3 +24,4 @@ export * from './panZoom';
 export * from './serialization';
 export * from './hitTest';
 export * from './layouts';
+export * from './equidistantPorts';

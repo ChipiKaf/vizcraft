@@ -220,10 +220,40 @@ Import from `vizcraft`:
 
 | Function              | Signature                                                  | Description                                                       |
 | --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| `getDefaultPorts`     | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                       |
-| `getNodePorts`        | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                |
-| `findPort`            | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.              |
-| `resolvePortPosition` | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset). |
+| `getDefaultPorts`      | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                       |
+| `getNodePorts`         | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                |
+| `findPort`             | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.              |
+| `resolvePortPosition`  | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset). |
+| `getEquidistantPorts`  | `(shape: NodeShape, count?: number) => EquidistantPort[]`  | Compute N equidistant points along a shape's perimeter (by arc length, not angular spacing). Uses smart defaults per shape when `count` is omitted. |
+| `toNodePorts`          | `(ports: EquidistantPort[]) => NodePort[]`                 | Convert equidistant ports to `NodePort[]` with `offset` and `direction`, ready for use on a `VizNode`. |
+
+### EquidistantPort {#equidistant-port}
+
+Returned by `getEquidistantPorts`. Each entry represents a point on the shape's perimeter, equidistant by **arc length**.
+
+**Shape**
+
+- `id: string` — stable identifier (e.g. `'p0'`, `'p1'`, …).
+- `angle: number` — angle from center in degrees (0 = right, 90 = down).
+- `t: number` — parametric perimeter proportion in [0, 1).
+- `x: number` — X offset from node center.
+- `y: number` — Y offset from node center.
+
+### Smart defaults per shape
+
+| Shape | Default count | Strategy |
+| ----- | ------------- | -------- |
+| `rect` | 8 | Polygon perimeter walk (corners + midpoints) |
+| `circle` | 8 | Uniform angular spacing (≡ arc-length for circles) |
+| `ellipse` | 8 | Numerical arc-length integration |
+| `diamond` | 4 | Polygon perimeter walk |
+| `hexagon` | 6 | Polygon perimeter walk |
+| `triangle` | 6 | Polygon perimeter walk |
+| `parallelogram` | 8 | Polygon perimeter walk |
+| `trapezoid` | 8 | Polygon perimeter walk |
+| `star` | 2 × points | Polygon perimeter walk |
+| `cross` | 12 | Polygon perimeter walk |
+| All others | 8 | Bounding-box rectangle fallback |
 
 ---
 
