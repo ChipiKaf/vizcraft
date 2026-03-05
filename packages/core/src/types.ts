@@ -1,6 +1,6 @@
 export type Vec2 = { x: number; y: number };
 
-import type { AnimationSpec } from './anim/spec';
+import type { AnimationSpec } from './animation/spec';
 import type { VizBuilder } from './builder';
 
 export type NodeShape =

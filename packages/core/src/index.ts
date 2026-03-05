@@ -1,27 +1,27 @@
 export * from './types';
 export * from './builder';
-export * from './styles';
-export * from './animations';
-export * from './overlays';
-export * from './icons';
-export * from './overlayBuilder';
-export * from './edgePaths';
-export * from './edgeLabels';
-export * from './edgeStyles';
+export * from './rendering/styles';
+export * from './rendering/animations';
+export * from './overlays/registry';
+export * from './shapes/icons';
+export * from './overlays/builder';
+export * from './edges/paths';
+export * from './edges/labels';
+export * from './edges/styles';
 export {
   getDefaultPorts,
   getNodePorts,
   findPort,
   resolvePortPosition,
   computeNodeAnchorAtAngle,
-} from './shapes';
-export * from './anim/spec';
-export * from './anim/animationBuilder';
-export * from './anim/playback';
-export * from './anim/extendAdapter';
-export * from './anim/adapter';
-export * from './panZoom';
-export * from './serialization';
-export * from './hitTest';
-export * from './layouts';
-export * from './equidistantPorts';
+} from './shapes/geometry';
+export * from './animation/spec';
+export * from './animation/builder';
+export * from './animation/playback';
+export * from './animation/extendAdapter';
+export * from './animation/adapter';
+export * from './interaction/panZoom';
+export * from './serialization/scene';
+export * from './interaction/hitTest';
+export * from './layout/algorithms';
+export * from './ports/equidistant';
