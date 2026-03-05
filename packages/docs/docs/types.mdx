@@ -218,12 +218,66 @@ When you set `ports` explicitly on a `VizNode`, they **replace** the defaults en
 
 Import from `vizcraft`:
 
-| Function              | Signature                                                  | Description                                                       |
-| --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| `getDefaultPorts`     | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                       |
-| `getNodePorts`        | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                |
-| `findPort`            | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.              |
-| `resolvePortPosition` | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset). |
+| Function                    | Signature                                                  | Description                                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getDefaultPorts`           | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                                                                                                                                               |
+| `getNodePorts`              | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                                                                                                                                        |
+| `findPort`                  | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.                                                                                                                                      |
+| `resolvePortPosition`       | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset).                                                                                                                         |
+| `getEquidistantPorts`       | `(shape: NodeShape, count?: number) => EquidistantPort[]`  | Compute N equidistant points along a shape's perimeter (by arc length, not angular spacing). Delegates to a registered `PerimeterStrategy` or falls back to a bounding-box approximation. |
+| `toNodePorts`               | `(ports: EquidistantPort[]) => NodePort[]`                 | Convert equidistant ports to `NodePort[]` with `offset` and `direction`, ready for use on a `VizNode`.                                                                                    |
+| `registerPerimeterStrategy` | `(strategy: PerimeterStrategy<K>) => void`                 | Register (or replace) a perimeter strategy for a shape kind. Use to add custom shape support or override a built-in.                                                                      |
+
+### EquidistantPort {#equidistant-port}
+
+Returned by `getEquidistantPorts`. Each entry represents a point on the shape's perimeter, equidistant by **arc length**.
+
+**Shape**
+
+- `id: string` — stable identifier (e.g. `'p0'`, `'p1'`, …).
+- `angle: number` — angle from center in degrees (0 = right, 90 = down).
+- `t: number` — parametric perimeter proportion in [0, 1).
+- `x: number` — X offset from node center.
+- `y: number` — Y offset from node center.
+
+### PerimeterStrategy\<K\> {#perimeter-strategy}
+
+A pluggable strategy that teaches `getEquidistantPorts` how to compute equidistant ports for a given shape kind. Register via `registerPerimeterStrategy`.
+
+**Shape**
+
+- `kind: K` — the shape kind this strategy handles (e.g. `'circle'`, `'cylinder'`).
+- `defaultCount: number | ((shape) => number)` — default port count when the caller omits `count`. Can be a fixed number or a function that derives the count from the shape (e.g. `star` → `points * 2`).
+- `computePorts(shape, count): EquidistantPort[]` — compute equidistant ports for the given shape and count.
+
+```ts
+import { registerPerimeterStrategy } from 'vizcraft';
+
+registerPerimeterStrategy({
+  kind: 'cloud',
+  defaultCount: 12,
+  computePorts(shape, count) {
+    // … custom sampling logic …
+  },
+});
+```
+
+### Smart defaults per shape
+
+| Shape           | Default count | Strategy                                            |
+| --------------- | ------------- | --------------------------------------------------- |
+| `rect`          | 8             | Polygon perimeter walk (corners + midpoints)        |
+| `circle`        | 8             | Uniform angular spacing (≡ arc-length for circles)  |
+| `ellipse`       | 8             | Numerical arc-length integration                    |
+| `diamond`       | 4             | Polygon perimeter walk                              |
+| `hexagon`       | 6             | Polygon perimeter walk                              |
+| `triangle`      | 6             | Polygon perimeter walk                              |
+| `parallelogram` | 8             | Polygon perimeter walk                              |
+| `trapezoid`     | 8             | Polygon perimeter walk                              |
+| `star`          | 2 × points    | Polygon perimeter walk                              |
+| `cross`         | 12            | Polygon perimeter walk                              |
+| `cylinder`      | 10            | Composite perimeter (ellipse arcs + straight sides) |
+| All others      | 8             | Bounding-box rectangle fallback                     |
 
 ---
 

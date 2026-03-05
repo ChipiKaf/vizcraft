@@ -1841,6 +1841,37 @@ Port elements carry `data-node` and `data-port` attributes for easy DOM querying
 For the full type reference (including default ports per shape and utility functions), see [NodePort](./types#nodeport).
 :::
 
+#### Equidistant port distribution
+
+When you need **N evenly spaced ports** along a shape's perimeter (think circuit-board connectors, port-based editors, or radial menus), use `getEquidistantPorts`:
+
+```typescript
+import { getEquidistantPorts, toNodePorts } from 'vizcraft';
+
+// 8 equidistant ports on a rectangle (smart default)
+const ports = getEquidistantPorts({ kind: 'rect', w: 120, h: 60 });
+// → [{ id: 'p0', angle, t, x, y }, ... ]
+
+// Custom count: 12 ports on a circle
+const circlePorts = getEquidistantPorts({ kind: 'circle', r: 40 }, 12);
+
+// Convert to NodePort[] for use on a VizNode
+const nodePorts = toNodePorts(ports);
+```
+
+Unlike simple angular spacing, `getEquidistantPorts` distributes points by **perimeter arc length** — so ports on a tall rectangle are truly evenly spaced around the edges, not bunched at corners. Each port includes:
+
+| Field    | Description                                         |
+| -------- | --------------------------------------------------- |
+| `id`     | Stable identifier (`p0`, `p1`, …)                   |
+| `angle`  | Angle from center in degrees (0 = right, 90 = down) |
+| `t`      | Parametric proportion along perimeter \[0, 1)       |
+| `x`, `y` | Offset from node center                             |
+
+:::tip
+See [EquidistantPort](./types#equidistant-port) for the full type reference and smart-default counts per shape.
+:::
+
 ### Dangling Edges
 
 A **dangling edge** has one (or both) endpoints at an arbitrary canvas coordinate rather than attached to a node. This is essential for interactive editors — for example, while a user drags to connect two nodes, the "in-progress" edge starts at a port and follows the cursor.
