@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.5.0
+
+### Minor Changes
+
+- [`0560204`](https://github.com/ChipiKaf/vizcraft/commit/05602041266c5cb49b708b84c02b440584842d15) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Added support for generation of 'n' equidistant ports for a given shape
+
 ## 1.4.0
 
 ### Minor Changes
