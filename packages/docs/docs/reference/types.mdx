@@ -341,27 +341,27 @@ Property bag for `aBuilder.to(props, opts)`. Typed for core properties, accepts 
 
 Low-level path computation result returned by `computeEdgePath` and `computeSelfLoop`.
 
-| Field   | Type   | Description                                       |
-| ------- | ------ | ------------------------------------------------- |
-| `d`     | `string` | SVG path `d` attribute                          |
-| `mid`   | `Vec2`   | Approximate midpoint along the path             |
-| `start` | `Vec2`   | Position near the source (~15% along the path)  |
-| `end`   | `Vec2`   | Position near the target (~85% along the path)  |
+| Field   | Type     | Description                                    |
+| ------- | -------- | ---------------------------------------------- |
+| `d`     | `string` | SVG path `d` attribute                         |
+| `mid`   | `Vec2`   | Approximate midpoint along the path            |
+| `start` | `Vec2`   | Position near the source (~15% along the path) |
+| `end`   | `Vec2`   | Position near the target (~85% along the path) |
 
 ## ResolvedEdgeGeometry {#resolvededgegeometry}
 
 Returned by [`resolveEdgeGeometry`](/how-to/edges-and-connections#resolve-edge-geometry). Extends [EdgePathResult](#edgepathresult) with convenience fields.
 
-| Field         | Type      | Description                                                |
-| ------------- | --------- | ---------------------------------------------------------- |
-| `d`           | `string`  | SVG path `d` attribute                                     |
-| `mid`         | `Vec2`    | Approximate midpoint along the path                        |
-| `start`       | `Vec2`    | Position near the source (~15% along the path)             |
-| `end`         | `Vec2`    | Position near the target (~85% along the path)             |
-| `startAnchor` | `Vec2`    | Source anchor position (same as `start`)                   |
-| `endAnchor`   | `Vec2`    | Target anchor position (same as `end`)                     |
-| `waypoints`   | `Vec2[]`  | Waypoints used for the path (empty array when none)        |
-| `isSelfLoop`  | `boolean` | Whether this edge is a self-loop                           |
+| Field         | Type      | Description                                         |
+| ------------- | --------- | --------------------------------------------------- |
+| `d`           | `string`  | SVG path `d` attribute                              |
+| `mid`         | `Vec2`    | Approximate midpoint along the path                 |
+| `start`       | `Vec2`    | Position near the source (~15% along the path)      |
+| `end`         | `Vec2`    | Position near the target (~85% along the path)      |
+| `startAnchor` | `Vec2`    | Source anchor position (same as `start`)            |
+| `endAnchor`   | `Vec2`    | Target anchor position (same as `end`)              |
+| `waypoints`   | `Vec2[]`  | Waypoints used for the path (empty array when none) |
+| `isSelfLoop`  | `boolean` | Whether this edge is a self-loop                    |
 
 ---
 

@@ -638,9 +638,9 @@ if (!geo) return; // edge not found or unresolvable
 overlayPath.setAttribute('d', geo.d);
 
 // Label positions
-positionToolbar(geo.mid);          // midpoint
-positionSourceLabel(geo.start);    // ~15% along path
-positionTargetLabel(geo.end);      // ~85% along path
+positionToolbar(geo.mid); // midpoint
+positionSourceLabel(geo.start); // ~15% along path
+positionTargetLabel(geo.end); // ~85% along path
 
 // Anchor points (same as start/end but named for clarity)
 drawHandle(geo.startAnchor);
@@ -648,10 +648,13 @@ drawHandle(geo.endAnchor);
 
 // Waypoints and self-loop flag
 geo.waypoints.forEach(drawWaypointDot);
-if (geo.isSelfLoop) { /* handle loop-specific overlays */ }
+if (geo.isSelfLoop) {
+  /* handle loop-specific overlays */
+}
 ```
 
 Returns `null` when:
+
 - The edge id is not found in the scene.
 - A referenced node id does not exist.
 - Both endpoints are missing (no `from`/`to` and no `fromAt`/`toAt`).
