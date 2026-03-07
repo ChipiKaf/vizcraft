@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.6.0
+
+### Minor Changes
+
+- [`8020286`](https://github.com/ChipiKaf/vizcraft/commit/8020286d96d210f932a493184d820111e8c9ac7d) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Added fromProt and toPort to attach edges to specific edges. Updated documentation to follow Diátaxis structure
+
 ## 1.5.0
 
 ### Minor Changes
