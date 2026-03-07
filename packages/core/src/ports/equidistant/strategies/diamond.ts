@@ -13,8 +13,16 @@ function diamondVertices(w: number, h: number): Vec2[] {
   ];
 }
 
+const DIAMOND_SIDES = [
+  'top-right',
+  'bottom-right',
+  'bottom-left',
+  'top-left',
+] as const;
+
 export const diamondStrategy: PerimeterStrategy<'diamond'> = polygonStrategy(
   'diamond',
   4,
-  (s) => diamondVertices(s.w, s.h)
+  (s) => diamondVertices(s.w, s.h),
+  () => DIAMOND_SIDES
 );

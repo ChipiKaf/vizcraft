@@ -14,7 +14,12 @@ function parallelogramVertices(w: number, h: number, skew: number): Vec2[] {
   ];
 }
 
+const PARALLELOGRAM_SIDES = ['top', 'right', 'bottom', 'left'] as const;
+
 export const parallelogramStrategy: PerimeterStrategy<'parallelogram'> =
-  polygonStrategy('parallelogram', 8, (s) =>
-    parallelogramVertices(s.w, s.h, s.skew ?? Math.round(s.w * 0.2))
+  polygonStrategy(
+    'parallelogram',
+    8,
+    (s) => parallelogramVertices(s.w, s.h, s.skew ?? Math.round(s.w * 0.2)),
+    () => PARALLELOGRAM_SIDES
   );

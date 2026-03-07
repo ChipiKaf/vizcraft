@@ -1611,9 +1611,25 @@ export function getNodePorts(node: VizNode): NodePort[] {
 
 /**
  * Find a port on a node by its id. Returns `undefined` if not found.
+ *
+ * **Legacy compatibility:** if `portId` matches the old sequential format
+ * (`p0`, `p1`, …) and no port with that exact ID exists, the port at
+ * that numeric index is returned instead. This eases migration from the
+ * previous `p0`–`pN` naming to the new location-based IDs.
  */
 export function findPort(node: VizNode, portId: string): NodePort | undefined {
-  return getNodePorts(node).find((p) => p.id === portId);
+  const ports = getNodePorts(node);
+  const exact = ports.find((p) => p.id === portId);
+  if (exact) return exact;
+
+  // Legacy fallback: treat 'p3' as "port at index 3"
+  const legacy = /^p(\d+)$/.exec(portId);
+  if (legacy) {
+    const idx = Number(legacy[1]);
+    if (idx >= 0 && idx < ports.length) return ports[idx];
+  }
+
+  return undefined;
 }
 
 /**

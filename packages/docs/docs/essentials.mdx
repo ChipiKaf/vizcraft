@@ -1846,30 +1846,45 @@ For the full type reference (including default ports per shape and utility funct
 When you need **N evenly spaced ports** along a shape's perimeter (think circuit-board connectors, port-based editors, or radial menus), use `getEquidistantPorts`:
 
 ```typescript
-import { getEquidistantPorts, toNodePorts } from 'vizcraft';
+import { getEquidistantPorts, toNodePorts, findPortNearest } from 'vizcraft';
 
-// 8 equidistant ports on a rectangle (smart default)
+// 8 equidistant ports on a rectangle — location-based IDs
 const ports = getEquidistantPorts({ kind: 'rect', w: 120, h: 60 });
-// → [{ id: 'p0', angle, t, x, y }, ... ]
+// → [{ id: 'top-0', … }, { id: 'top-1', … }, { id: 'right-0', … }, … ]
 
-// Custom count: 12 ports on a circle
+// Custom count: 12 ports on a circle — angle-bucket IDs
 const circlePorts = getEquidistantPorts({ kind: 'circle', r: 40 }, 12);
+// → [{ id: '0-0', … }, { id: '0-1', … }, { id: '0-2', … }, { id: '90-0', … }, … ]
 
 // Convert to NodePort[] for use on a VizNode
 const nodePorts = toNodePorts(ports);
+
+// Snap to nearest port (node-local coordinates)
+const nearest = findPortNearest(node, clickX - node.pos.x, clickY - node.pos.y);
+if (nearest) edgeBuilder.toPort(nearest.id);
 ```
 
-Unlike simple angular spacing, `getEquidistantPorts` distributes points by **perimeter arc length** — so ports on a tall rectangle are truly evenly spaced around the edges, not bunched at corners. Each port includes:
+Unlike simple angular spacing, `getEquidistantPorts` distributes points by **perimeter arc length** — so ports on a tall rectangle are truly evenly spaced around the edges, not bunched at corners.
 
-| Field    | Description                                         |
-| -------- | --------------------------------------------------- |
-| `id`     | Stable identifier (`p0`, `p1`, …)                   |
-| `angle`  | Angle from center in degrees (0 = right, 90 = down) |
-| `t`      | Parametric proportion along perimeter \[0, 1)       |
-| `x`, `y` | Offset from node center                             |
+Port IDs are **stable across count changes**: ports near the same perimeter region keep the same ID prefix regardless of the total port count. This means persisted `fromPort`/`toPort` references survive when the port count changes.
+
+| Field    | Description                                                                  |
+| -------- | ---------------------------------------------------------------------------- |
+| `id`     | Location-based identifier (e.g. `top-0`, `right-1`, `0-0`, `270-1`)         |
+| `angle`  | Angle from center in degrees (0 = right, 90 = down)                         |
+| `t`      | Parametric proportion along perimeter \[0, 1)                               |
+| `x`, `y` | Offset from node center                                                     |
+
+**ID schemes:**
+- **Polygon shapes** with named sides (rect, diamond, triangle, hexagon, parallelogram, trapezoid): `{side}-{index}` (e.g. `top-0`, `right-1`)
+- **Curved / complex shapes** (circle, ellipse, cylinder, star, cross): `{angleBucket}-{index}` where the bucket is a 90° quadrant (e.g. `0-0`, `90-1`, `270-0`)
+
+:::tip Legacy compatibility
+`findPort` still resolves old `p0`–`pN` sequential IDs by treating the numeric suffix as a port index. Existing `fromPort('p3')` references continue to work.
+:::
 
 :::tip
-See [EquidistantPort](./types#equidistant-port) for the full type reference and smart-default counts per shape.
+See [EquidistantPort](./types#equidistant-port) for the full type reference, [port ID schemes](./types#port-id-schemes), and smart-default counts per shape.
 :::
 
 ### Dangling Edges

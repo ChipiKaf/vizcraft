@@ -1,5 +1,6 @@
-import type { NodePort, NodeShape } from '../../types';
+import type { NodePort, NodeShape, VizNode } from '../../types';
 import type { EquidistantPort, PerimeterStrategy } from './types';
+import { getNodePorts } from '../../shapes/geometry';
 import { walkPolygonEquidistant } from './utils';
 import { builtInStrategies } from './strategies';
 
@@ -73,6 +74,8 @@ function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
   }
 }
 
+const BBOX_SIDES = ['top', 'right', 'bottom', 'left'] as const;
+
 function boundingBoxFallback(
   shape: NodeShape,
   count: number
@@ -85,7 +88,8 @@ function boundingBoxFallback(
       { x: hw, y: hh },
       { x: -hw, y: hh },
     ],
-    count
+    count,
+    BBOX_SIDES
   );
 }
 
@@ -93,6 +97,12 @@ function boundingBoxFallback(
  * Compute N equidistant points along a shape's perimeter by arc length.
  * Delegates to a registered {@link PerimeterStrategy} or falls back to
  * a bounding-box rectangle approximation.
+ *
+ * Port IDs are **location-based** and stable across count changes:
+ * - Polygon shapes with named sides: `{side}-{index}` (e.g. `top-0`,
+ *   `right-1`).
+ * - Curved / complex shapes: `{angleBucket}-{index}` (e.g. `0-0`,
+ *   `270-1`).
  *
  * @param shape - The node shape specification.
  * @param count - Number of ports (uses a shape-specific default when omitted).
@@ -125,4 +135,43 @@ export function toNodePorts(ports: readonly EquidistantPort[]): NodePort[] {
     offset: { x: p.x, y: p.y },
     direction: p.angle,
   }));
+}
+
+/**
+ * Return the port on `node` closest to the given point (in **node-local
+ * coordinates**, i.e. relative to the node center).
+ *
+ * Uses the node's effective ports ({@link getNodePorts} — explicit
+ * `node.ports` when set, otherwise shape defaults).
+ *
+ * Returns `undefined` when the node has no ports.
+ *
+ * @example
+ * ```ts
+ * const port = findPortNearest(node, clickX - node.x, clickY - node.y);
+ * if (port) edgeBuilder.toPort(port.id);
+ * ```
+ */
+export function findPortNearest(
+  node: VizNode,
+  x: number,
+  y: number
+): NodePort | undefined {
+  const ports = getNodePorts(node);
+  if (ports.length === 0) return undefined;
+
+  let nearest: NodePort | undefined;
+  let bestDist = Infinity;
+
+  for (const port of ports) {
+    const dx = port.offset.x - x;
+    const dy = port.offset.y - y;
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      nearest = port;
+    }
+  }
+
+  return nearest;
 }

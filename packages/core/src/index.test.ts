@@ -3087,6 +3087,38 @@ describe('vizcraft core', () => {
         };
         expect(findPort(node, 'does-not-exist')).toBeUndefined();
       });
+
+      it('resolves legacy p0–pN ids by index fallback', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+        };
+        // Default ports: top, right, bottom, left (indices 0–3)
+        const port = findPort(node, 'p1');
+        expect(port).toBeDefined();
+        // p1 → index 1 → the second default port
+        expect(port!.id).toBe('right');
+      });
+
+      it('does not use legacy fallback when the id is not pN format', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+        };
+        expect(findPort(node, 'port0')).toBeUndefined();
+      });
+
+      it('returns undefined for legacy id with out-of-range index', () => {
+        const node: VizNode = {
+          id: 'n',
+          pos: { x: 0, y: 0 },
+          shape: { kind: 'rect', w: 100, h: 50 },
+        };
+        // Only 4 default ports (0–3)
+        expect(findPort(node, 'p99')).toBeUndefined();
+      });
     });
 
     describe('resolvePortPosition', () => {
