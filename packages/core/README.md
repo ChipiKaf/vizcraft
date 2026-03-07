@@ -309,10 +309,15 @@ b.edge('srv', 'db').fromPort('out-1').toPort('in').arrow();
 // Default ports (no .port() needed) — every shape has built-in ports
 b.edge('a', 'b').fromPort('right').toPort('left').arrow();
 
-// Equidistant port distribution — N evenly spaced ports by perimeter arc length
-import { getEquidistantPorts, toNodePorts } from 'vizcraft';
-const ports = getEquidistantPorts({ kind: 'hexagon', r: 40 }, 6); // 6 ports
+// Equidistant port distribution — stable, location-based IDs
+import { getEquidistantPorts, toNodePorts, findPortNearest } from 'vizcraft';
+const ports = getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8);
+// → [{ id: 'top-0', … }, { id: 'top-1', … }, { id: 'right-0', … }, …]
 const nodePorts = toNodePorts(ports); // → NodePort[] ready for node.ports
+
+// Snap to nearest port (node-local coordinates)
+const nearest = findPortNearest(node, clickX - node.pos.x, clickY - node.pos.y);
+if (nearest) b.edge('a', 'b').toPort(nearest.id);
 
 // Dangling edges — one or both endpoints at a free coordinate
 b.danglingEdge('preview').from('srv').toAt({ x: 300, y: 200 }).arrow().dashed();

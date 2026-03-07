@@ -12,8 +12,30 @@ function hexagonVertices(r: number, orientation: 'pointy' | 'flat'): Vec2[] {
   return verts;
 }
 
+function hexagonSideLabels(orientation: 'pointy' | 'flat'): readonly string[] {
+  if (orientation === 'pointy') {
+    return [
+      'top-right',
+      'right',
+      'bottom-right',
+      'bottom-left',
+      'left',
+      'top-left',
+    ];
+  }
+  return [
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'top-left',
+    'top',
+    'top-right',
+  ];
+}
+
 export const hexagonStrategy: PerimeterStrategy<'hexagon'> = polygonStrategy(
   'hexagon',
   6,
-  (s) => hexagonVertices(s.r, s.orientation ?? 'pointy')
+  (s) => hexagonVertices(s.r, s.orientation ?? 'pointy'),
+  (s) => hexagonSideLabels(s.orientation ?? 'pointy')
 );

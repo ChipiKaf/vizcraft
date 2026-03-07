@@ -1,5 +1,5 @@
 import type { PerimeterStrategy } from '../types';
-import { RAD, portFromPoint } from '../utils';
+import { RAD, portFromPoint, assignAngleBucketIds } from '../utils';
 
 function circleEquidistant(r: number, count: number) {
   const ports = [];
@@ -14,7 +14,7 @@ function circleEquidistant(r: number, count: number) {
       )
     );
   }
-  return ports;
+  return assignAngleBucketIds(ports);
 }
 
 export const circleStrategy: PerimeterStrategy<'circle'> = {

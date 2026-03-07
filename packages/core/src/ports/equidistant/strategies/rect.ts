@@ -13,8 +13,11 @@ function rectVertices(w: number, h: number): Vec2[] {
   ];
 }
 
+const RECT_SIDES = ['top', 'right', 'bottom', 'left'] as const;
+
 export const rectStrategy: PerimeterStrategy<'rect'> = polygonStrategy(
   'rect',
   8,
-  (s) => rectVertices(s.w, s.h)
+  (s) => rectVertices(s.w, s.h),
+  () => RECT_SIDES
 );

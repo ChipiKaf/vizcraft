@@ -31,10 +31,41 @@ export function portFromPoint(pt: Vec2, i: number, t: number): EquidistantPort {
   };
 }
 
-/** Place `count` equidistant points along a closed polygon by arc length. */
+/**
+ * Assign angle-bucket IDs to ports based on their angle from center.
+ *
+ * Each port is bucketed into a 90° quadrant (0, 90, 180, 270) and given
+ * an index within that quadrant. For example, a port at 45° becomes `0-0`
+ * (first port in the 0°–90° quadrant).
+ *
+ * This scheme is stable across count changes — ports near the same angle
+ * keep the same ID prefix regardless of total port count.
+ */
+export function assignAngleBucketIds(
+  ports: readonly EquidistantPort[]
+): EquidistantPort[] {
+  const bucketCounts = new Map<number, number>();
+
+  return ports.map((p) => {
+    const bucket = Math.floor(normalizeAngle(p.angle) / 90) * 90;
+    const idx = bucketCounts.get(bucket) ?? 0;
+    bucketCounts.set(bucket, idx + 1);
+    return { ...p, id: `${bucket}-${idx}` };
+  });
+}
+
+/**
+ * Place `count` equidistant points along a closed polygon by arc length.
+ *
+ * When `sideLabels` is provided (one label per edge), each port receives a
+ * location-based ID in the format `{label}-{indexWithinSide}` (e.g.
+ * `top-0`, `right-1`). Without labels, ports fall back to sequential
+ * `p0`–`pN` IDs.
+ */
 export function walkPolygonEquidistant(
   vertices: Vec2[],
-  count: number
+  count: number,
+  sideLabels?: readonly string[]
 ): EquidistantPort[] {
   const n = vertices.length;
   if (n === 0 || count <= 0) return [];
@@ -51,6 +82,9 @@ export function walkPolygonEquidistant(
   const ports: EquidistantPort[] = [];
   let edgeIdx = 0;
 
+  // Track per-side port counts for side-based IDs
+  const sideCounts: number[] = sideLabels ? new Array<number>(n).fill(0) : [];
+
   for (let i = 0; i < count; i++) {
     const target = i * segLen;
     while (edgeIdx < n - 1 && cumDist[edgeIdx + 1]! <= target) edgeIdx++;
@@ -62,7 +96,25 @@ export function walkPolygonEquidistant(
 
     const a = vertices[edgeIdx]!;
     const b = vertices[(edgeIdx + 1) % n]!;
-    ports.push(portFromPoint(lerp(a, b, frac), i, target / perimeter));
+    const pt = lerp(a, b, frac);
+
+    let id: string;
+    if (sideLabels) {
+      const sideLabel = sideLabels[edgeIdx]!;
+      const sideIdx = sideCounts[edgeIdx]!;
+      sideCounts[edgeIdx] = sideIdx + 1;
+      id = `${sideLabel}-${sideIdx}`;
+    } else {
+      id = `p${i}`;
+    }
+
+    ports.push({
+      id,
+      angle: normalizeAngle(angleDeg(pt)),
+      t: target / perimeter,
+      x: pt.x,
+      y: pt.y,
+    });
   }
 
   return ports;
@@ -114,21 +166,38 @@ function walkSampledCurveEquidistant(
   return ports;
 }
 
-/** Create a polygon strategy from a vertex extractor. */
+/**
+ * Create a polygon strategy from a vertex extractor.
+ *
+ * When `extractSideLabels` is provided, ports receive location-based IDs
+ * (e.g. `top-0`, `right-1`). Otherwise, angle-bucket IDs are assigned
+ * (e.g. `0-0`, `90-1`).
+ */
 export function polygonStrategy<K extends NodeShape['kind']>(
   kind: K,
   defaultCount: number | ((shape: Extract<NodeShape, { kind: K }>) => number),
-  extractVertices: (shape: Extract<NodeShape, { kind: K }>) => Vec2[]
+  extractVertices: (shape: Extract<NodeShape, { kind: K }>) => Vec2[],
+  extractSideLabels?: (
+    shape: Extract<NodeShape, { kind: K }>
+  ) => readonly string[]
 ): PerimeterStrategy<K> {
   return {
     kind,
     defaultCount,
-    computePorts: (shape, count) =>
-      walkPolygonEquidistant(extractVertices(shape), count),
+    computePorts: (shape, count) => {
+      const vertices = extractVertices(shape);
+      const labels = extractSideLabels?.(shape);
+      const ports = walkPolygonEquidistant(vertices, count, labels);
+      return labels ? ports : assignAngleBucketIds(ports);
+    },
   };
 }
 
-/** Create a curved-shape strategy from a perimeter sampler. */
+/**
+ * Create a curved-shape strategy from a perimeter sampler.
+ *
+ * Ports receive angle-bucket IDs (e.g. `0-0`, `90-1`).
+ */
 export function sampledCurveStrategy<K extends NodeShape['kind']>(
   kind: K,
   defaultCount: number,
@@ -138,6 +207,8 @@ export function sampledCurveStrategy<K extends NodeShape['kind']>(
     kind,
     defaultCount,
     computePorts: (shape, count) =>
-      walkSampledCurveEquidistant(samplePerimeter(shape), count),
+      assignAngleBucketIds(
+        walkSampledCurveEquidistant(samplePerimeter(shape), count)
+      ),
   };
 }

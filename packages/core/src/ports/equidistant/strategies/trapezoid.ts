@@ -14,7 +14,12 @@ function trapezoidVertices(topW: number, bottomW: number, h: number): Vec2[] {
   ];
 }
 
+const TRAPEZOID_SIDES = ['top', 'right', 'bottom', 'left'] as const;
+
 export const trapezoidStrategy: PerimeterStrategy<'trapezoid'> =
-  polygonStrategy('trapezoid', 8, (s) =>
-    trapezoidVertices(s.topW, s.bottomW, s.h)
+  polygonStrategy(
+    'trapezoid',
+    8,
+    (s) => trapezoidVertices(s.topW, s.bottomW, s.h),
+    () => TRAPEZOID_SIDES
   );

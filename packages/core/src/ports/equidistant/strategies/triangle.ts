@@ -37,8 +37,24 @@ function triangleVertices(
   }
 }
 
+function triangleSideLabels(
+  direction: 'up' | 'down' | 'left' | 'right'
+): readonly string[] {
+  switch (direction) {
+    case 'up':
+      return ['right', 'bottom', 'left'];
+    case 'down':
+      return ['left', 'top', 'right'];
+    case 'left':
+      return ['top', 'right', 'bottom'];
+    case 'right':
+      return ['bottom', 'left', 'top'];
+  }
+}
+
 export const triangleStrategy: PerimeterStrategy<'triangle'> = polygonStrategy(
   'triangle',
   6,
-  (s) => triangleVertices(s.w, s.h, s.direction ?? 'up')
+  (s) => triangleVertices(s.w, s.h, s.direction ?? 'up'),
+  (s) => triangleSideLabels(s.direction ?? 'up')
 );

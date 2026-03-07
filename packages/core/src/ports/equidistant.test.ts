@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getEquidistantPorts, toNodePorts } from './equidistant';
+import {
+  getEquidistantPorts,
+  toNodePorts,
+  findPortNearest,
+} from './equidistant';
 import type { EquidistantPort } from './equidistant';
-import type { NodeShape } from '../types';
+import type { NodeShape, VizNode } from '../types';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -456,5 +460,304 @@ describe('toNodePorts', () => {
       expect(np.offset).toEqual({ x: ep.x, y: ep.y });
       expect(np.direction).toBe(ep.angle);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Location-based port IDs                                            */
+/* ------------------------------------------------------------------ */
+
+describe('location-based port IDs', () => {
+  /* ---- Side-based IDs for polygon shapes ------------------------- */
+
+  describe('rect side-based IDs', () => {
+    const shape: NodeShape = { kind: 'rect', w: 120, h: 60 };
+
+    it('uses {side}-{index} format', () => {
+      const ports = getEquidistantPorts(shape, 8);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^(top|right|bottom|left)-\d+$/);
+      }
+    });
+
+    it('assigns correct sides to ports on each edge', () => {
+      const ports = getEquidistantPorts(shape, 4);
+      // Rect perimeter: 2*(120+60)=360, segLen=90
+      // Port 0: t=0 → starts at top-left corner → top edge
+      // Port 1: t=0.25 → 90px in → right edge (top=120, so 90 is still on top? no, top edge is 120 wide)
+      // Actually: vertices (-60,-30),(60,-30),(60,30),(-60,30)
+      // Edge 0: top = 120px, Edge 1: right = 60px, Edge 2: bottom = 120px, Edge 3: left = 60px
+      // segLen=90: port0 at 0 (top-0), port1 at 90 (top still, 90<120, so top-1)
+      // port2 at 180 (120+60=180, at edge 2 start → bottom-0), port3 at 270 (bottom still, 270-180=90<120 → bottom-1)
+      expect(ports[0]!.id).toBe('top-0');
+      expect(ports[1]!.id).toBe('top-1');
+      expect(ports[2]!.id).toBe('bottom-0');
+      expect(ports[3]!.id).toBe('bottom-1');
+    });
+
+    it('IDs are stable when count changes', () => {
+      const ports4 = getEquidistantPorts(shape, 4);
+      const ports8 = getEquidistantPorts(shape, 8);
+
+      // Both should have a 'top-0' port, and its position should be similar
+      const top0_4 = ports4.find((p) => p.id === 'top-0');
+      const top0_8 = ports8.find((p) => p.id === 'top-0');
+
+      expect(top0_4).toBeDefined();
+      expect(top0_8).toBeDefined();
+
+      // Both 'top-0' ports start at the same position (t=0, top-left corner)
+      expect(top0_4!.x).toBeCloseTo(top0_8!.x, 5);
+      expect(top0_4!.y).toBeCloseTo(top0_8!.y, 5);
+    });
+  });
+
+  describe('diamond side-based IDs', () => {
+    const shape: NodeShape = { kind: 'diamond', w: 80, h: 80 };
+
+    it('uses top-right/bottom-right/bottom-left/top-left sides', () => {
+      const ports = getEquidistantPorts(shape, 4);
+      expect(ports[0]!.id).toBe('top-right-0');
+      expect(ports[1]!.id).toBe('bottom-right-0');
+      expect(ports[2]!.id).toBe('bottom-left-0');
+      expect(ports[3]!.id).toBe('top-left-0');
+    });
+  });
+
+  describe('triangle side-based IDs', () => {
+    it('up triangle uses right/bottom/left sides', () => {
+      const shape: NodeShape = { kind: 'triangle', w: 80, h: 80 };
+      const ports = getEquidistantPorts(shape, 6);
+      // With 6 ports all three sides are represented
+      const sides = new Set(ports.map((p) => p.id.replace(/-\d+$/, '')));
+      expect(sides).toContain('right');
+      expect(sides).toContain('bottom');
+      expect(sides).toContain('left');
+    });
+
+    it('down triangle uses left/top/right sides', () => {
+      const shape: NodeShape = {
+        kind: 'triangle',
+        w: 80,
+        h: 80,
+        direction: 'down',
+      };
+      const ports = getEquidistantPorts(shape, 6);
+      const sides = new Set(ports.map((p) => p.id.replace(/-\d+$/, '')));
+      expect(sides).toContain('left');
+      expect(sides).toContain('top');
+      expect(sides).toContain('right');
+    });
+  });
+
+  describe('hexagon side-based IDs', () => {
+    it('pointy hexagon uses directional side names', () => {
+      const shape: NodeShape = { kind: 'hexagon', r: 40 };
+      const ports = getEquidistantPorts(shape, 6);
+      const expectedSides = [
+        'top-right',
+        'right',
+        'bottom-right',
+        'bottom-left',
+        'left',
+        'top-left',
+      ];
+      for (let i = 0; i < 6; i++) {
+        expect(ports[i]!.id).toBe(`${expectedSides[i]}-0`);
+      }
+    });
+
+    it('flat hexagon uses directional side names', () => {
+      const shape: NodeShape = { kind: 'hexagon', r: 40, orientation: 'flat' };
+      const ports = getEquidistantPorts(shape, 6);
+      const expectedSides = [
+        'bottom-right',
+        'bottom',
+        'bottom-left',
+        'top-left',
+        'top',
+        'top-right',
+      ];
+      for (let i = 0; i < 6; i++) {
+        expect(ports[i]!.id).toBe(`${expectedSides[i]}-0`);
+      }
+    });
+  });
+
+  describe('parallelogram side-based IDs', () => {
+    it('uses top/right/bottom/left sides', () => {
+      const shape: NodeShape = { kind: 'parallelogram', w: 120, h: 60 };
+      const ports = getEquidistantPorts(shape, 4);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^(top|right|bottom|left)-\d+$/);
+      }
+    });
+  });
+
+  describe('trapezoid side-based IDs', () => {
+    it('uses top/right/bottom/left sides', () => {
+      const shape: NodeShape = {
+        kind: 'trapezoid',
+        topW: 80,
+        bottomW: 120,
+        h: 60,
+      };
+      const ports = getEquidistantPorts(shape, 4);
+      expect(ports[0]!.id).toBe('top-0');
+    });
+  });
+
+  /* ---- Angle-bucket IDs for curved/complex shapes ---------------- */
+
+  describe('circle angle-bucket IDs', () => {
+    const shape: NodeShape = { kind: 'circle', r: 50 };
+
+    it('uses {angleBucket}-{index} format', () => {
+      const ports = getEquidistantPorts(shape, 4);
+      // 4 ports at 0°, 90°, 180°, 270°
+      expect(ports[0]!.id).toBe('0-0');
+      expect(ports[1]!.id).toBe('90-0');
+      expect(ports[2]!.id).toBe('180-0');
+      expect(ports[3]!.id).toBe('270-0');
+    });
+
+    it('assigns multiple ports to the same bucket', () => {
+      const ports = getEquidistantPorts(shape, 8);
+      // 8 ports: 0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°
+      expect(ports[0]!.id).toBe('0-0');
+      expect(ports[1]!.id).toBe('0-1');
+      expect(ports[2]!.id).toBe('90-0');
+      expect(ports[3]!.id).toBe('90-1');
+      expect(ports[4]!.id).toBe('180-0');
+      expect(ports[5]!.id).toBe('180-1');
+      expect(ports[6]!.id).toBe('270-0');
+      expect(ports[7]!.id).toBe('270-1');
+    });
+
+    it('IDs are stable when count changes', () => {
+      const ports4 = getEquidistantPorts(shape, 4);
+      const ports8 = getEquidistantPorts(shape, 8);
+
+      // '0-0' port exists in both and is at the same position (angle 0°)
+      const p4 = ports4.find((p) => p.id === '0-0');
+      const p8 = ports8.find((p) => p.id === '0-0');
+      expect(p4).toBeDefined();
+      expect(p8).toBeDefined();
+      expect(p4!.x).toBeCloseTo(p8!.x, 5);
+      expect(p4!.y).toBeCloseTo(p8!.y, 5);
+    });
+  });
+
+  describe('ellipse angle-bucket IDs', () => {
+    it('uses angle-bucket format', () => {
+      const shape: NodeShape = { kind: 'ellipse', rx: 60, ry: 30 };
+      const ports = getEquidistantPorts(shape, 4);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^\d+-\d+$/);
+      }
+    });
+  });
+
+  describe('star angle-bucket IDs', () => {
+    it('uses angle-bucket format for star', () => {
+      const shape: NodeShape = { kind: 'star', points: 5, outerR: 50 };
+      const ports = getEquidistantPorts(shape, 10);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^\d+-\d+$/);
+      }
+      expectUniqueIds(ports);
+    });
+  });
+
+  describe('cross angle-bucket IDs', () => {
+    it('uses angle-bucket format for cross', () => {
+      const shape: NodeShape = { kind: 'cross', size: 60 };
+      const ports = getEquidistantPorts(shape, 12);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^\d+-\d+$/);
+      }
+      expectUniqueIds(ports);
+    });
+  });
+
+  describe('cylinder angle-bucket IDs', () => {
+    it('uses angle-bucket format for cylinder', () => {
+      const shape: NodeShape = { kind: 'cylinder', w: 80, h: 100 };
+      const ports = getEquidistantPorts(shape, 8);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^\d+-\d+$/);
+      }
+      expectUniqueIds(ports);
+    });
+  });
+
+  describe('fallback shapes use side-based IDs', () => {
+    it('cloud fallback uses top/right/bottom/left', () => {
+      const shape: NodeShape = { kind: 'cloud', w: 100, h: 80 };
+      const ports = getEquidistantPorts(shape, 4);
+      for (const p of ports) {
+        expect(p.id).toMatch(/^(top|right|bottom|left)-\d+$/);
+      }
+    });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  findPortNearest                                                    */
+/* ------------------------------------------------------------------ */
+
+describe('findPortNearest', () => {
+  const node: VizNode = {
+    id: 'n1',
+    shape: { kind: 'rect', w: 120, h: 60 },
+    pos: { x: 200, y: 100 },
+    ports: [
+      { id: 'top', offset: { x: 0, y: -30 }, direction: 270 },
+      { id: 'right', offset: { x: 60, y: 0 }, direction: 0 },
+      { id: 'bottom', offset: { x: 0, y: 30 }, direction: 90 },
+      { id: 'left', offset: { x: -60, y: 0 }, direction: 180 },
+    ],
+  };
+
+  it('returns the nearest port to a given point', () => {
+    // Point near top-right area: closest to 'right' port at (60, 0)
+    const port = findPortNearest(node, 55, -10);
+    expect(port).toBeDefined();
+    expect(port!.id).toBe('right');
+  });
+
+  it('returns the exact port when point is at a port position', () => {
+    const port = findPortNearest(node, 0, -30);
+    expect(port).toBeDefined();
+    expect(port!.id).toBe('top');
+  });
+
+  it('returns undefined when node has no ports', () => {
+    const noPortsNode: VizNode = {
+      id: 'n2',
+      shape: { kind: 'rect', w: 100, h: 50 },
+      pos: { x: 0, y: 0 },
+      ports: [],
+    };
+    const port = findPortNearest(noPortsNode, 0, 0);
+    expect(port).toBeUndefined();
+  });
+
+  it('falls back to default ports when node has no explicit ports', () => {
+    const defaultPortsNode: VizNode = {
+      id: 'n3',
+      shape: { kind: 'rect', w: 120, h: 60 },
+      pos: { x: 0, y: 0 },
+    };
+    // Should use default ports from the shape
+    const port = findPortNearest(defaultPortsNode, 60, 0);
+    expect(port).toBeDefined();
+    expect(port!.id).toBe('right');
+  });
+
+  it('handles tie-breaking by returning the first port found', () => {
+    // At origin (0, 0), equidistant to all 4 ports — first checked wins
+    const port = findPortNearest(node, 0, 0);
+    expect(port).toBeDefined();
   });
 });

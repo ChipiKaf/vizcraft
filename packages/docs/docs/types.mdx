@@ -218,15 +218,16 @@ When you set `ports` explicitly on a `VizNode`, they **replace** the defaults en
 
 Import from `vizcraft`:
 
-| Function                    | Signature                                                  | Description                                                                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getDefaultPorts`           | `(shape: NodeShape) => NodePort[]`                         | Returns the default ports for a shape kind.                                                                                                                                               |
-| `getNodePorts`              | `(node: VizNode) => NodePort[]`                            | Returns explicit ports if set, otherwise defaults.                                                                                                                                        |
-| `findPort`                  | `(node: VizNode, portId: string) => NodePort \| undefined` | Looks up a port by id in the node's effective ports.                                                                                                                                      |
-| `resolvePortPosition`       | `(node: VizNode, portId: string) => Vec2 \| undefined`     | Returns the absolute position of a port (node position + offset).                                                                                                                         |
-| `getEquidistantPorts`       | `(shape: NodeShape, count?: number) => EquidistantPort[]`  | Compute N equidistant points along a shape's perimeter (by arc length, not angular spacing). Delegates to a registered `PerimeterStrategy` or falls back to a bounding-box approximation. |
-| `toNodePorts`               | `(ports: EquidistantPort[]) => NodePort[]`                 | Convert equidistant ports to `NodePort[]` with `offset` and `direction`, ready for use on a `VizNode`.                                                                                    |
-| `registerPerimeterStrategy` | `(strategy: PerimeterStrategy<K>) => void`                 | Register (or replace) a perimeter strategy for a shape kind. Use to add custom shape support or override a built-in.                                                                      |
+| Function                    | Signature                                                        | Description                                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getDefaultPorts`           | `(shape: NodeShape) => NodePort[]`                               | Returns the default ports for a shape kind.                                                                                                                     |
+| `getNodePorts`              | `(node: VizNode) => NodePort[]`                                  | Returns explicit ports if set, otherwise defaults.                                                                                                              |
+| `findPort`                  | `(node: VizNode, portId: string) => NodePort \| undefined`       | Looks up a port by id in the node's effective ports. Also resolves legacy `p0`–`pN` IDs by index.                                                               |
+| `findPortNearest`           | `(node: VizNode, x: number, y: number) => NodePort \| undefined` | Returns the port closest to the given point (in node-local coords). Uses the node's effective ports.                                                            |
+| `resolvePortPosition`       | `(node: VizNode, portId: string) => Vec2 \| undefined`           | Returns the absolute position of a port (node position + offset).                                                                                               |
+| `getEquidistantPorts`       | `(shape: NodeShape, count?: number) => EquidistantPort[]`        | Compute N equidistant points along a shape's perimeter. Ports receive **location-based IDs** (side-based or angle-bucket) that are stable across count changes. |
+| `toNodePorts`               | `(ports: EquidistantPort[]) => NodePort[]`                       | Convert equidistant ports to `NodePort[]` with `offset` and `direction`, ready for use on a `VizNode`.                                                          |
+| `registerPerimeterStrategy` | `(strategy: PerimeterStrategy<K>) => void`                       | Register (or replace) a perimeter strategy for a shape kind. Use to add custom shape support or override a built-in.                                            |
 
 ### EquidistantPort {#equidistant-port}
 
@@ -234,11 +235,38 @@ Returned by `getEquidistantPorts`. Each entry represents a point on the shape's 
 
 **Shape**
 
-- `id: string` — stable identifier (e.g. `'p0'`, `'p1'`, …).
+- `id: string` — **location-based** identifier that encodes the port's approximate position on the perimeter (see [Port ID Schemes](#port-id-schemes) below).
 - `angle: number` — angle from center in degrees (0 = right, 90 = down).
 - `t: number` — parametric perimeter proportion in [0, 1).
 - `x: number` — X offset from node center.
 - `y: number` — Y offset from node center.
+
+#### Port ID Schemes {#port-id-schemes}
+
+Port IDs are **stable across count changes** — ports near the same perimeter region keep the same ID prefix regardless of the total port count.
+
+**Side-based IDs** (polygon shapes with named sides):
+
+| Shape           | Side labels                                                         | Example IDs                    |
+| --------------- | ------------------------------------------------------------------- | ------------------------------ |
+| `rect`          | `top`, `right`, `bottom`, `left`                                    | `top-0`, `right-1`, `bottom-0` |
+| `diamond`       | `top-right`, `bottom-right`, `bottom-left`, `top-left`              | `top-right-0`, `bottom-left-0` |
+| `triangle`      | depends on direction (e.g. `right`, `bottom`, `left` for `'up'`)    | `right-0`, `bottom-0`          |
+| `hexagon`       | 6 directional labels (e.g. `top-right`, `right`, `bottom-right`, …) | `right-0`, `top-left-0`        |
+| `parallelogram` | `top`, `right`, `bottom`, `left`                                    | `top-0`, `left-0`              |
+| `trapezoid`     | `top`, `right`, `bottom`, `left`                                    | `top-0`, `bottom-1`            |
+
+**Angle-bucket IDs** (curved and complex shapes):
+
+| Shape               | Bucket size | Example IDs                     |
+| ------------------- | ----------- | ------------------------------- |
+| `circle`, `ellipse` | 90°         | `0-0`, `90-1`, `180-0`, `270-0` |
+| `cylinder`          | 90°         | `0-0`, `270-1`                  |
+| `star`, `cross`     | 90°         | `0-0`, `90-0`, `180-1`          |
+
+:::tip Legacy compatibility
+`findPort` still resolves the old `p0`–`pN` sequential IDs by treating the numeric suffix as a port index. This eases migration — existing `fromPort('p3')` references continue to work.
+:::
 
 ### PerimeterStrategy\<K\> {#perimeter-strategy}
 
