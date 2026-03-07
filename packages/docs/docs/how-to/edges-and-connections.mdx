@@ -638,9 +638,9 @@ if (!geo) return; // edge not found or unresolvable
 overlayPath.setAttribute('d', geo.d);
 
 // Label positions
-positionToolbar(geo.mid);              // midpoint
-positionSourceLabel(geo.startLabel);   // ~15% along path
-positionTargetLabel(geo.endLabel);     // ~85% along path
+positionToolbar(geo.mid); // midpoint
+positionSourceLabel(geo.startLabel); // ~15% along path
+positionTargetLabel(geo.endLabel); // ~85% along path
 
 // True boundary anchor points (where the edge exits/enters each node)
 drawHandle(geo.startAnchor);

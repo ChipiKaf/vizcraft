@@ -352,18 +352,18 @@ Low-level path computation result returned by `computeEdgePath` and `computeSelf
 
 Returned by [`resolveEdgeGeometry`](/how-to/edges-and-connections#resolve-edge-geometry). Extends [EdgePathResult](#edgepathresult) with convenience fields.
 
-| Field         | Type      | Description                                                                       |
-| ------------- | --------- | --------------------------------------------------------------------------------- |
-| `d`           | `string`  | SVG path `d` attribute                                                            |
-| `mid`         | `Vec2`    | Approximate midpoint along the path                                               |
-| `start`       | `Vec2`    | Position near the source (~15% along the path) — same as `startLabel`             |
-| `end`         | `Vec2`    | Position near the target (~85% along the path) — same as `endLabel`               |
-| `startAnchor` | `Vec2`    | True boundary/port position where the edge exits the source node                  |
-| `endAnchor`   | `Vec2`    | True boundary/port position where the edge enters the target node                 |
-| `startLabel`  | `Vec2`    | Label position ~15% along the path (alias of `start`)                             |
-| `endLabel`    | `Vec2`    | Label position ~85% along the path (alias of `end`)                               |
-| `waypoints`   | `Vec2[]`  | Waypoints used for the path (empty array when none)                               |
-| `isSelfLoop`  | `boolean` | Whether this edge is a self-loop                                                  |
+| Field         | Type      | Description                                                           |
+| ------------- | --------- | --------------------------------------------------------------------- |
+| `d`           | `string`  | SVG path `d` attribute                                                |
+| `mid`         | `Vec2`    | Approximate midpoint along the path                                   |
+| `start`       | `Vec2`    | Position near the source (~15% along the path) — same as `startLabel` |
+| `end`         | `Vec2`    | Position near the target (~85% along the path) — same as `endLabel`   |
+| `startAnchor` | `Vec2`    | True boundary/port position where the edge exits the source node      |
+| `endAnchor`   | `Vec2`    | True boundary/port position where the edge enters the target node     |
+| `startLabel`  | `Vec2`    | Label position ~15% along the path (alias of `start`)                 |
+| `endLabel`    | `Vec2`    | Label position ~85% along the path (alias of `end`)                   |
+| `waypoints`   | `Vec2[]`  | Waypoints used for the path (empty array when none)                   |
+| `isSelfLoop`  | `boolean` | Whether this edge is a self-loop                                      |
 
 ---
 
