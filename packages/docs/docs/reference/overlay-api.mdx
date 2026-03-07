@@ -22,11 +22,11 @@ Overlays are **data-only specs** (`VizOverlaySpec`) rendered by the overlay regi
 builder.overlay(id, params, key?)
 ```
 
-| Param | Type | Description |
-|---|---|---|
-| `id` | `string` | Overlay kind (e.g. `'signal'`, `'rect'`) |
-| `params` | `object` | Overlay-specific parameters |
-| `key` | `string` | Stable key (recommended for animation targeting) |
+| Param    | Type     | Description                                      |
+| -------- | -------- | ------------------------------------------------ |
+| `id`     | `string` | Overlay kind (e.g. `'signal'`, `'rect'`)         |
+| `params` | `object` | Overlay-specific parameters                      |
+| `key`    | `string` | Stable key (recommended for animation targeting) |
 
 Built-in overlay ids are type-safe via `OverlayKindRegistry`.
 
@@ -34,8 +34,11 @@ Built-in overlay ids are type-safe via `OverlayKindRegistry`.
 
 ```typescript
 builder.overlay((o: OverlayBuilder) => {
-  o.add('grid-labels', { colLabels: { 0: '0' } }, { key: 'labels' })
-   .add('signal', { from: 'a', to: 'b', progress: 0 }, { key: 'sig' });
+  o.add('grid-labels', { colLabels: { 0: '0' } }, { key: 'labels' }).add(
+    'signal',
+    { from: 'a', to: 'b', progress: 0 },
+    { key: 'sig' }
+  );
 });
 ```
 
@@ -49,11 +52,11 @@ Received as `o` in the callback form. Import: `import { OverlayBuilder } from 'v
 
 Adds an overlay spec.
 
-| Param | Type | Description |
-|---|---|---|
-| `id` | `string` | Overlay kind |
-| `params` | `object` | Overlay parameters |
-| `options.key` | `string` | Stable key |
+| Param               | Type     | Description           |
+| ------------------- | -------- | --------------------- |
+| `id`                | `string` | Overlay kind          |
+| `params`            | `object` | Overlay parameters    |
+| `options.key`       | `string` | Stable key            |
 | `options.className` | `string` | CSS class for styling |
 
 **Auto-keying:** When multiple unkeyed overlays of the same `id` are added, keys are auto-generated (`<id>#1`, `<id>#2`, etc.).
@@ -72,11 +75,11 @@ Returns a shallow copy of accumulated specs.
 
 ### Primitive convenience methods
 
-| Method | Equivalent |
-|---|---|
-| `o.rect(params, opts?)` | `o.add('rect', params, opts)` |
+| Method                    | Equivalent                      |
+| ------------------------- | ------------------------------- |
+| `o.rect(params, opts?)`   | `o.add('rect', params, opts)`   |
 | `o.circle(params, opts?)` | `o.add('circle', params, opts)` |
-| `o.text(params, opts?)` | `o.add('text', params, opts)` |
+| `o.text(params, opts?)`   | `o.add('text', params, opts)`   |
 
 ### `o.group(params, children, options?)`
 
@@ -102,20 +105,20 @@ Child coordinates are **group-local** (transformed by the group's translate/scal
 
 ### Primitives (no custom renderer needed)
 
-| Kind | Params | Notes |
-|---|---|---|
-| `rect` | `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }` | Rectangle |
-| `circle` | `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }` | Circle |
-| `text` | `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }` | Text label |
-| `group` | `{ x?, y?, scale?, rotation?, opacity?, children }` | Grouped elements |
+| Kind     | Params                                                                                    | Notes            |
+| -------- | ----------------------------------------------------------------------------------------- | ---------------- |
+| `rect`   | `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }`                        | Rectangle        |
+| `circle` | `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }`                                     | Circle           |
+| `text`   | `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }` | Text label       |
+| `group`  | `{ x?, y?, scale?, rotation?, opacity?, children }`                                       | Grouped elements |
 
 ### Pre-registered kinds
 
-| Kind | Params | Description |
-|---|---|---|
-| `signal` | `{ from, to, progress, magnitude }` | Moving marker between two nodes |
-| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }` | Grid axis labels |
-| `data-points` | varies | Points attached to nodes |
+| Kind          | Params                                       | Description                     |
+| ------------- | -------------------------------------------- | ------------------------------- |
+| `signal`      | `{ from, to, progress, magnitude }`          | Moving marker between two nodes |
+| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }` | Grid axis labels                |
+| `data-points` | varies                                       | Points attached to nodes        |
 
 ---
 
@@ -124,20 +127,31 @@ Child coordinates are **group-local** (transformed by the group's translate/scal
 ### Via params (portable)
 
 ```typescript
-o.rect({ x: 10, y: 10, w: 200, h: 80, fill: '#dcfce7', stroke: '#22c55e', strokeWidth: 2 });
+o.rect({
+  x: 10,
+  y: 10,
+  w: 200,
+  h: 80,
+  fill: '#dcfce7',
+  stroke: '#22c55e',
+  strokeWidth: 2,
+});
 ```
 
 ### Via CSS (themeable)
 
 ```typescript
-o.rect({ x: 10, y: 10, w: 200, h: 80 }, { key: 'sel', className: 'viz-selection' });
+o.rect(
+  { x: 10, y: 10, w: 200, h: 80 },
+  { key: 'sel', className: 'viz-selection' }
+);
 ```
 
 Inject CSS at mount time:
 
 ```typescript
 builder.mount(container, {
-  css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; stroke-width: 2; }'
+  css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; stroke-width: 2; }',
 });
 ```
 
@@ -197,4 +211,4 @@ declare module 'vizcraft' {
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Overlay+API) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Overlay+API) on GitHub._

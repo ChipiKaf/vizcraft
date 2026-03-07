@@ -15,9 +15,16 @@ import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
 
 export const selfLoopBuilder = viz().view(400, 200);
 export const selfLoopScene = selfLoopBuilder
-  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database')
+  .node('db')
+  .at(200, 100)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .label('Database')
   .done()
-  .edge('db', 'db').loopSide('right').loopSize(60).arrow()
+  .edge('db', 'db')
+  .loopSide('right')
+  .loopSize(60)
+  .arrow()
   .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
@@ -26,12 +33,38 @@ export const equidistantPortsScene = (() => {
   const ports = getEquidistantPorts(shape, 10);
   const nodePorts = toNodePorts(ports);
   const b = viz().view(600, 350);
-  const db = b.node('db').at(300, 175).cylinder(120, 80).label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
+  const db = b
+    .node('db')
+    .at(300, 175)
+    .cylinder(120, 80)
+    .label('Database')
+    .fill('#DBEAFE')
+    .stroke('#1D4ED8', 2);
   for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
-  b.node('svc1').at(80, 60).rect(80, 40, 6).label('Svc A').fill('#DCFCE7').stroke('#166534', 2);
-  b.node('svc2').at(80, 280).rect(80, 40, 6).label('Svc B').fill('#FEF3C7').stroke('#92400E', 2);
-  b.node('svc3').at(520, 60).rect(80, 40, 6).label('Svc C').fill('#FCE7F3').stroke('#9D174D', 2);
-  b.node('svc4').at(520, 280).rect(80, 40, 6).label('Svc D').fill('#E0E7FF').stroke('#3730A3', 2);
+  b.node('svc1')
+    .at(80, 60)
+    .rect(80, 40, 6)
+    .label('Svc A')
+    .fill('#DCFCE7')
+    .stroke('#166534', 2);
+  b.node('svc2')
+    .at(80, 280)
+    .rect(80, 40, 6)
+    .label('Svc B')
+    .fill('#FEF3C7')
+    .stroke('#92400E', 2);
+  b.node('svc3')
+    .at(520, 60)
+    .rect(80, 40, 6)
+    .label('Svc C')
+    .fill('#FCE7F3')
+    .stroke('#9D174D', 2);
+  b.node('svc4')
+    .at(520, 280)
+    .rect(80, 40, 6)
+    .label('Svc D')
+    .fill('#E0E7FF')
+    .stroke('#3730A3', 2);
   b.edge('svc1', 'db').toPort('p8').arrow();
   b.edge('svc2', 'db').toPort('p6').arrow();
   b.edge('db', 'svc3').fromPort('p2').arrow();
@@ -51,11 +84,12 @@ Edges that connect a node to itself. Control placement and size with `.loopSide(
 
 const builder = viz().view(400, 200);
 builder
-  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database').done()
-  .edge('db', 'db').loopSide('right').loopSize(60).arrow()
-  .label('Ping', { position: 'mid', dy: 0, dx: -32 }).done();
+.node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database').done()
+.edge('db', 'db').loopSide('right').loopSize(60).arrow()
+.label('Ping', { position: 'mid', dy: 0, dx: -32 }).done();
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={selfLoopScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
@@ -65,10 +99,17 @@ Control the exact angle at which edges leave or arrive at nodes using `.fromAngl
 
 ```typescript
 viz()
-  .node('a').at(100, 100).circle(30)
-  .node('b').at(300, 100).circle(30)
+  .node('a')
+  .at(100, 100)
+  .circle(30)
+  .node('b')
+  .at(300, 100)
+  .circle(30)
   // Edge leaves A from bottom (90°), enters B from top (270°)
-  .edge('a', 'b').fromAngle(90).toAngle(270).arrow()
+  .edge('a', 'b')
+  .fromAngle(90)
+  .toAngle(270)
+  .arrow()
   .build();
 ```
 
@@ -97,24 +138,25 @@ const nodePorts = toNodePorts(ports);
 
 const b = viz().view(600, 350);
 const db = b.node('db').at(300, 175).cylinder(120, 80)
-  .label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
+.label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
 for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
 
 b.node('svc1').at(80, 60).rect(80,40,6).label('Svc A');
 b.edge('svc1', 'db').toPort('p8').arrow();
 b.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={equidistantPortsScene} style={{ height: '350px', width: '100%' }} />
 </CodePreview>
 
 Each `EquidistantPort` includes:
 
-| Field | Description |
-|---|---|
-| `id` | Stable identifier (`p0`, `p1`, …) |
-| `angle` | Angle from center in degrees |
-| `t` | Parametric proportion along perimeter [0, 1) |
-| `x`, `y` | Offset from node center |
+| Field    | Description                                  |
+| -------- | -------------------------------------------- |
+| `id`     | Stable identifier (`p0`, `p1`, …)            |
+| `angle`  | Angle from center in degrees                 |
+| `t`      | Parametric proportion along perimeter [0, 1) |
+| `x`, `y` | Offset from node center                      |
 
 Use `toNodePorts()` to convert to standard `NodePort[]` for the builder.
 
@@ -182,9 +224,24 @@ import { viz } from 'vizcraft';
 
 const builder = viz()
   .view(600, 300)
-  .node('back', { circle: { r: 50 }, at: { x: 250, y: 150 }, zIndex: 1, fill: 'blue' })
-  .node('front', { circle: { r: 50 }, at: { x: 300, y: 150 }, zIndex: 5, fill: 'green' })
-  .node('dynamic', { circle: { r: 60 }, at: { x: 275, y: 100 }, zIndex: 0, fill: 'red' });
+  .node('back', {
+    circle: { r: 50 },
+    at: { x: 250, y: 150 },
+    zIndex: 1,
+    fill: 'blue',
+  })
+  .node('front', {
+    circle: { r: 50 },
+    at: { x: 300, y: 150 },
+    zIndex: 5,
+    fill: 'green',
+  })
+  .node('dynamic', {
+    circle: { r: 60 },
+    at: { x: 275, y: 100 },
+    zIndex: 0,
+    fill: 'red',
+  });
 
 builder.mount(container);
 
@@ -256,4 +313,4 @@ const animatedSvg = builder.svg({ includeRuntime: true });
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Advanced) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Advanced) on GitHub._

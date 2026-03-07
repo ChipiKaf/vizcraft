@@ -20,14 +20,14 @@ import type { VizScene, VizNode, VizEdge, ... } from 'vizcraft';
 
 Complete, serializable description of what to render.
 
-| Field | Type | Description |
-|---|---|---|
-| `viewBox` | `{ w: number; h: number }` | SVG coordinate space |
-| `nodes` | `VizNode[]` | Nodes to render |
-| `edges` | `VizEdge[]` | Edges to render |
-| `overlays?` | `VizOverlaySpec[]` | Optional overlay layer |
-| `animationSpecs?` | `AnimationSpec[]` | Data-only timelines |
-| `sketch?` | `{ enabled?: boolean; seed?: number }` | Global hand-drawn mode |
+| Field             | Type                                   | Description            |
+| ----------------- | -------------------------------------- | ---------------------- |
+| `viewBox`         | `{ w: number; h: number }`             | SVG coordinate space   |
+| `nodes`           | `VizNode[]`                            | Nodes to render        |
+| `edges`           | `VizEdge[]`                            | Edges to render        |
+| `overlays?`       | `VizOverlaySpec[]`                     | Optional overlay layer |
+| `animationSpecs?` | `AnimationSpec[]`                      | Data-only timelines    |
+| `sketch?`         | `{ enabled?: boolean; seed?: number }` | Global hand-drawn mode |
 
 ---
 
@@ -35,20 +35,20 @@ Complete, serializable description of what to render.
 
 A node in the scene graph.
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier |
-| `pos` | `{ x: number; y: number }` | Base position |
-| `shape` | `NodeShape` | Geometry (see [NodeShape](#nodeshape)) |
-| `label?` | `NodeLabel` | Text label |
-| `style?` | `object` | `fill`, `stroke`, `strokeWidth`, `opacity`, `strokeDasharray`, `shadow`, `sketch`, `sketchSeed` |
-| `className?` | `string` | CSS class |
-| `runtime?` | `VizRuntimeNodeProps` | Runtime-only overrides (animation system) |
-| `animations?` | `VizAnimSpec[]` | Registry/CSS animation requests |
-| `data?` | `unknown` | Custom payload |
-| `parentId?` | `string` | Parent container node id |
-| `container?` | `ContainerConfig` | Container configuration |
-| `ports?` | `NodePort[]` | Explicit connection ports |
+| Field         | Type                       | Description                                                                                     |
+| ------------- | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `id`          | `string`                   | Unique identifier                                                                               |
+| `pos`         | `{ x: number; y: number }` | Base position                                                                                   |
+| `shape`       | `NodeShape`                | Geometry (see [NodeShape](#nodeshape))                                                          |
+| `label?`      | `NodeLabel`                | Text label                                                                                      |
+| `style?`      | `object`                   | `fill`, `stroke`, `strokeWidth`, `opacity`, `strokeDasharray`, `shadow`, `sketch`, `sketchSeed` |
+| `className?`  | `string`                   | CSS class                                                                                       |
+| `runtime?`    | `VizRuntimeNodeProps`      | Runtime-only overrides (animation system)                                                       |
+| `animations?` | `VizAnimSpec[]`            | Registry/CSS animation requests                                                                 |
+| `data?`       | `unknown`                  | Custom payload                                                                                  |
+| `parentId?`   | `string`                   | Parent container node id                                                                        |
+| `container?`  | `ContainerConfig`          | Container configuration                                                                         |
+| `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       |
 
 ---
 
@@ -56,66 +56,66 @@ A node in the scene graph.
 
 An edge connecting two nodes (or a dangling edge with free endpoints).
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique id (commonly `"a->b"`) |
-| `from?` | `string` | Source node id |
-| `to?` | `string` | Target node id |
-| `fromAt?` | `Vec2` | Free-endpoint for source (dangling) |
-| `toAt?` | `Vec2` | Free-endpoint for target (dangling) |
-| `fromPort?` | `string` | Source port id |
-| `toPort?` | `string` | Target port id |
-| `fromAngle?` | `number` | Fixed perimeter angle at source (degrees) |
-| `toAngle?` | `number` | Fixed perimeter angle at target (degrees) |
-| `routing?` | `EdgeRouting` | Path algorithm |
-| `waypoints?` | `Vec2[]` | Intermediate points |
-| `markerEnd?` | `EdgeMarkerType` | Target marker |
-| `markerStart?` | `EdgeMarkerType` | Source marker |
-| `anchor?` | `'center' \| 'boundary'` | Connection behavior |
-| `labels?` | `EdgeLabel[]` | Labels at various positions |
-| `style?` | `object` | `stroke`, `strokeWidth`, `fill`, `opacity`, `strokeDasharray`, `sketch` |
-| `runtime?` | `VizRuntimeEdgeProps` | Runtime-only overrides |
-| `animations?` | `VizAnimSpec[]` | Registry/CSS animation requests |
-| `meta?` | `Record<string, unknown>` | User metadata |
-| `data?` | `unknown` | Custom payload |
+| Field          | Type                      | Description                                                             |
+| -------------- | ------------------------- | ----------------------------------------------------------------------- |
+| `id`           | `string`                  | Unique id (commonly `"a->b"`)                                           |
+| `from?`        | `string`                  | Source node id                                                          |
+| `to?`          | `string`                  | Target node id                                                          |
+| `fromAt?`      | `Vec2`                    | Free-endpoint for source (dangling)                                     |
+| `toAt?`        | `Vec2`                    | Free-endpoint for target (dangling)                                     |
+| `fromPort?`    | `string`                  | Source port id                                                          |
+| `toPort?`      | `string`                  | Target port id                                                          |
+| `fromAngle?`   | `number`                  | Fixed perimeter angle at source (degrees)                               |
+| `toAngle?`     | `number`                  | Fixed perimeter angle at target (degrees)                               |
+| `routing?`     | `EdgeRouting`             | Path algorithm                                                          |
+| `waypoints?`   | `Vec2[]`                  | Intermediate points                                                     |
+| `markerEnd?`   | `EdgeMarkerType`          | Target marker                                                           |
+| `markerStart?` | `EdgeMarkerType`          | Source marker                                                           |
+| `anchor?`      | `'center' \| 'boundary'`  | Connection behavior                                                     |
+| `labels?`      | `EdgeLabel[]`             | Labels at various positions                                             |
+| `style?`       | `object`                  | `stroke`, `strokeWidth`, `fill`, `opacity`, `strokeDasharray`, `sketch` |
+| `runtime?`     | `VizRuntimeEdgeProps`     | Runtime-only overrides                                                  |
+| `animations?`  | `VizAnimSpec[]`           | Registry/CSS animation requests                                         |
+| `meta?`        | `Record<string, unknown>` | User metadata                                                           |
+| `data?`        | `unknown`                 | Custom payload                                                          |
 
 ### EdgeRouting
 
-| Mode | Description |
-|---|---|
-| `'straight'` | Direct line (default). Polyline with waypoints. |
-| `'curved'` | Smooth bezier. Catmull-Rom spline through waypoints. |
-| `'orthogonal'` | Right-angle (elbow) connectors. |
+| Mode           | Description                                          |
+| -------------- | ---------------------------------------------------- |
+| `'straight'`   | Direct line (default). Polyline with waypoints.      |
+| `'curved'`     | Smooth bezier. Catmull-Rom spline through waypoints. |
+| `'orthogonal'` | Right-angle (elbow) connectors.                      |
 
 ### EdgeMarkerType {#edge-marker-type}
 
-| Type | Description | Use case |
-|---|---|---|
-| `'none'` | No marker | Plain line |
-| `'arrow'` | Filled triangle | Dependency |
-| `'arrowOpen'` | Open triangle | Inheritance (UML) |
-| `'diamond'` | Filled diamond | Composition (UML) |
-| `'diamondOpen'` | Open diamond | Aggregation (UML) |
-| `'circle'` | Filled circle | Navigable association |
-| `'circleOpen'` | Open circle | Association endpoint |
-| `'square'` | Filled square | Custom endpoint |
-| `'bar'` | Perpendicular T-line | ER cardinality |
-| `'halfArrow'` | Single-sided arrow | Directional hint |
+| Type            | Description          | Use case              |
+| --------------- | -------------------- | --------------------- |
+| `'none'`        | No marker            | Plain line            |
+| `'arrow'`       | Filled triangle      | Dependency            |
+| `'arrowOpen'`   | Open triangle        | Inheritance (UML)     |
+| `'diamond'`     | Filled diamond       | Composition (UML)     |
+| `'diamondOpen'` | Open diamond         | Aggregation (UML)     |
+| `'circle'`      | Filled circle        | Navigable association |
+| `'circleOpen'`  | Open circle          | Association endpoint  |
+| `'square'`      | Filled square        | Custom endpoint       |
+| `'bar'`         | Perpendicular T-line | ER cardinality        |
+| `'halfArrow'`   | Single-sided arrow   | Directional hint      |
 
 ### EdgeLabel
 
-| Property | Type | Description |
-|---|---|---|
-| `text` | `string` | Label text |
-| `rich?` | `RichText` | Rich formatted label |
-| `position` | `'start' \| 'mid' \| 'end'` | Position on path |
-| `className?` | `string` | CSS class |
-| `dx?` | `number` | Horizontal offset |
-| `dy?` | `number` | Vertical offset (default `-10`) |
-| `fill?` | `string` | Text color |
-| `fontSize?` | `number \| string` | Font size |
-| `fontWeight?` | `number \| string` | Font weight |
-| `fontFamily?` | `string` | Font family |
+| Property      | Type                        | Description                     |
+| ------------- | --------------------------- | ------------------------------- |
+| `text`        | `string`                    | Label text                      |
+| `rich?`       | `RichText`                  | Rich formatted label            |
+| `position`    | `'start' \| 'mid' \| 'end'` | Position on path                |
+| `className?`  | `string`                    | CSS class                       |
+| `dx?`         | `number`                    | Horizontal offset               |
+| `dy?`         | `number`                    | Vertical offset (default `-10`) |
+| `fill?`       | `string`                    | Text color                      |
+| `fontSize?`   | `number \| string`          | Font size                       |
+| `fontWeight?` | `number \| string`          | Font weight                     |
+| `fontFamily?` | `string`                    | Font family                     |
 
 ---
 
@@ -123,43 +123,43 @@ An edge connecting two nodes (or a dangling edge with free endpoints).
 
 Supported geometries. Each variant is a discriminated union on `kind`:
 
-| Kind | Key params | Description |
-|---|---|---|
-| `circle` | `r` | Circle |
-| `rect` | `w`, `h`, `rx?` | Rectangle |
-| `diamond` | `w`, `h` | Rhombus |
-| `ellipse` | `rx`, `ry` | Ellipse |
-| `hexagon` | `r`, `orientation?` | Regular hexagon |
-| `cylinder` | `w`, `h`, `arcHeight?` | Database symbol |
-| `triangle` | `w`, `h`, `direction?` | Triangle |
-| `star` | `points`, `outerR`, `innerR?` | Multi-pointed star |
-| `cloud` | `w`, `h` | Bumpy outline |
-| `cross` | `size`, `barWidth?` | Plus sign |
-| `cube` | `w`, `h`, `depth?` | 3D isometric box |
-| `arc` | `r`, `startAngle`, `endAngle`, `closed?` | Arc/pie slice |
-| `blockArrow` | `length`, `bodyWidth`, `headWidth`, `headLength`, `direction?` | Thick arrow |
-| `callout` | `w`, `h`, pointer options | Speech bubble |
-| `document` | `w`, `h`, `waveHeight?` | Wavy bottom |
-| `note` | `w`, `h`, `foldSize?` | Folded corner |
-| `parallelogram` | `w`, `h`, `skew?` | Skewed rect |
-| `trapezoid` | `topW`, `bottomW`, `h` | Trapezoid |
-| `path` | `d`, `w`, `h` | Custom SVG path |
+| Kind            | Key params                                                     | Description        |
+| --------------- | -------------------------------------------------------------- | ------------------ |
+| `circle`        | `r`                                                            | Circle             |
+| `rect`          | `w`, `h`, `rx?`                                                | Rectangle          |
+| `diamond`       | `w`, `h`                                                       | Rhombus            |
+| `ellipse`       | `rx`, `ry`                                                     | Ellipse            |
+| `hexagon`       | `r`, `orientation?`                                            | Regular hexagon    |
+| `cylinder`      | `w`, `h`, `arcHeight?`                                         | Database symbol    |
+| `triangle`      | `w`, `h`, `direction?`                                         | Triangle           |
+| `star`          | `points`, `outerR`, `innerR?`                                  | Multi-pointed star |
+| `cloud`         | `w`, `h`                                                       | Bumpy outline      |
+| `cross`         | `size`, `barWidth?`                                            | Plus sign          |
+| `cube`          | `w`, `h`, `depth?`                                             | 3D isometric box   |
+| `arc`           | `r`, `startAngle`, `endAngle`, `closed?`                       | Arc/pie slice      |
+| `blockArrow`    | `length`, `bodyWidth`, `headWidth`, `headLength`, `direction?` | Thick arrow        |
+| `callout`       | `w`, `h`, pointer options                                      | Speech bubble      |
+| `document`      | `w`, `h`, `waveHeight?`                                        | Wavy bottom        |
+| `note`          | `w`, `h`, `foldSize?`                                          | Folded corner      |
+| `parallelogram` | `w`, `h`, `skew?`                                              | Skewed rect        |
+| `trapezoid`     | `topW`, `bottomW`, `h`                                         | Trapezoid          |
+| `path`          | `d`, `w`, `h`                                                  | Custom SVG path    |
 
 ---
 
 ## NodeLabel
 
-| Property | Type | Description |
-|---|---|---|
-| `text` | `string` | Label text |
-| `rich?` | `RichText` | Rich/mixed-format label |
-| `className?` | `string` | CSS class |
-| `dx?` | `number` | Horizontal offset |
-| `dy?` | `number` | Vertical offset |
-| `fill?` | `string` | Text color |
-| `fontSize?` | `number \| string` | Font size |
-| `fontWeight?` | `number \| string` | Font weight |
-| `fontFamily?` | `string` | Font family |
+| Property      | Type               | Description             |
+| ------------- | ------------------ | ----------------------- |
+| `text`        | `string`           | Label text              |
+| `rich?`       | `RichText`         | Rich/mixed-format label |
+| `className?`  | `string`           | CSS class               |
+| `dx?`         | `number`           | Horizontal offset       |
+| `dy?`         | `number`           | Vertical offset         |
+| `fill?`       | `string`           | Text color              |
+| `fontSize?`   | `number \| string` | Font size               |
+| `fontWeight?` | `number \| string` | Font weight             |
+| `fontFamily?` | `string`           | Font family             |
 
 ---
 
@@ -174,10 +174,16 @@ type RichTextToken =
   | {
       kind: 'span';
       text: string;
-      bold?: boolean; italic?: boolean; underline?: boolean;
-      code?: boolean; href?: string; fill?: string;
-      fontSize?: number | string; fontWeight?: number | string;
-      fontFamily?: string; baselineShift?: 'sub' | 'super';
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      code?: boolean;
+      href?: string;
+      fill?: string;
+      fontSize?: number | string;
+      fontWeight?: number | string;
+      fontFamily?: string;
+      baselineShift?: 'sub' | 'super';
       className?: string;
     }
   | { kind: 'newline' };
@@ -187,62 +193,65 @@ type RichTextToken =
 
 ## NodePort {#nodeport}
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Port identifier (e.g. `'top'`, `'right'`) |
-| `offset` | `Vec2` | Position relative to node center |
-| `direction?` | `number` | Outgoing angle in degrees |
+| Field        | Type     | Description                               |
+| ------------ | -------- | ----------------------------------------- |
+| `id`         | `string` | Port identifier (e.g. `'top'`, `'right'`) |
+| `offset`     | `Vec2`   | Position relative to node center          |
+| `direction?` | `number` | Outgoing angle in degrees                 |
 
 ### Default ports
 
-| Shape | Default ports | IDs |
-|---|---|---|
-| `rect`, `circle`, `diamond`, `ellipse`, `cylinder` | 4 | `top`, `right`, `bottom`, `left` |
-| `hexagon` (pointy) | 6 | `top`, `top-right`, `bottom-right`, `bottom`, `bottom-left`, `top-left` |
-| `hexagon` (flat) | 6 | `right`, `top-right`, `top-left`, `left`, `bottom-left`, `bottom-right` |
-| `triangle` | 3–4 | varies by direction |
-| Fallback | 4 | `top`, `right`, `bottom`, `left` |
+| Shape                                              | Default ports | IDs                                                                     |
+| -------------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
+| `rect`, `circle`, `diamond`, `ellipse`, `cylinder` | 4             | `top`, `right`, `bottom`, `left`                                        |
+| `hexagon` (pointy)                                 | 6             | `top`, `top-right`, `bottom-right`, `bottom`, `bottom-left`, `top-left` |
+| `hexagon` (flat)                                   | 6             | `right`, `top-right`, `top-left`, `left`, `bottom-left`, `bottom-right` |
+| `triangle`                                         | 3–4           | varies by direction                                                     |
+| Fallback                                           | 4             | `top`, `right`, `bottom`, `left`                                        |
 
 ### Port utility functions
 
-| Function | Signature | Description |
-|---|---|---|
-| `getDefaultPorts` | `(shape) => NodePort[]` | Default ports for a shape |
-| `getNodePorts` | `(node) => NodePort[]` | Effective ports (explicit or default) |
-| `findPort` | `(node, portId) => NodePort?` | Lookup by id |
-| `findPortNearest` | `(node, x, y) => NodePort?` | Closest port to a point |
-| `resolvePortPosition` | `(node, portId) => Vec2?` | Absolute port position |
-| `getEquidistantPorts` | `(shape, count?) => EquidistantPort[]` | N equidistant perimeter points |
-| `toNodePorts` | `(ports) => NodePort[]` | Convert EquidistantPort to NodePort |
-| `registerPerimeterStrategy` | `(strategy) => void` | Register custom perimeter strategy |
+| Function                    | Signature                              | Description                           |
+| --------------------------- | -------------------------------------- | ------------------------------------- |
+| `getDefaultPorts`           | `(shape) => NodePort[]`                | Default ports for a shape             |
+| `getNodePorts`              | `(node) => NodePort[]`                 | Effective ports (explicit or default) |
+| `findPort`                  | `(node, portId) => NodePort?`          | Lookup by id                          |
+| `findPortNearest`           | `(node, x, y) => NodePort?`            | Closest port to a point               |
+| `resolvePortPosition`       | `(node, portId) => Vec2?`              | Absolute port position                |
+| `getEquidistantPorts`       | `(shape, count?) => EquidistantPort[]` | N equidistant perimeter points        |
+| `toNodePorts`               | `(ports) => NodePort[]`                | Convert EquidistantPort to NodePort   |
+| `registerPerimeterStrategy` | `(strategy) => void`                   | Register custom perimeter strategy    |
 
 ### EquidistantPort {#equidistant-port}
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Location-based identifier |
-| `angle` | `number` | Angle from center (degrees) |
-| `t` | `number` | Parametric proportion [0, 1) |
-| `x` | `number` | X offset from center |
-| `y` | `number` | Y offset from center |
+| Field   | Type     | Description                  |
+| ------- | -------- | ---------------------------- |
+| `id`    | `string` | Location-based identifier    |
+| `angle` | `number` | Angle from center (degrees)  |
+| `t`     | `number` | Parametric proportion [0, 1) |
+| `x`     | `number` | X offset from center         |
+| `y`     | `number` | Y offset from center         |
 
 ---
 
 ## ContainerConfig
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `layout?` | `'free' \| 'vertical' \| 'horizontal'` | `'free'` | Child layout |
-| `padding?` | `{ top, right, bottom, left }` | — | Interior padding |
-| `autoSize?` | `boolean` | — | Auto-resize to fit children |
-| `headerHeight?` | `number` | — | Header band height |
+| Field           | Type                                   | Default  | Description                 |
+| --------------- | -------------------------------------- | -------- | --------------------------- |
+| `layout?`       | `'free' \| 'vertical' \| 'horizontal'` | `'free'` | Child layout                |
+| `padding?`      | `{ top, right, bottom, left }`         | —        | Interior padding            |
+| `autoSize?`     | `boolean`                              | —        | Auto-resize to fit children |
+| `headerHeight?` | `number`                               | —        | Header band height          |
 
 ---
 
 ## VizPlugin {#vizplugin}
 
 ```typescript
-type VizPlugin<Options = any> = (builder: VizBuilder, options?: Options) => void;
+type VizPlugin<Options = any> = (
+  builder: VizBuilder,
+  options?: Options
+) => void;
 ```
 
 ---
@@ -311,21 +320,21 @@ Property bag for `aBuilder.to(props, opts)`. Typed for core properties, accepts 
 
 ## VizRuntimeNodeProps
 
-| Field | Type |
-|---|---|
-| `x?` | `number` |
-| `y?` | `number` |
-| `opacity?` | `number` |
-| `scale?` | `number` |
+| Field       | Type     |
+| ----------- | -------- |
+| `x?`        | `number` |
+| `y?`        | `number` |
+| `opacity?`  | `number` |
+| `scale?`    | `number` |
 | `rotation?` | `number` |
 
 ## VizRuntimeEdgeProps
 
-| Field | Type |
-|---|---|
+| Field               | Type     |
+| ------------------- | -------- |
 | `strokeDashoffset?` | `number` |
-| `opacity?` | `number` |
+| `opacity?`          | `number` |
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Types) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Types) on GitHub._

@@ -33,6 +33,7 @@ The `VizScene` is the single source of truth. It's a plain JavaScript object con
 - `animationSpecs` — compiled timeline data
 
 Because it's plain data, you can:
+
 - Serialize it to JSON
 - Send it over a network
 - Store it in a database
@@ -53,14 +54,18 @@ On mount, VizCraft creates an SVG element with:
 ```
 
 ### Node rendering
+
 Each node becomes an SVG group (`<g>`) containing:
+
 - A shape element (`<rect>`, `<circle>`, `<path>`, etc.)
 - Optional label (`<text>` or `<foreignObject>`)
 - Optional embedded media (`<image>`, inline SVG)
 - Optional shadow filter (`<filter>`)
 
 ### Edge rendering
+
 Each edge is rendered as a `<path>` with:
+
 - Computed path data based on routing mode (straight, curved, orthogonal)
 - Endpoint resolution (boundary intersection, port position, or angle-based)
 - Marker references (`<marker>` elements in `<defs>`)
@@ -74,6 +79,7 @@ VizCraft uses a **differential patching** strategy for runtime updates. Instead 
 2. **`commit(container)`** — Reconciles incremental mutations (addNode, removeNode, etc.) by inserting/removing DOM elements as needed.
 
 This approach keeps DOM operations minimal, which is critical for:
+
 - 60fps animation playback
 - Interactive scrubbing
 - Large scenes with hundreds of nodes
@@ -83,6 +89,7 @@ This approach keeps DOM operations minimal, which is critical for:
 Each `VizNode` and `VizEdge` has an optional `runtime` field. During animation playback, the player writes to `runtime` (e.g., `runtime.x`, `runtime.opacity`) and then calls `patchRuntime()`. The patcher reads `runtime` values and applies them as SVG transforms or style attributes — **without** touching the base `pos` or `style` fields.
 
 This separation means:
+
 - Base properties = source of truth
 - Runtime overrides = transient, layered on top
 - Stopping an animation restores the base state automatically
@@ -102,11 +109,13 @@ builder.animate(cb) → AnimationBuilder → compile → AnimationSpec
 ```
 
 The animation system is adapter-based:
+
 - The **AnimationSpec** is pure data (tweens with targets, durations, easings)
 - The **adapter** bridges the spec to the host (DOM, React, or custom)
 - The **player** drives the animation loop by computing interpolated values and calling the adapter
 
 This design means animations can be:
+
 - Played back on any rendering host
 - Serialized and replayed later
 - Scrubbed to any point in time
@@ -124,14 +133,14 @@ The registry is global (singleton), so custom overlay kinds registered once are 
 
 ## Design constraints
 
-| Constraint | Rationale |
-|---|---|
-| Builder → data → DOM (never builder → DOM directly) | Keeps the data layer portable and testable |
-| Runtime patches, not full re-renders | Performance for animations and large scenes |
-| Adapter-based animation | Host-agnostic playback |
-| Registry for extensibility | Overlays and animations can be extended without modifying core |
-| SVG only (no Canvas/WebGL) | Semantic, accessible, CSS-stylable output |
+| Constraint                                          | Rationale                                                      |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| Builder → data → DOM (never builder → DOM directly) | Keeps the data layer portable and testable                     |
+| Runtime patches, not full re-renders                | Performance for animations and large scenes                    |
+| Adapter-based animation                             | Host-agnostic playback                                         |
+| Registry for extensibility                          | Overlays and animations can be extended without modifying core |
+| SVG only (no Canvas/WebGL)                          | Semantic, accessible, CSS-stylable output                      |
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Architecture) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Architecture) on GitHub._

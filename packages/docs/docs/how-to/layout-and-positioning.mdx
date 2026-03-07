@@ -10,11 +10,21 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz, circularLayout, gridLayout } from 'vizcraft';
 
-export const gridScene = viz().view(500, 300)
+export const gridScene = viz()
+  .view(500, 300)
   .grid(5, 3, { x: 20, y: 20 })
-  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
-  .node('n2').cell(2, 1).label('2,1').circle(30)
-  .node('n3').cell(4, 2).label('4,2').diamond(60, 60)
+  .node('n1')
+  .cell(0, 0)
+  .label('0,0')
+  .rect(60, 40)
+  .node('n2')
+  .cell(2, 1)
+  .label('2,1')
+  .circle(30)
+  .node('n3')
+  .cell(4, 2)
+  .label('4,2')
+  .diamond(60, 60)
   .done();
 
 export const circularLayoutBuilder = (() => {
@@ -39,7 +49,13 @@ export const gridLayoutBuilder = (() => {
   b.node('4').rect(40, 40).fill('#f9e2af');
   b.node('5').rect(40, 40).fill('#fab387');
   b.node('6').rect(40, 40).fill('#f38ba8');
-  b.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+  b.layout(gridLayout, {
+    cols: 3,
+    x: 100,
+    y: 70,
+    colSpacing: 150,
+    rowSpacing: 160,
+  });
   b.edge('1', '2').routing('orthogonal');
   b.edge('2', '3').routing('orthogonal');
   b.edge('4', '5').routing('orthogonal');
@@ -73,22 +89,23 @@ Define a grid with `.grid(cols, rows, opts?)` and position nodes with `.cell(col
 
 const builder = viz().view(500, 300);
 builder
-  .grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
-  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
-  .node('n2').cell(2, 1).label('2,1').circle(30)
-  .node('n3').cell(4, 2).label('4,2').diamond(60, 60)
-  .done();
+.grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
+.node('n1').cell(0, 0).label('0,0').rect(60, 40)
+.node('n2').cell(2, 1).label('2,1').circle(30)
+.node('n3').cell(4, 2).label('4,2').diamond(60, 60)
+.done();
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={gridScene} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
 </CodePreview>
 
 Grid options:
 
-| Option | Type | Description |
-|---|---|---|
-| `x` | `number` | Left padding |
-| `y` | `number` | Top padding |
+| Option | Type     | Description  |
+| ------ | -------- | ------------ |
+| `x`    | `number` | Left padding |
+| `y`    | `number` | Top padding  |
 
 ## Auto-layout algorithms
 
@@ -112,6 +129,7 @@ builder.edge('d', 'a');
 builder.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={circularLayoutBuilder} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
 </CodePreview>
 
@@ -135,6 +153,7 @@ builder.edge('4', '5').routing('orthogonal');
 builder.edge('5', '6').routing('orthogonal');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={gridLayoutBuilder} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
 </CodePreview>
 
@@ -160,4 +179,4 @@ You can also integrate third-party layout engines (like Dagre, ELK, or D3-force)
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Layout) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Layout) on GitHub._

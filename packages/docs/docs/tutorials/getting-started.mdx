@@ -75,8 +75,6 @@ pnpm add vizcraft
 yarn add vizcraft
 ```
 
-
-
 ## Step 2: Create a container
 
 You need an HTML element to mount the SVG into.
@@ -98,15 +96,15 @@ const builder = viz().view(500, 200);
 // 2. Add two nodes
 builder
   .node('hello')
-  .at(150, 100)     // position
-  .circle(30)       // shape: circle with radius 30
-  .fill('#89b4fa')  // fill color
-  .label('Hello');  // text label
+  .at(150, 100) // position
+  .circle(30) // shape: circle with radius 30
+  .fill('#89b4fa') // fill color
+  .label('Hello'); // text label
 
 builder
   .node('world')
   .at(350, 100)
-  .rect(80, 40, 8)  // shape: rectangle 80×40 with corner radius 8
+  .rect(80, 40, 8) // shape: rectangle 80×40 with corner radius 8
   .fill('#a6e3a1')
   .label('World');
 
@@ -124,10 +122,10 @@ Here is the result:
 const builder = viz().view(500, 200);
 
 builder
-  .node('hello').at(150, 100).circle(30).fill('#89b4fa').label('Hello')
-  .node('world').at(350, 100).rect(80, 40, 8).fill('#a6e3a1').label('World')
-  .edge('hello', 'world').arrow()
-  .done();
+.node('hello').at(150, 100).circle(30).fill('#89b4fa').label('Hello')
+.node('world').at(350, 100).rect(80, 40, 8).fill('#a6e3a1').label('World')
+.edge('hello', 'world').arrow()
+.done();
 
 builder.mount(document.getElementById('my-viz'));
 `}>
@@ -146,8 +144,8 @@ VizCraft supports many styling options. Let's add fills, strokes, dashed edges, 
 const builder = viz().view(500, 250);
 builder.node('start').at(80, 125).circle(22).fill('#4CAF50').label('Start');
 builder.node('process').at(250, 125).rect(110, 50)
-  .fill('#2196F3').stroke('#1565C0', 2)
-  .label('Process', { fontSize: 13, fill: 'white' });
+.fill('#2196F3').stroke('#1565C0', 2)
+.label('Process', { fontSize: 13, fill: 'white' });
 builder.node('end').at(420, 125).diamond(70, 50).fill('#FF9800').label('End?');
 builder.edge('start', 'process').arrow().stroke('#666');
 builder.edge('process', 'end').arrow().dash('dashed').label('next');
@@ -172,15 +170,15 @@ This removes the SVG from the DOM, tears down pan/zoom, cancels animations, and 
 
 You now know the fundamentals. Here are recommended next steps:
 
-| Goal | Guide |
-|---|---|
-| Explore all 22 shape types | [Nodes & Shapes](/docs/how-to/nodes-and-shapes) |
-| Learn edge routing, markers & labels | [Edges & Connections](/docs/how-to/edges-and-connections) |
-| Use layout algorithms | [Layout & Positioning](/docs/how-to/layout-and-positioning) |
-| Add motion & timelines | [Animations](/docs/how-to/animations) |
-| Build a complete flowchart | [Building a Flowchart](/docs/tutorials/building-a-flowchart) |
-| Look up API signatures | [Builder API Reference](/docs/reference/builder-api) |
+| Goal                                 | Guide                                                        |
+| ------------------------------------ | ------------------------------------------------------------ |
+| Explore all 22 shape types           | [Nodes & Shapes](/docs/how-to/nodes-and-shapes)              |
+| Learn edge routing, markers & labels | [Edges & Connections](/docs/how-to/edges-and-connections)    |
+| Use layout algorithms                | [Layout & Positioning](/docs/how-to/layout-and-positioning)  |
+| Add motion & timelines               | [Animations](/docs/how-to/animations)                        |
+| Build a complete flowchart           | [Building a Flowchart](/docs/tutorials/building-a-flowchart) |
+| Look up API signatures               | [Builder API Reference](/docs/reference/builder-api)         |
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Getting+Started) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Getting+Started) on GitHub._

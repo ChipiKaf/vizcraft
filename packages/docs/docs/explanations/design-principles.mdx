@@ -24,18 +24,20 @@ VizCraft separates **data** from **rendering**. The `VizScene` is a plain, seria
 Every feature is available in two forms:
 
 **Fluent (builder chain):**
+
 ```typescript
-viz().node('a').at(100, 100).circle(30).fill('#89b4fa').label('A')
+viz().node('a').at(100, 100).circle(30).fill('#89b4fa').label('A');
 ```
 
 **Declarative (options object):**
+
 ```typescript
 viz().node('a', {
   at: { x: 100, y: 100 },
   circle: { r: 30 },
   fill: '#89b4fa',
   label: 'A',
-})
+});
 ```
 
 The fluent style is great for hand-written code. The declarative style is better for data-driven usage, form builders, and serialization.
@@ -65,16 +67,16 @@ function doThing(input: string | undefined) {
 
 Features are designed as composable modules:
 
-| Module | Responsibility |
-|---|---|
-| Builder | Accumulates scene definitions |
-| Renderer | Converts `VizScene` → SVG DOM |
-| Animation Player | Drives `AnimationSpec` playback |
-| Animation Adapter | Reads/writes properties per host |
-| Overlay Registry | Maps overlay kinds → renderers |
-| Hit Testing | Point/rect queries on scene data |
-| Pan/Zoom Controller | Viewport transforms |
-| Layout Algorithms | Compute node positions |
+| Module              | Responsibility                   |
+| ------------------- | -------------------------------- |
+| Builder             | Accumulates scene definitions    |
+| Renderer            | Converts `VizScene` → SVG DOM    |
+| Animation Player    | Drives `AnimationSpec` playback  |
+| Animation Adapter   | Reads/writes properties per host |
+| Overlay Registry    | Maps overlay kinds → renderers   |
+| Hit Testing         | Point/rect queries on scene data |
+| Pan/Zoom Controller | Viewport transforms              |
+| Layout Algorithms   | Compute node positions           |
 
 Each module works independently. You can use hit testing without animations, or overlays without pan/zoom.
 
@@ -121,4 +123,4 @@ This is critical for 60fps animation playback and interactive scrubbing.
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Design+Principles) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Design+Principles) on GitHub._

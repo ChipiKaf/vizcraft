@@ -10,107 +10,349 @@ import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
 
-export const edgesScene = viz().view(500, 200)
-  .node('A').at(50, 100).circle(26).label('Start')
-  .node('B').at(450, 100).rect(80, 40).label('End')
-  .edge('A', 'B').arrow().label('Connects to')
+export const edgesScene = viz()
+  .view(500, 200)
+  .node('A')
+  .at(50, 100)
+  .circle(26)
+  .label('Start')
+  .node('B')
+  .at(450, 100)
+  .rect(80, 40)
+  .label('End')
+  .edge('A', 'B')
+  .arrow()
+  .label('Connects to')
   .done();
 
-export const edgeRoutingScene = viz().view(600, 260)
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').arrow().label('straight')
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').curved().arrow().label('curved')
-  .node('a3').at(50, 220).circle(22).label('E')
-  .node('b3').at(250, 220).circle(22).label('F')
-  .edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
-  .node('c1').at(370, 60).circle(22).label('G')
-  .node('d1').at(560, 220).circle(22).label('H')
-  .edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint')
+export const edgeRoutingScene = viz()
+  .view(600, 260)
+  .node('a1')
+  .at(50, 60)
+  .circle(22)
+  .label('A')
+  .node('b1')
+  .at(250, 60)
+  .circle(22)
+  .label('B')
+  .edge('a1', 'b1')
+  .arrow()
+  .label('straight')
+  .node('a2')
+  .at(50, 140)
+  .circle(22)
+  .label('C')
+  .node('b2')
+  .at(250, 140)
+  .circle(22)
+  .label('D')
+  .edge('a2', 'b2')
+  .curved()
+  .arrow()
+  .label('curved')
+  .node('a3')
+  .at(50, 220)
+  .circle(22)
+  .label('E')
+  .node('b3')
+  .at(250, 220)
+  .circle(22)
+  .label('F')
+  .edge('a3', 'b3')
+  .orthogonal()
+  .arrow()
+  .label('orthogonal')
+  .node('c1')
+  .at(370, 60)
+  .circle(22)
+  .label('G')
+  .node('d1')
+  .at(560, 220)
+  .circle(22)
+  .label('H')
+  .edge('c1', 'd1')
+  .curved()
+  .via(460, 60)
+  .arrow()
+  .label('waypoint')
   .done();
 
-export const edgeLabelScene = viz().view(600, 220)
-  .node('users').at(80, 110).rect(100, 50).label('Users')
-  .node('orders').at(340, 60).rect(100, 50).label('Orders')
-  .node('products').at(340, 170).rect(100, 50).label('Products')
-  .edge('users', 'orders').label('1', { position: 'start' }).label('places', { position: 'mid' }).label('*', { position: 'end' }).arrow()
-  .edge('orders', 'products').curved().label('*', { position: 'start' }).label('contains', { position: 'mid' }).label('*', { position: 'end' }).arrow()
+export const edgeLabelScene = viz()
+  .view(600, 220)
+  .node('users')
+  .at(80, 110)
+  .rect(100, 50)
+  .label('Users')
+  .node('orders')
+  .at(340, 60)
+  .rect(100, 50)
+  .label('Orders')
+  .node('products')
+  .at(340, 170)
+  .rect(100, 50)
+  .label('Products')
+  .edge('users', 'orders')
+  .label('1', { position: 'start' })
+  .label('places', { position: 'mid' })
+  .label('*', { position: 'end' })
+  .arrow()
+  .edge('orders', 'products')
+  .curved()
+  .label('*', { position: 'start' })
+  .label('contains', { position: 'mid' })
+  .label('*', { position: 'end' })
+  .arrow()
   .done();
 
-export const edgeStyleScene = viz().view(600, 220)
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').stroke('#e74c3c', 3).arrow().label('red 3px')
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').stroke('#2ecc71', 2).opacity(0.6).arrow().label('green 60%')
-  .node('c1').at(370, 60).circle(22).label('E')
-  .node('d1').at(560, 140).circle(22).label('F')
-  .edge('c1', 'd1').curved().stroke('#3498db', 4).arrow().label('blue curved')
+export const edgeStyleScene = viz()
+  .view(600, 220)
+  .node('a1')
+  .at(50, 60)
+  .circle(22)
+  .label('A')
+  .node('b1')
+  .at(250, 60)
+  .circle(22)
+  .label('B')
+  .edge('a1', 'b1')
+  .stroke('#e74c3c', 3)
+  .arrow()
+  .label('red 3px')
+  .node('a2')
+  .at(50, 140)
+  .circle(22)
+  .label('C')
+  .node('b2')
+  .at(250, 140)
+  .circle(22)
+  .label('D')
+  .edge('a2', 'b2')
+  .stroke('#2ecc71', 2)
+  .opacity(0.6)
+  .arrow()
+  .label('green 60%')
+  .node('c1')
+  .at(370, 60)
+  .circle(22)
+  .label('E')
+  .node('d1')
+  .at(560, 140)
+  .circle(22)
+  .label('F')
+  .edge('c1', 'd1')
+  .curved()
+  .stroke('#3498db', 4)
+  .arrow()
+  .label('blue curved')
   .done();
 
-export const edgeMarkerScene = viz().view(620, 340)
-  .node('a1').at(50, 40).circle(18).label('A')
-  .node('b1').at(280, 40).circle(18).label('B')
-  .edge('a1', 'b1').arrow().label('arrow')
-  .node('a2').at(50, 100).circle(18).label('C')
-  .node('b2').at(280, 100).circle(18).label('D')
-  .edge('a2', 'b2').markerEnd('arrowOpen').label('arrowOpen')
-  .node('a3').at(50, 160).circle(18).label('E')
-  .node('b3').at(280, 160).circle(18).label('F')
-  .edge('a3', 'b3').markerStart('diamond').markerEnd('arrow').label('composition')
-  .node('a4').at(340, 40).circle(18).label('G')
-  .node('b4').at(570, 40).circle(18).label('H')
-  .edge('a4', 'b4').markerStart('diamondOpen').markerEnd('arrow').label('aggregation')
-  .node('a5').at(340, 100).circle(18).label('I')
-  .node('b5').at(570, 100).circle(18).label('J')
-  .edge('a5', 'b5').markerStart('circleOpen').markerEnd('arrow').label('assoc')
-  .node('a6').at(340, 160).circle(18).label('K')
-  .node('b6').at(570, 160).circle(18).label('L')
-  .edge('a6', 'b6').arrow('both').label('bidirectional')
-  .node('a7').at(50, 220).circle(18).label('M')
-  .node('b7').at(280, 220).circle(18).label('N')
-  .edge('a7', 'b7').markerEnd('bar').label('bar (ER)')
-  .node('a8').at(340, 220).circle(18).label('O')
-  .node('b8').at(570, 220).circle(18).label('P')
-  .edge('a8', 'b8').markerEnd('circle').label('circle')
-  .node('a9').at(50, 280).circle(18).label('Q')
-  .node('b9').at(280, 280).circle(18).label('R')
-  .edge('a9', 'b9').markerEnd('square').label('square')
-  .node('a10').at(340, 280).circle(18).label('S')
-  .node('b10').at(570, 280).circle(18).label('T')
-  .edge('a10', 'b10').markerEnd('halfArrow').label('halfArrow')
+export const edgeMarkerScene = viz()
+  .view(620, 340)
+  .node('a1')
+  .at(50, 40)
+  .circle(18)
+  .label('A')
+  .node('b1')
+  .at(280, 40)
+  .circle(18)
+  .label('B')
+  .edge('a1', 'b1')
+  .arrow()
+  .label('arrow')
+  .node('a2')
+  .at(50, 100)
+  .circle(18)
+  .label('C')
+  .node('b2')
+  .at(280, 100)
+  .circle(18)
+  .label('D')
+  .edge('a2', 'b2')
+  .markerEnd('arrowOpen')
+  .label('arrowOpen')
+  .node('a3')
+  .at(50, 160)
+  .circle(18)
+  .label('E')
+  .node('b3')
+  .at(280, 160)
+  .circle(18)
+  .label('F')
+  .edge('a3', 'b3')
+  .markerStart('diamond')
+  .markerEnd('arrow')
+  .label('composition')
+  .node('a4')
+  .at(340, 40)
+  .circle(18)
+  .label('G')
+  .node('b4')
+  .at(570, 40)
+  .circle(18)
+  .label('H')
+  .edge('a4', 'b4')
+  .markerStart('diamondOpen')
+  .markerEnd('arrow')
+  .label('aggregation')
+  .node('a5')
+  .at(340, 100)
+  .circle(18)
+  .label('I')
+  .node('b5')
+  .at(570, 100)
+  .circle(18)
+  .label('J')
+  .edge('a5', 'b5')
+  .markerStart('circleOpen')
+  .markerEnd('arrow')
+  .label('assoc')
+  .node('a6')
+  .at(340, 160)
+  .circle(18)
+  .label('K')
+  .node('b6')
+  .at(570, 160)
+  .circle(18)
+  .label('L')
+  .edge('a6', 'b6')
+  .arrow('both')
+  .label('bidirectional')
+  .node('a7')
+  .at(50, 220)
+  .circle(18)
+  .label('M')
+  .node('b7')
+  .at(280, 220)
+  .circle(18)
+  .label('N')
+  .edge('a7', 'b7')
+  .markerEnd('bar')
+  .label('bar (ER)')
+  .node('a8')
+  .at(340, 220)
+  .circle(18)
+  .label('O')
+  .node('b8')
+  .at(570, 220)
+  .circle(18)
+  .label('P')
+  .edge('a8', 'b8')
+  .markerEnd('circle')
+  .label('circle')
+  .node('a9')
+  .at(50, 280)
+  .circle(18)
+  .label('Q')
+  .node('b9')
+  .at(280, 280)
+  .circle(18)
+  .label('R')
+  .edge('a9', 'b9')
+  .markerEnd('square')
+  .label('square')
+  .node('a10')
+  .at(340, 280)
+  .circle(18)
+  .label('S')
+  .node('b10')
+  .at(570, 280)
+  .circle(18)
+  .label('T')
+  .edge('a10', 'b10')
+  .markerEnd('halfArrow')
+  .label('halfArrow')
   .done();
 
-export const portScene = viz().view(600, 300)
-  .node('server').at(120, 150).rect(100, 80, 8).label('Server').fill('#DBEAFE').stroke('#1D4ED8', 2)
-  .port('out-1', { x: 50, y: -20 }).port('out-2', { x: 50, y: 20 })
-  .node('db').at(450, 80).cylinder(90, 60).label('DB').fill('#DCFCE7').stroke('#166534', 2)
+export const portScene = viz()
+  .view(600, 300)
+  .node('server')
+  .at(120, 150)
+  .rect(100, 80, 8)
+  .label('Server')
+  .fill('#DBEAFE')
+  .stroke('#1D4ED8', 2)
+  .port('out-1', { x: 50, y: -20 })
+  .port('out-2', { x: 50, y: 20 })
+  .node('db')
+  .at(450, 80)
+  .cylinder(90, 60)
+  .label('DB')
+  .fill('#DCFCE7')
+  .stroke('#166534', 2)
   .port('in', { x: -45, y: 0 })
-  .node('cache').at(450, 230).rect(90, 50, 8).label('Cache').fill('#FEF3C7').stroke('#92400E', 2)
+  .node('cache')
+  .at(450, 230)
+  .rect(90, 50, 8)
+  .label('Cache')
+  .fill('#FEF3C7')
+  .stroke('#92400E', 2)
   .port('in', { x: -45, y: 0 })
-  .edge('server', 'db').fromPort('out-1').toPort('in').arrow().label('queries')
-  .edge('server', 'cache').fromPort('out-2').toPort('in').arrow().label('reads')
+  .edge('server', 'db')
+  .fromPort('out-1')
+  .toPort('in')
+  .arrow()
+  .label('queries')
+  .edge('server', 'cache')
+  .fromPort('out-2')
+  .toPort('in')
+  .arrow()
+  .label('reads')
   .done();
 
-export const selfLoopScene = viz().view(400, 200)
-  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database')
+export const selfLoopScene = viz()
+  .view(400, 200)
+  .node('db')
+  .at(200, 100)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .label('Database')
   .done()
-  .edge('db', 'db').loopSide('right').loopSize(60).arrow().label('Ping', { position: 'mid', dy: 0, dx: -32 })
+  .edge('db', 'db')
+  .loopSide('right')
+  .loopSize(60)
+  .arrow()
+  .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
-export const danglingEdgeScene = viz().view(500, 200)
-  .node('src').at(100, 100).circle(26).label('Source').fill('#89b4fa')
-  .danglingEdge('drag-preview').from('src').toAt({ x: 400, y: 100 }).arrow().dashed().stroke('#6c7086')
+export const danglingEdgeScene = viz()
+  .view(500, 200)
+  .node('src')
+  .at(100, 100)
+  .circle(26)
+  .label('Source')
+  .fill('#89b4fa')
+  .danglingEdge('drag-preview')
+  .from('src')
+  .toAt({ x: 400, y: 100 })
+  .arrow()
+  .dashed()
+  .stroke('#6c7086')
   .done();
 
-export const perimeterAnchorScene = viz().view(500, 250)
-  .node('server').at(130, 125).rect(110, 55, 6).label('Server').fill('#89b4fa')
-  .node('db').at(370, 125).cylinder(90, 55).label('Database').fill('#a6e3a1')
-  .edge('server', 'db').fromAngle(315).toAngle(200).arrow().label('query').curved()
-  .edge('db', 'server').fromAngle(160).toAngle(225).arrow().label('result').curved()
+export const perimeterAnchorScene = viz()
+  .view(500, 250)
+  .node('server')
+  .at(130, 125)
+  .rect(110, 55, 6)
+  .label('Server')
+  .fill('#89b4fa')
+  .node('db')
+  .at(370, 125)
+  .cylinder(90, 55)
+  .label('Database')
+  .fill('#a6e3a1')
+  .edge('server', 'db')
+  .fromAngle(315)
+  .toAngle(200)
+  .arrow()
+  .label('query')
+  .curved()
+  .edge('db', 'server')
+  .fromAngle(160)
+  .toAngle(225)
+  .arrow()
+  .label('result')
+  .curved()
   .done();
 
 # Edges & Connections
@@ -125,11 +367,12 @@ Connect two nodes with `.edge(fromId, toId)`. By default, edges are straight lin
 
 const builder = viz().view(500, 200);
 builder
-  .node('A').at(50, 100).circle(26).label('Start')
-  .node('B').at(450, 100).rect(80, 40).label('End')
-  .edge('A', 'B').arrow().label('Connects to');
+.node('A').at(50, 100).circle(26).label('Start')
+.node('B').at(450, 100).rect(80, 40).label('End')
+.edge('A', 'B').arrow().label('Connects to');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={edgesScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
@@ -141,30 +384,31 @@ Three routing modes: **straight** (default), **curved**, and **orthogonal**. Add
 
 const builder = viz().view(600, 260);
 builder
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').arrow().label('straight')
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').curved().arrow().label('curved')
-  .node('a3').at(50, 220).circle(22).label('E')
-  .node('b3').at(250, 220).circle(22).label('F')
-  .edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
-  .node('c1').at(370, 60).circle(22).label('G')
-  .node('d1').at(560, 220).circle(22).label('H')
-  .edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint');
+.node('a1').at(50, 60).circle(22).label('A')
+.node('b1').at(250, 60).circle(22).label('B')
+.edge('a1', 'b1').arrow().label('straight')
+.node('a2').at(50, 140).circle(22).label('C')
+.node('b2').at(250, 140).circle(22).label('D')
+.edge('a2', 'b2').curved().arrow().label('curved')
+.node('a3').at(50, 220).circle(22).label('E')
+.node('b3').at(250, 220).circle(22).label('F')
+.edge('a3', 'b3').orthogonal().arrow().label('orthogonal')
+.node('c1').at(370, 60).circle(22).label('G')
+.node('d1').at(560, 220).circle(22).label('H')
+.edge('c1', 'd1').curved().via(460, 60).arrow().label('waypoint');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={edgeRoutingScene} style={{ height: '260px', width: '100%' }} />
 </CodePreview>
 
-| Method | Effect |
-|---|---|
-| `.straight()` | Straight line (default) |
-| `.curved()` | Smooth bezier curve |
-| `.orthogonal()` | Right-angle elbows |
+| Method           | Effect                                                    |
+| ---------------- | --------------------------------------------------------- |
+| `.straight()`    | Straight line (default)                                   |
+| `.curved()`      | Smooth bezier curve                                       |
+| `.orthogonal()`  | Right-angle elbows                                        |
 | `.routing(mode)` | Programmatic: `'straight'`, `'curved'`, or `'orthogonal'` |
-| `.via(x, y)` | Add a waypoint (chainable) |
+| `.via(x, y)`     | Add a waypoint (chainable)                                |
 
 ## Edge labels
 
@@ -174,22 +418,23 @@ Place labels at `'start'`, `'mid'`, or `'end'` positions. Chain multiple `.label
 
 const builder = viz().view(600, 220);
 builder
-  .node('users').at(80, 110).rect(100, 50).label('Users')
-  .node('orders').at(340, 60).rect(100, 50).label('Orders')
-  .node('products').at(340, 170).rect(100, 50).label('Products')
-  .edge('users', 'orders')
-    .label('1', { position: 'start' })
-    .label('places', { position: 'mid' })
-    .label('*', { position: 'end' })
-    .arrow()
-  .edge('orders', 'products')
-    .curved()
-    .label('*', { position: 'start' })
-    .label('contains', { position: 'mid' })
-    .label('*', { position: 'end' })
-    .arrow();
+.node('users').at(80, 110).rect(100, 50).label('Users')
+.node('orders').at(340, 60).rect(100, 50).label('Orders')
+.node('products').at(340, 170).rect(100, 50).label('Products')
+.edge('users', 'orders')
+.label('1', { position: 'start' })
+.label('places', { position: 'mid' })
+.label('_', { position: 'end' })
+.arrow()
+.edge('orders', 'products')
+.curved()
+.label('_', { position: 'start' })
+.label('contains', { position: 'mid' })
+.label('\*', { position: 'end' })
+.arrow();
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={edgeLabelScene} style={{ height: '220px', width: '100%' }} />
 </CodePreview>
 
@@ -201,17 +446,18 @@ Style edges with `.stroke()`, `.fill()`, `.opacity()`, `.dashed()`, `.dotted()`,
 
 const builder = viz().view(600, 220);
 builder
-  .node('a1').at(50, 60).circle(22).label('A')
-  .node('b1').at(250, 60).circle(22).label('B')
-  .edge('a1', 'b1').stroke('#e74c3c', 3).arrow().label('red 3px')
-  .node('a2').at(50, 140).circle(22).label('C')
-  .node('b2').at(250, 140).circle(22).label('D')
-  .edge('a2', 'b2').stroke('#2ecc71', 2).opacity(0.6).arrow().label('green 60%')
-  .node('c1').at(370, 60).circle(22).label('E')
-  .node('d1').at(560, 140).circle(22).label('F')
-  .edge('c1', 'd1').curved().stroke('#3498db', 4).arrow().label('blue curved');
+.node('a1').at(50, 60).circle(22).label('A')
+.node('b1').at(250, 60).circle(22).label('B')
+.edge('a1', 'b1').stroke('#e74c3c', 3).arrow().label('red 3px')
+.node('a2').at(50, 140).circle(22).label('C')
+.node('b2').at(250, 140).circle(22).label('D')
+.edge('a2', 'b2').stroke('#2ecc71', 2).opacity(0.6).arrow().label('green 60%')
+.node('c1').at(370, 60).circle(22).label('E')
+.node('d1').at(560, 140).circle(22).label('F')
+.edge('c1', 'd1').curved().stroke('#3498db', 4).arrow().label('blue curved');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={edgeStyleScene} style={{ height: '220px', width: '100%' }} />
 </CodePreview>
 
@@ -219,7 +465,8 @@ builder.mount(document.getElementById('container'));
 
 VizCraft provides 10 marker types. Use `.markerEnd(type)`, `.markerStart(type)`, or the `.arrow()` shorthand:
 
-<CodePreview code={`import { viz } from 'vizcraft';
+<CodePreview
+  code={`import { viz } from 'vizcraft';
 // See all 10 marker types in action
 const builder = viz().view(620, 340);
 builder
@@ -228,8 +475,12 @@ builder
   .edge('a1', 'b1').arrow().label('arrow')
   // ... (8 more marker types)
   .done();
-`}>
-  <VizMount builder={edgeMarkerScene} style={{ height: '340px', width: '100%' }} />
+`}
+>
+  <VizMount
+    builder={edgeMarkerScene}
+    style={{ height: '340px', width: '100%' }}
+  />
 </CodePreview>
 
 **Available marker types:** `none`, `arrow`, `arrowOpen`, `diamond`, `diamondOpen`, `circle`, `circleOpen`, `square`, `bar`, `halfArrow`
@@ -250,20 +501,21 @@ Define ports with `.port(id, offset)` on nodes, then target them with `.fromPort
 
 const builder = viz().view(600, 300);
 builder
-  .node('server').at(120, 150).rect(100, 80, 8)
-    .label('Server').fill('#DBEAFE').stroke('#1D4ED8', 2)
-    .port('out-1', { x: 50, y: -20 })
-    .port('out-2', { x: 50, y: 20 })
-  .node('db').at(450, 80).cylinder(90, 60)
-    .label('DB').fill('#DCFCE7').stroke('#166534', 2)
-    .port('in', { x: -45, y: 0 })
-  .node('cache').at(450, 230).rect(90, 50, 8)
-    .label('Cache').fill('#FEF3C7').stroke('#92400E', 2)
-    .port('in', { x: -45, y: 0 })
-  .edge('server', 'db').fromPort('out-1').toPort('in').arrow().label('queries')
-  .edge('server', 'cache').fromPort('out-2').toPort('in').arrow().label('reads');
+.node('server').at(120, 150).rect(100, 80, 8)
+.label('Server').fill('#DBEAFE').stroke('#1D4ED8', 2)
+.port('out-1', { x: 50, y: -20 })
+.port('out-2', { x: 50, y: 20 })
+.node('db').at(450, 80).cylinder(90, 60)
+.label('DB').fill('#DCFCE7').stroke('#166534', 2)
+.port('in', { x: -45, y: 0 })
+.node('cache').at(450, 230).rect(90, 50, 8)
+.label('Cache').fill('#FEF3C7').stroke('#92400E', 2)
+.port('in', { x: -45, y: 0 })
+.edge('server', 'db').fromPort('out-1').toPort('in').arrow().label('queries')
+.edge('server', 'cache').fromPort('out-2').toPort('in').arrow().label('reads');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={portScene} style={{ height: '300px', width: '100%' }} />
 </CodePreview>
 
@@ -283,7 +535,9 @@ For evenly distributed ports, use `getEquidistantPorts`:
 ```typescript
 import { getEquidistantPorts, toNodePorts } from 'vizcraft';
 
-const ports = toNodePorts(getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8));
+const ports = toNodePorts(
+  getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8)
+);
 const node = builder.node('a').at(100, 100).rect(120, 60);
 for (const p of ports) node.port(p.id, p.offset, p.direction);
 ```
@@ -296,12 +550,13 @@ Pin edges to a specific angle with `.fromAngle(deg)` / `.toAngle(deg)` (0Â° = ri
 
 const builder = viz().view(500, 250);
 builder
-  .node('server').at(130, 125).rect(110, 55, 6).label('Server').fill('#89b4fa')
-  .node('db').at(370, 125).cylinder(90, 55).label('Database').fill('#a6e3a1')
-  .edge('server', 'db').fromAngle(315).toAngle(200).arrow().label('query').curved()
-  .edge('db', 'server').fromAngle(160).toAngle(225).arrow().label('result').curved();
+.node('server').at(130, 125).rect(110, 55, 6).label('Server').fill('#89b4fa')
+.node('db').at(370, 125).cylinder(90, 55).label('Database').fill('#a6e3a1')
+.edge('server', 'db').fromAngle(315).toAngle(200).arrow().label('query').curved()
+.edge('db', 'server').fromAngle(160).toAngle(225).arrow().label('result').curved();
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={perimeterAnchorScene} style={{ height: '250px', width: '100%' }} />
 </CodePreview>
 
@@ -313,11 +568,12 @@ Edges from a node to itself render as bezier loops. Control them with `.loopSide
 
 const builder = viz().view(400, 200);
 builder
-  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database')
-  .edge('db', 'db').loopSide('right').loopSize(60).arrow()
-    .label('Ping', { position: 'mid', dy: 0, dx: -32 });
+.node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database')
+.edge('db', 'db').loopSide('right').loopSize(60).arrow()
+.label('Ping', { position: 'mid', dy: 0, dx: -32 });
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={selfLoopScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
@@ -329,23 +585,24 @@ A dangling edge has one endpoint at a free coordinate (not attached to a node) â
 
 const builder = viz().view(500, 200);
 builder
-  .node('src').at(100, 100).circle(26).label('Source').fill('#89b4fa')
-  .danglingEdge('drag-preview')
-    .from('src')
-    .toAt({ x: 400, y: 100 })
-    .arrow().dashed().stroke('#6c7086');
+.node('src').at(100, 100).circle(26).label('Source').fill('#89b4fa')
+.danglingEdge('drag-preview')
+.from('src')
+.toAt({ x: 400, y: 100 })
+.arrow().dashed().stroke('#6c7086');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={danglingEdgeScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
-| Method | Effect |
-|---|---|
+| Method              | Effect                                        |
+| ------------------- | --------------------------------------------- |
 | `.danglingEdge(id)` | Start a dangling edge (returns `EdgeBuilder`) |
-| `.from(nodeId)` | Attach source to a node |
-| `.to(nodeId)` | Attach target to a node |
-| `.fromAt(pos)` | Free source coordinate |
-| `.toAt(pos)` | Free target coordinate |
+| `.from(nodeId)`     | Attach source to a node                       |
+| `.to(nodeId)`       | Attach target to a node                       |
+| `.fromAt(pos)`      | Free source coordinate                        |
+| `.toAt(pos)`        | Free target coordinate                        |
 
 ## Custom edge path resolver
 
@@ -355,8 +612,8 @@ Override how edge paths are computed with `builder.setEdgePathResolver()`:
 builder.setEdgePathResolver((edge, scene, defaultResolver) => {
   if (!edge.meta?.customRouting) return defaultResolver(edge, scene);
 
-  const from = scene.nodes.find(n => n.id === edge.from);
-  const to = scene.nodes.find(n => n.id === edge.to);
+  const from = scene.nodes.find((n) => n.id === edge.from);
+  const to = scene.nodes.find((n) => n.id === edge.to);
   if (!from || !to) return defaultResolver(edge, scene);
 
   const cx = (from.pos.x + to.pos.x) / 2;
@@ -367,4 +624,4 @@ builder.setEdgePathResolver((edge, scene, defaultResolver) => {
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Edges) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Edges) on GitHub._

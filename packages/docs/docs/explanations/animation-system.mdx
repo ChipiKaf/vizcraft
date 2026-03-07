@@ -12,15 +12,15 @@ VizCraft has **two** independent animation systems. Understanding when to use ea
 
 ## The two systems at a glance
 
-| | Timeline (data-only) | CSS/Registry |
-|---|---|---|
-| **How you author** | `builder.animate((aBuilder) => ...)` | `.animate('flow')` or CSS `@keyframes` |
-| **Output** | `AnimationSpec` (portable JSON) | CSS styles injected into SVG |
-| **Scrubable** | Yes — seek to any ms | No |
-| **Exportable** | Yes — serialize and replay | No |
-| **Composable** | Yes — multiple specs played together | Limited |
-| **Loop-able** | Via player repeat | Yes (CSS `infinite`) |
-| **Best for** | Sequenced transitions, tutorials, data viz, editor playback | Decorative effects (pulse, glow, flow dashes) |
+|                    | Timeline (data-only)                                        | CSS/Registry                                  |
+| ------------------ | ----------------------------------------------------------- | --------------------------------------------- |
+| **How you author** | `builder.animate((aBuilder) => ...)`                        | `.animate('flow')` or CSS `@keyframes`        |
+| **Output**         | `AnimationSpec` (portable JSON)                             | CSS styles injected into SVG                  |
+| **Scrubable**      | Yes — seek to any ms                                        | No                                            |
+| **Exportable**     | Yes — serialize and replay                                  | No                                            |
+| **Composable**     | Yes — multiple specs played together                        | Limited                                       |
+| **Loop-able**      | Via player repeat                                           | Yes (CSS `infinite`)                          |
+| **Best for**       | Sequenced transitions, tutorials, data viz, editor playback | Decorative effects (pulse, glow, flow dashes) |
 
 ## Timeline system (data-only)
 
@@ -48,6 +48,7 @@ builder.animate(callback)
 ### Timeline cursor
 
 The `AnimationBuilder` maintains an internal time cursor (starts at 0). Each `.to()` call:
+
 1. Emits tweens starting at the current cursor position
 2. Advances the cursor by the tween's duration
 
@@ -68,12 +69,12 @@ builder.animate((aBuilder) => {
 
 Easing controls the acceleration curve:
 
-| Easing | Curve |
-|---|---|
-| `'linear'` | Constant speed |
-| `'easeIn'` | Slow start, fast end |
-| `'easeOut'` | Fast start, slow end |
-| `'easeInOut'` | Slow at both ends |
+| Easing        | Curve                |
+| ------------- | -------------------- |
+| `'linear'`    | Constant speed       |
+| `'easeIn'`    | Slow start, fast end |
+| `'easeOut'`   | Fast start, slow end |
+| `'easeInOut'` | Slow at both ends    |
 
 Easings are resolved at playback time via simple math functions — no spring physics or configurable curves (yet).
 
@@ -86,7 +87,9 @@ builder.animate((aBuilder) => {
   aBuilder.extendAdapter((register) => {
     register('r', {
       get: (el) => el.shape.r,
-      set: (el, val) => { el.shape.r = val; },
+      set: (el, val) => {
+        el.shape.r = val;
+      },
     });
   });
   aBuilder.node('pulse').to({ r: 40 }, { duration: 500, from: { r: 20 } });
@@ -110,9 +113,9 @@ This is for **continuous, decorative effects** — CSS `@keyframes` applied dire
 
 ### Built-in animations
 
-| Name | Target | Effect |
-|---|---|---|
-| `'flow'` | Edge | Marching dashes (stroke-dashoffset animation) |
+| Name     | Target | Effect                                        |
+| -------- | ------ | --------------------------------------------- |
+| `'flow'` | Edge   | Marching dashes (stroke-dashoffset animation) |
 
 ### Registering custom CSS animations
 
@@ -138,15 +141,15 @@ CoreAnimationRegistry.registerEdge('pulse', (edge, opts) => ({
 
 ## When to use which
 
-| Scenario | Use |
-|---|---|
-| Tutorial walkthrough with steps | **Timeline** |
-| Data flow visualization | **Timeline** (animate overlays along paths) |
-| Edge "data flowing" decoration | **CSS** (`'flow'`) |
-| Node pulse/glow on hover | **CSS** |
-| Scrub-able editor preview | **Timeline** |
-| SVG export at specific frame | **Timeline** (with `includeRuntime`) |
-| Infinite looping background effect | **CSS** |
+| Scenario                           | Use                                         |
+| ---------------------------------- | ------------------------------------------- |
+| Tutorial walkthrough with steps    | **Timeline**                                |
+| Data flow visualization            | **Timeline** (animate overlays along paths) |
+| Edge "data flowing" decoration     | **CSS** (`'flow'`)                          |
+| Node pulse/glow on hover           | **CSS**                                     |
+| Scrub-able editor preview          | **Timeline**                                |
+| SVG export at specific frame       | **Timeline** (with `includeRuntime`)        |
+| Infinite looping background effect | **CSS**                                     |
 
 ## Combining both systems
 
@@ -158,7 +161,9 @@ builder.edge('a', 'b').animate('flow');
 
 // Timeline animation on nodes
 builder.animate((aBuilder) => {
-  aBuilder.node('a').to({ opacity: 1 }, { duration: 500, from: { opacity: 0 } });
+  aBuilder
+    .node('a')
+    .to({ opacity: 1 }, { duration: 500, from: { opacity: 0 } });
 });
 ```
 
@@ -166,4 +171,4 @@ The CSS animations run independently via the browser. The timeline animations ru
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+System) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+System) on GitHub._

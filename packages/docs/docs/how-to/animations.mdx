@@ -18,12 +18,20 @@ export const slideInBuilder = (() => {
   b.edge('a', 'b').arrow();
   b.animate((anim) => {
     // A slides out left, then back in
-    anim.node('a').to({ x: -60, opacity: 0 }, { duration: 600, easing: 'easeIn' });
-    anim.node('a').to({ x: 150, opacity: 1 }, { duration: 700, easing: 'easeOut' });
+    anim
+      .node('a')
+      .to({ x: -60, opacity: 0 }, { duration: 600, easing: 'easeIn' });
+    anim
+      .node('a')
+      .to({ x: 150, opacity: 1 }, { duration: 700, easing: 'easeOut' });
     anim.wait(100);
     // B slides out right, then back in
-    anim.node('b').to({ x: 560, opacity: 0 }, { duration: 600, easing: 'easeIn' });
-    anim.node('b').to({ x: 350, opacity: 1 }, { duration: 700, easing: 'easeOut' });
+    anim
+      .node('b')
+      .to({ x: 560, opacity: 0 }, { duration: 600, easing: 'easeIn' });
+    anim
+      .node('b')
+      .to({ x: 350, opacity: 1 }, { duration: 700, easing: 'easeOut' });
   });
   return b;
 })();
@@ -59,10 +67,10 @@ VizCraft provides two animation systems for different needs.
 
 ## Two animation systems
 
-| System | Best for | How it works |
-|---|---|---|
+| System                   | Best for                                     | How it works                                       |
+| ------------------------ | -------------------------------------------- | -------------------------------------------------- |
 | **Timeline (data-only)** | Sequenced, scrub-able, exportable animations | Compiles to an `AnimationSpec` → plays via adapter |
-| **Registry / CSS** | Continuous decorative effects | CSS `@keyframes` applied to elements |
+| **Registry / CSS**       | Continuous decorative effects                | CSS `@keyframes` applied to elements               |
 
 Most users should start with the **timeline** system.
 
@@ -74,20 +82,24 @@ Use `builder.animate(callback)` to define a timeline. Inside, target nodes and e
 
 ```typescript
 builder.animate((anim) => {
-  anim.node('a').to({ x: 200, opacity: 1 }, { duration: 500, from: { x: 0, opacity: 0 } });
-  anim.node('b').to({ y: 200 }, { duration: 300, delay: 200, easing: 'easeOut' });
+  anim
+    .node('a')
+    .to({ x: 200, opacity: 1 }, { duration: 500, from: { x: 0, opacity: 0 } });
+  anim
+    .node('b')
+    .to({ y: 200 }, { duration: 300, delay: 200, easing: 'easeOut' });
 });
 ```
 
 ### Animatable properties
 
-| Target | Properties |
-|---|---|
-| Node | `x`, `y`, `opacity`, `scale`, `rotation` |
-| Edge | `opacity`, `strokeDashoffset` |
-| Overlay | Any numeric custom parameter |
+| Target  | Properties                               |
+| ------- | ---------------------------------------- |
+| Node    | `x`, `y`, `opacity`, `scale`, `rotation` |
+| Edge    | `opacity`, `strokeDashoffset`            |
+| Overlay | Any numeric custom parameter             |
 
-### Live example: slide-in
+### Live example: slide out & back
 
 <VizPlaybackControls builder={slideInBuilder} style={{ width: '100%' }} />
 
@@ -121,13 +133,19 @@ You can also define animations directly on nodes and edges:
 
 ```typescript
 // Callback form
-builder.node('a').at(100, 100).circle(20)
+builder
+  .node('a')
+  .at(100, 100)
+  .circle(20)
   .animate((anim) => {
     anim.to({ scale: 1.5, opacity: 0.5 }, { duration: 400, easing: 'easeOut' });
   });
 
 // Quick transition form
-builder.node('b').at(200, 100).rect(60, 40)
+builder
+  .node('b')
+  .at(200, 100)
+  .rect(60, 40)
   .animateTo({ opacity: 0 }, { duration: 300, delay: 500 });
 ```
 
@@ -139,8 +157,10 @@ Add custom animatable properties by extending the animation adapter:
 builder.animate((anim) => {
   anim.extendAdapter((register) => {
     register('r', {
-      get: (el) => el.shape.kind === 'circle' ? el.shape.r : 0,
-      set: (el, val) => { if (el.shape.kind === 'circle') el.shape.r = val; },
+      get: (el) => (el.shape.kind === 'circle' ? el.shape.r : 0),
+      set: (el, val) => {
+        if (el.shape.kind === 'circle') el.shape.r = val;
+      },
     });
   });
   anim.node('pulse').to({ r: 40 }, { duration: 500, from: { r: 20 } });
@@ -161,15 +181,19 @@ const controller = builder.play();
 // Playback controls
 controller.pause();
 controller.seek(500); // jump to 500ms
-controller.play();    // resume
-controller.stop();    // stop and reset
+controller.play(); // resume
+controller.stop(); // stop and reset
 ```
 
 ### Multiple animation specs
 
 ```typescript
-const spec1 = builder.animate((anim) => { /* ... */ });
-const spec2 = builder.animate((anim) => { /* ... */ });
+const spec1 = builder.animate((anim) => {
+  /* ... */
+});
+const spec2 = builder.animate((anim) => {
+  /* ... */
+});
 
 // Play specific specs
 builder.play(container, [spec1, spec2]);
@@ -183,11 +207,12 @@ For continuous decorative effects, use the CSS animation system. Built-in: `'flo
 
 const builder = viz().view(400, 160);
 builder
-  .node('a').at(50, 80).circle(22).fill('#89b4fa').label('A')
-  .node('b').at(350, 80).rect(70, 40, 8).fill('#a6e3a1').label('B')
-  .edge('a', 'b').arrow().animate('flow');
+.node('a').at(50, 80).circle(22).fill('#89b4fa').label('A')
+.node('b').at(350, 80).rect(70, 40, 8).fill('#a6e3a1').label('B')
+.edge('a', 'b').arrow().animate('flow');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={flowEdgeBuilder} play={true} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
@@ -217,4 +242,4 @@ For more details on the animation builder API, see the [Animation API Reference]
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animations) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animations) on GitHub._

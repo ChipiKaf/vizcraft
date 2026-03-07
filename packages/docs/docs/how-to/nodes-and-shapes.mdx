@@ -20,100 +20,312 @@ export const _registerIcons = (() => {
 
 export const shapesScene = viz()
   .view(700, 960)
-  .node('circ').at(60, 80).circle(30).fill('#89b4fa').label('circle')
-  .node('rec').at(180, 80).rect(80, 50, 8).fill('#a6e3a1').label('rect')
-  .node('dia').at(310, 80).diamond(70, 70).fill('#f9e2af').label('diamond')
-  .node('cyl').at(450, 80).cylinder(80, 60).fill('#fab387').label('cylinder')
-  .node('hex').at(100, 210).hexagon(40).fill('#cba6f7').label('hexagon')
-  .node('hexf').at(240, 210).hexagon(40, 'flat').fill('#f5c2e7').label('hex (flat)')
-  .node('ell').at(410, 210).ellipse(65, 35).fill('#89dceb').label('ellipse')
-  .node('pie').at(140, 330).arc(40, 180, 360).fill('#f38ba8').label('arc (half)', { dy: 50 })
-  .node('quarter').at(320, 330).arc(40, 0, 90).fill('#fab387').label('arc (quarter)', { dy: 50 })
-  .node('open').at(510, 330).arc(40, 45, 315, false).fill('none').stroke('#a6e3a1', 3).label('arc (open)', { dy: 50 })
-  .node('ba').at(590, 210).blockArrow(90, 20, 40, 25).fill('#94e2d5').label('block arrow')
-  .node('co').at(140, 460).callout(120, 60, { rx: 8 }).fill('#f9e2af').label('callout')
-  .node('coL').at(350, 460).callout(120, 60, { rx: 8, pointerSide: 'left' }).fill('#cba6f7').label('callout (left)')
-  .node('cld').at(560, 460).cloud(120, 70).fill('#b4befe').stroke('#585b70', 2).label('cloud')
-  .node('crs').at(140, 570).cross(50, 18).fill('#a6e3a1').label('cross')
-  .node('cub').at(350, 570).cube(80, 60, 20).fill('#89b4fa').label('cube')
-  .node('doc').at(560, 570).document(100, 70).fill('#f9e2af').label('document')
-  .node('nt').at(350, 680).note(110, 70).fill('#94e2d5').label('note')
-  .node('pth').at(560, 680).path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100).fill('#f5c2e7').label('path\n(pentagon)')
-  .node('par').at(140, 790).parallelogram(120, 55).fill('#cba6f7').label('parallelogram')
-  .node('str').at(350, 790).star(5, 40).fill('#f9e2af').label('star')
-  .node('trp').at(560, 790).trapezoid(80, 120, 55).fill('#fab387').label('trapezoid')
-  .node('tri').at(140, 900).triangle(80, 70).fill('#f38ba8').label('triangle', { dy: 15 })
+  .node('circ')
+  .at(60, 80)
+  .circle(30)
+  .fill('#89b4fa')
+  .label('circle')
+  .node('rec')
+  .at(180, 80)
+  .rect(80, 50, 8)
+  .fill('#a6e3a1')
+  .label('rect')
+  .node('dia')
+  .at(310, 80)
+  .diamond(70, 70)
+  .fill('#f9e2af')
+  .label('diamond')
+  .node('cyl')
+  .at(450, 80)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .label('cylinder')
+  .node('hex')
+  .at(100, 210)
+  .hexagon(40)
+  .fill('#cba6f7')
+  .label('hexagon')
+  .node('hexf')
+  .at(240, 210)
+  .hexagon(40, 'flat')
+  .fill('#f5c2e7')
+  .label('hex (flat)')
+  .node('ell')
+  .at(410, 210)
+  .ellipse(65, 35)
+  .fill('#89dceb')
+  .label('ellipse')
+  .node('pie')
+  .at(140, 330)
+  .arc(40, 180, 360)
+  .fill('#f38ba8')
+  .label('arc (half)', { dy: 50 })
+  .node('quarter')
+  .at(320, 330)
+  .arc(40, 0, 90)
+  .fill('#fab387')
+  .label('arc (quarter)', { dy: 50 })
+  .node('open')
+  .at(510, 330)
+  .arc(40, 45, 315, false)
+  .fill('none')
+  .stroke('#a6e3a1', 3)
+  .label('arc (open)', { dy: 50 })
+  .node('ba')
+  .at(590, 210)
+  .blockArrow(90, 20, 40, 25)
+  .fill('#94e2d5')
+  .label('block arrow')
+  .node('co')
+  .at(140, 460)
+  .callout(120, 60, { rx: 8 })
+  .fill('#f9e2af')
+  .label('callout')
+  .node('coL')
+  .at(350, 460)
+  .callout(120, 60, { rx: 8, pointerSide: 'left' })
+  .fill('#cba6f7')
+  .label('callout (left)')
+  .node('cld')
+  .at(560, 460)
+  .cloud(120, 70)
+  .fill('#b4befe')
+  .stroke('#585b70', 2)
+  .label('cloud')
+  .node('crs')
+  .at(140, 570)
+  .cross(50, 18)
+  .fill('#a6e3a1')
+  .label('cross')
+  .node('cub')
+  .at(350, 570)
+  .cube(80, 60, 20)
+  .fill('#89b4fa')
+  .label('cube')
+  .node('doc')
+  .at(560, 570)
+  .document(100, 70)
+  .fill('#f9e2af')
+  .label('document')
+  .node('nt')
+  .at(350, 680)
+  .note(110, 70)
+  .fill('#94e2d5')
+  .label('note')
+  .node('pth')
+  .at(560, 680)
+  .path('M 50,0 L 100,38 L 81,100 L 19,100 L 0,38 Z', 100, 100)
+  .fill('#f5c2e7')
+  .label('path\n(pentagon)')
+  .node('par')
+  .at(140, 790)
+  .parallelogram(120, 55)
+  .fill('#cba6f7')
+  .label('parallelogram')
+  .node('str')
+  .at(350, 790)
+  .star(5, 40)
+  .fill('#f9e2af')
+  .label('star')
+  .node('trp')
+  .at(560, 790)
+  .trapezoid(80, 120, 55)
+  .fill('#fab387')
+  .label('trapezoid')
+  .node('tri')
+  .at(140, 900)
+  .triangle(80, 70)
+  .fill('#f38ba8')
+  .label('triangle', { dy: 15 })
   .done();
 
 export const nodeDashScene = viz()
   .view(620, 180)
-  .node('solid').at(80, 90).rect(120, 60).stroke('#6c7086').label('solid (default)')
-  .node('dashed').at(230, 90).rect(120, 60).stroke('#6c7086').dashed().label('dashed')
-  .node('dotted').at(380, 90).rect(120, 60).stroke('#6c7086').dotted().label('dotted')
-  .node('dashDot').at(530, 90).rect(120, 60).stroke('#6c7086').dash('dash-dot').label('dash-dot')
+  .node('solid')
+  .at(80, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .label('solid (default)')
+  .node('dashed')
+  .at(230, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dashed()
+  .label('dashed')
+  .node('dotted')
+  .at(380, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dotted()
+  .label('dotted')
+  .node('dashDot')
+  .at(530, 90)
+  .rect(120, 60)
+  .stroke('#6c7086')
+  .dash('dash-dot')
+  .label('dash-dot')
   .done();
 
 export const nodeShadowScene = viz()
   .view(620, 200)
-  .node('default').at(100, 100).rect(130, 60, 8).fill('#ffffff').stroke('#e0e0e0').shadow().label('default shadow')
-  .node('custom').at(310, 100).rect(130, 60, 8).fill('#ffffff').stroke('#e0e0e0').shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' }).label('custom shadow')
-  .node('none').at(520, 100).rect(130, 60, 8).fill('#ffffff').stroke('#e0e0e0').label('no shadow')
+  .node('default')
+  .at(100, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .shadow()
+  .label('default shadow')
+  .node('custom')
+  .at(310, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' })
+  .label('custom shadow')
+  .node('none')
+  .at(520, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#e0e0e0')
+  .label('no shadow')
   .done();
 
 export const nodeSketchScene = viz()
   .view(420, 200)
   .sketch()
-  .node('a').at(110, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node A')
-  .node('b').at(310, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node B')
-  .edge('a', 'b').arrow()
+  .node('a')
+  .at(110, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#333')
+  .label('Node A')
+  .node('b')
+  .at(310, 100)
+  .rect(130, 60, 8)
+  .fill('#ffffff')
+  .stroke('#333')
+  .label('Node B')
+  .edge('a', 'b')
+  .arrow()
   .done();
 
 export const imageNodeScene = viz()
   .view(600, 150)
-  .node('n1').at(100, 75).circle(40)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', 24, 24, { position: 'above' })
+  .node('n1')
+  .at(100, 75)
+  .circle(40)
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    24,
+    24,
+    { position: 'above' }
+  )
   .label('Info')
-  .node('n2').at(300, 75).rect(120, 50, 8)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>', 24, 24, { position: 'left' })
+  .node('n2')
+  .at(300, 75)
+  .rect(120, 50, 8)
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>',
+    24,
+    24,
+    { position: 'left' }
+  )
   .label('Activity')
-  .node('n3').at(500, 75).diamond(80, 80)
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>', 30, 30, { position: 'center' })
+  .node('n3')
+  .at(500, 75)
+  .diamond(80, 80)
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+    30,
+    30,
+    { position: 'center' }
+  )
   .label('Centered', { dy: 30 })
   .done();
 
 export const embeddedMediaScene = viz()
   .view(760, 170)
-  .node('img').at(140, 85).rect(170, 70, 10).fill('#a6e3a1')
-  .image('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="black"/><circle cx="12" cy="12" r="4" fill="white"/></svg>', 28, 28, { position: 'left', dx: -6 })
+  .node('img')
+  .at(140, 85)
+  .rect(170, 70, 10)
+  .fill('#a6e3a1')
+  .image(
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="black"/><circle cx="12" cy="12" r="4" fill="white"/></svg>',
+    28,
+    28,
+    { position: 'left', dx: -6 }
+  )
   .label('image()', { dx: 16 })
-  .node('icon').at(380, 85).rect(170, 70, 10).fill('#89b4fa')
+  .node('icon')
+  .at(380, 85)
+  .rect(170, 70, 10)
+  .fill('#89b4fa')
   .icon('custom-check', { size: 28, color: '#111', position: 'center' })
   .label('icon()', { dy: 30 })
-  .node('svg').at(620, 85).rect(170, 70, 10).fill('#f9e2af')
-  .svgContent('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l3 6 6 1-4.5 4.3L17.8 21 12 17.9 6.2 21l1.3-6.7L3 10l6-1 3-6z" fill="currentColor"/></svg>', { w: 28, h: 28, position: 'center' })
+  .node('svg')
+  .at(620, 85)
+  .rect(170, 70, 10)
+  .fill('#f9e2af')
+  .svgContent(
+    '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l3 6 6 1-4.5 4.3L17.8 21 12 17.9 6.2 21l1.3-6.7L3 10l6-1 3-6z" fill="currentColor"/></svg>',
+    { w: 28, h: 28, position: 'center' }
+  )
   .label('svgContent()', { dy: 30 })
   .done();
 
 export const multiLineLabelScene = viz()
   .view(600, 260)
-  .node('n1').at(100, 60).rect(140, 80)
-  .label('Manual\nLine\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
-  .node('n2').at(300, 60).circle(50)
-  .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
-  .node('n3').at(500, 60).diamond(80, 80)
+  .node('n1')
+  .at(100, 60)
+  .rect(140, 80)
+  .label('Manual\nLine\nBreaks', {
+    lineHeight: 1.4,
+    fontSize: 13,
+    fontWeight: 'bold',
+  })
+  .node('n2')
+  .at(300, 60)
+  .circle(50)
+  .label('This long text automatically wraps to fit the shape', {
+    maxWidth: 80,
+    fontSize: 11,
+  })
+  .node('n3')
+  .at(500, 60)
+  .diamond(80, 80)
   .label('Top Align\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 })
-  .edge('n1', 'n2').label('Edge\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' }).arrow()
-  .edge('n2', 'n3').label('Long edge description\nwrapped\ninto three lines', { maxWidth: 80, fontSize: 10 }).arrow()
+  .edge('n1', 'n2')
+  .label('Edge\nWrap', { maxWidth: 40, fontSize: 10, fill: '#666' })
+  .arrow()
+  .edge('n2', 'n3')
+  .label('Long edge description\nwrapped\ninto three lines', {
+    maxWidth: 80,
+    fontSize: 10,
+  })
+  .arrow()
   .done();
 
 export const richTextLabelScene = viz()
   .view(680, 240)
-  .node('api').at(140, 120).rect(140, 64, 12)
+  .node('api')
+  .at(140, 120)
+  .rect(140, 64, 12)
   .richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
-  .node('db').at(520, 120).cylinder(140, 64)
+  .node('db')
+  .at(520, 120)
+  .cylinder(140, 64)
   .richLabel((l) => l.text('Postgres ').italic('14'))
-  .edge('api', 'db').arrow()
-  .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms').text(' ').link('docs', 'https://vizcraft.dev/docs'))
+  .edge('api', 'db')
+  .arrow()
+  .richLabel((l) =>
+    l
+      .text('p')
+      .sup('95')
+      .text(' ')
+      .bold('12ms')
+      .text(' ')
+      .link('docs', 'https://vizcraft.dev/docs')
+  )
   .done();
 
 # Nodes & Shapes
@@ -137,32 +349,33 @@ builder
 
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={shapesScene} style={{ height: '920px', width: '100%', border: '1px solid #ccc' }} />
 </CodePreview>
 
 ### Shape reference
 
-| Shape | Builder method | Parameters |
-|---|---|---|
-| Circle | `.circle(r)` | radius |
-| Rectangle | `.rect(w, h, rx?)` | width, height, corner radius |
-| Diamond | `.diamond(w, h)` | width, height |
-| Cylinder | `.cylinder(w, h, arcHeight?)` | database symbol |
-| Hexagon | `.hexagon(r, orientation?)` | `'pointy'` (default) or `'flat'` |
-| Ellipse | `.ellipse(rx, ry)` | radii |
-| Arc | `.arc(r, startAngle, endAngle, closed?)` | pie slice |
-| Block Arrow | `.blockArrow(len, bodyW, headW, headLen, dir?)` | directional arrow |
-| Callout | `.callout(w, h, opts?)` | speech bubble with pointer |
-| Cloud | `.cloud(w, h)` | thought bubble |
-| Cross | `.cross(size, barWidth?)` | plus sign |
-| Cube | `.cube(w, h, depth?)` | 3D isometric |
-| Document | `.document(w, h, waveHeight?)` | wavy bottom |
-| Note | `.note(w, h, foldSize?)` | folded corner |
-| Parallelogram | `.parallelogram(w, h, skew?)` | I/O symbol |
-| Star | `.star(points, outerR, innerR?)` | star/badge |
-| Trapezoid | `.trapezoid(topW, bottomW, h)` | manual operation |
-| Triangle | `.triangle(w, h, direction?)` | `'up'`/`'down'`/`'left'`/`'right'` |
-| Custom Path | `.path(d, w, h)` | any SVG path data |
+| Shape         | Builder method                                  | Parameters                         |
+| ------------- | ----------------------------------------------- | ---------------------------------- |
+| Circle        | `.circle(r)`                                    | radius                             |
+| Rectangle     | `.rect(w, h, rx?)`                              | width, height, corner radius       |
+| Diamond       | `.diamond(w, h)`                                | width, height                      |
+| Cylinder      | `.cylinder(w, h, arcHeight?)`                   | database symbol                    |
+| Hexagon       | `.hexagon(r, orientation?)`                     | `'pointy'` (default) or `'flat'`   |
+| Ellipse       | `.ellipse(rx, ry)`                              | radii                              |
+| Arc           | `.arc(r, startAngle, endAngle, closed?)`        | pie slice                          |
+| Block Arrow   | `.blockArrow(len, bodyW, headW, headLen, dir?)` | directional arrow                  |
+| Callout       | `.callout(w, h, opts?)`                         | speech bubble with pointer         |
+| Cloud         | `.cloud(w, h)`                                  | thought bubble                     |
+| Cross         | `.cross(size, barWidth?)`                       | plus sign                          |
+| Cube          | `.cube(w, h, depth?)`                           | 3D isometric                       |
+| Document      | `.document(w, h, waveHeight?)`                  | wavy bottom                        |
+| Note          | `.note(w, h, foldSize?)`                        | folded corner                      |
+| Parallelogram | `.parallelogram(w, h, skew?)`                   | I/O symbol                         |
+| Star          | `.star(points, outerR, innerR?)`                | star/badge                         |
+| Trapezoid     | `.trapezoid(topW, bottomW, h)`                  | manual operation                   |
+| Triangle      | `.triangle(w, h, direction?)`                   | `'up'`/`'down'`/`'left'`/`'right'` |
+| Custom Path   | `.path(d, w, h)`                                | any SVG path data                  |
 
 ## Labels
 
@@ -172,7 +385,11 @@ Add a text label to any node with `.label(text, opts?)`:
 
 ```typescript
 builder.node('a').at(100, 100).rect(80, 40).label('Hello');
-builder.node('b').at(200, 100).circle(30).label('World', { fontSize: 14, fill: 'white' });
+builder
+  .node('b')
+  .at(200, 100)
+  .circle(30)
+  .label('World', { fontSize: 14, fill: 'white' });
 ```
 
 ### Multi-line and word-wrap
@@ -183,25 +400,26 @@ Use `\n` for manual line breaks, or `maxWidth` for automatic word wrapping:
 
 const builder = viz().view(600, 160);
 builder
-  .node('n1').at(100, 60).rect(140, 80)
-    .label('Manual\\nLine\\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
-  .node('n2').at(300, 60).circle(50)
-    .label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
-  .node('n3').at(500, 60).diamond(80, 80)
-    .label('Top Align\\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 });
+.node('n1').at(100, 60).rect(140, 80)
+.label('Manual\\nLine\\nBreaks', { lineHeight: 1.4, fontSize: 13, fontWeight: 'bold' })
+.node('n2').at(300, 60).circle(50)
+.label('This long text automatically wraps to fit the shape', { maxWidth: 80, fontSize: 11 })
+.node('n3').at(500, 60).diamond(80, 80)
+.label('Top Align\\nText', { verticalAlign: 'top', dy: -20, fontSize: 12 });
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={multiLineLabelScene} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
-| Option | Type | Description |
-|---|---|---|
-| `maxWidth` | `number` | Triggers automatic word wrapping |
-| `lineHeight` | `number` | Vertical spacing multiplier (default: `1.2`) |
-| `verticalAlign` | `'top' \| 'middle' \| 'bottom'` | Alignment (default: `'middle'`) |
-| `fontSize` | `number \| string` | Font size |
-| `fontWeight` | `number \| string` | Font weight |
-| `fill` | `string` | Text color |
+| Option          | Type                            | Description                                  |
+| --------------- | ------------------------------- | -------------------------------------------- |
+| `maxWidth`      | `number`                        | Triggers automatic word wrapping             |
+| `lineHeight`    | `number`                        | Vertical spacing multiplier (default: `1.2`) |
+| `verticalAlign` | `'top' \| 'middle' \| 'bottom'` | Alignment (default: `'middle'`)              |
+| `fontSize`      | `number \| string`              | Font size                                    |
+| `fontWeight`    | `number \| string`              | Font weight                                  |
+| `fill`          | `string`                        | Text color                                   |
 
 ### Rich text labels
 
@@ -210,13 +428,14 @@ Use `.richLabel((l) => ...)` for mixed-format labels — bold, italic, code, lin
 <CodePreview code={`import { viz } from 'vizcraft';
 
 builder
-  .node('api').at(140, 120).rect(140, 64, 12)
-    .richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
-  .node('db').at(520, 120).cylinder(140, 64)
-    .richLabel((l) => l.text('Postgres ').italic('14'))
-  .edge('api', 'db').arrow()
-    .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms'));
+.node('api').at(140, 120).rect(140, 64, 12)
+.richLabel((l) => l.text('API ').bold('v2').newline().code('GET /users'))
+.node('db').at(520, 120).cylinder(140, 64)
+.richLabel((l) => l.text('Postgres ').italic('14'))
+.edge('api', 'db').arrow()
+.richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms'));
 `}>
+
   <VizMount builder={richTextLabelScene} style={{ height: '240px', width: '100%' }} />
 </CodePreview>
 
@@ -225,7 +444,10 @@ builder
 ### Fill and stroke
 
 ```typescript
-builder.node('a').at(100, 100).rect(80, 40)
+builder
+  .node('a')
+  .at(100, 100)
+  .rect(80, 40)
   .fill('#2196F3')
   .stroke('#1565C0', 2);
 ```
@@ -236,21 +458,22 @@ builder.node('a').at(100, 100).rect(80, 40)
 
 const builder = viz().view(620, 180);
 builder
-  .node('solid').at(80, 90).rect(120, 60).stroke('#6c7086').label('solid (default)')
-  .node('dashed').at(230, 90).rect(120, 60).stroke('#6c7086').dashed().label('dashed')
-  .node('dotted').at(380, 90).rect(120, 60).stroke('#6c7086').dotted().label('dotted')
-  .node('dashDot').at(530, 90).rect(120, 60).stroke('#6c7086').dash('dash-dot').label('dash-dot');
+.node('solid').at(80, 90).rect(120, 60).stroke('#6c7086').label('solid (default)')
+.node('dashed').at(230, 90).rect(120, 60).stroke('#6c7086').dashed().label('dashed')
+.node('dotted').at(380, 90).rect(120, 60).stroke('#6c7086').dotted().label('dotted')
+.node('dashDot').at(530, 90).rect(120, 60).stroke('#6c7086').dash('dash-dot').label('dash-dot');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={nodeDashScene} style={{ height: '180px', width: '100%' }} />
 </CodePreview>
 
-| Preset | `stroke-dasharray` |
-|---|---|
-| `'solid'` | none |
-| `'dashed'` | `8, 4` |
-| `'dotted'` | `2, 4` |
-| `'dash-dot'` | `8, 4, 2, 4` |
+| Preset       | `stroke-dasharray` |
+| ------------ | ------------------ |
+| `'solid'`    | none               |
+| `'dashed'`   | `8, 4`             |
+| `'dotted'`   | `2, 4`             |
+| `'dash-dot'` | `8, 4, 2, 4`       |
 
 ### Drop shadows
 
@@ -260,16 +483,17 @@ Add a drop shadow with `.shadow()` (defaults) or `.shadow({ dx, dy, blur, color 
 
 const builder = viz().view(620, 200);
 builder
-  .node('default').at(100, 100).rect(130, 60, 8)
-    .fill('#ffffff').stroke('#e0e0e0').shadow().label('default shadow')
-  .node('custom').at(310, 100).rect(130, 60, 8)
-    .fill('#ffffff').stroke('#e0e0e0')
-    .shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' })
-    .label('custom shadow')
-  .node('none').at(520, 100).rect(130, 60, 8)
-    .fill('#ffffff').stroke('#e0e0e0').label('no shadow');
+.node('default').at(100, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0').shadow().label('default shadow')
+.node('custom').at(310, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0')
+.shadow({ dx: 4, dy: 4, blur: 10, color: 'rgba(0,0,0,0.35)' })
+.label('custom shadow')
+.node('none').at(520, 100).rect(130, 60, 8)
+.fill('#ffffff').stroke('#e0e0e0').label('no shadow');
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={nodeShadowScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
@@ -280,20 +504,21 @@ Apply a hand-drawn effect with `.sketch()` on individual nodes, edges, or global
 <CodePreview code={`import { viz } from 'vizcraft';
 
 const builder = viz().view(420, 200)
-  .sketch() // global sketch mode
-  .node('a').at(110, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node A')
-  .node('b').at(310, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node B')
-  .edge('a', 'b').arrow();
+.sketch() // global sketch mode
+.node('a').at(110, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node A')
+.node('b').at(310, 100).rect(130, 60, 8).fill('#ffffff').stroke('#333').label('Node B')
+.edge('a', 'b').arrow();
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={nodeSketchScene} style={{ height: '200px', width: '100%' }} />
 </CodePreview>
 
-| Scope | API | Description |
-|---|---|---|
+| Scope    | API                               | Description                    |
+| -------- | --------------------------------- | ------------------------------ |
 | Per-node | `.sketch()` / `.sketch({ seed })` | Sketchy rendering for one node |
-| Per-edge | `.sketch()` | Sketchy rendering for one edge |
-| Global | `viz().sketch()` | Apply to all nodes and edges |
+| Per-edge | `.sketch()`                       | Sketchy rendering for one edge |
+| Global   | `viz().sketch()`                  | Apply to all nodes and edges   |
 
 ## Embedded media
 
@@ -305,14 +530,15 @@ Embed images with `.image(href, w, h, opts?)`. Position options: `'center'`, `'a
 
 const builder = viz().view(600, 150);
 builder
-  .node('n1').at(100, 75).circle(40)
-    .image('/info-icon.svg', 24, 24, { position: 'above' }).label('Info')
-  .node('n2').at(300, 75).rect(120, 50, 8)
-    .image('/activity-icon.svg', 24, 24, { position: 'left' }).label('Activity')
-  .node('n3').at(500, 75).diamond(80, 80)
-    .image('/dollar-icon.svg', 30, 30, { position: 'center' }).label('Centered', { dy: 30 });
+.node('n1').at(100, 75).circle(40)
+.image('/info-icon.svg', 24, 24, { position: 'above' }).label('Info')
+.node('n2').at(300, 75).rect(120, 50, 8)
+.image('/activity-icon.svg', 24, 24, { position: 'left' }).label('Activity')
+.node('n3').at(500, 75).diamond(80, 80)
+.image('/dollar-icon.svg', 30, 30, { position: 'center' }).label('Centered', { dy: 30 });
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={imageNodeScene} style={{ height: '150px', width: '100%', border: '1px solid var(--ifm-color-emphasis-200)' }} />
 </CodePreview>
 
@@ -325,13 +551,14 @@ Use `.icon(id, opts)` with the icon registry, or `.svgContent(markup, opts)` for
 registerIcon('custom-check', '<svg viewBox="0 0 24 24" ...>...</svg>');
 
 builder
-  .node('img').at(140, 85).rect(170, 70, 10).fill('#a6e3a1')
-    .image('camera.svg', 28, 28, { position: 'left', dx: -6 }).label('image()', { dx: 16 })
-  .node('icon').at(380, 85).rect(170, 70, 10).fill('#89b4fa')
-    .icon('custom-check', { size: 28, color: '#111', position: 'center' }).label('icon()', { dy: 30 })
-  .node('svg').at(620, 85).rect(170, 70, 10).fill('#f9e2af')
-    .svgContent('<svg ...>...</svg>', { w: 28, h: 28, position: 'center' }).label('svgContent()', { dy: 30 });
+.node('img').at(140, 85).rect(170, 70, 10).fill('#a6e3a1')
+.image('camera.svg', 28, 28, { position: 'left', dx: -6 }).label('image()', { dx: 16 })
+.node('icon').at(380, 85).rect(170, 70, 10).fill('#89b4fa')
+.icon('custom-check', { size: 28, color: '#111', position: 'center' }).label('icon()', { dy: 30 })
+.node('svg').at(620, 85).rect(170, 70, 10).fill('#f9e2af')
+.svgContent('<svg ...>...</svg>', { w: 28, h: 28, position: 'center' }).label('svgContent()', { dy: 30 });
 `}>
+
   <VizMount builder={embeddedMediaScene} style={{ height: '170px', width: '100%' }} />
 </CodePreview>
 
@@ -355,9 +582,12 @@ builder.node('a').at(100, 100).rect(80, 40).class('highlight');
 Then style via CSS:
 
 ```css
-.highlight .viz-node-shape { fill: gold; stroke: orange; }
+.highlight .viz-node-shape {
+  fill: gold;
+  stroke: orange;
+}
 ```
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Nodes+and+Shapes) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Nodes+and+Shapes) on GitHub._

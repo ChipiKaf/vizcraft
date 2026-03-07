@@ -48,14 +48,15 @@ Adds tweens for the current target. One tween is emitted per numeric property in
 
 **Parameters:**
 
-| Param | Type | Description |
-|---|---|---|
-| `props` | `AnimatableProps` | Target property values |
-| `opts.duration` | `number` | Duration in ms |
-| `opts.easing` | `Ease` | `'linear'`, `'easeIn'`, `'easeOut'`, `'easeInOut'` |
-| `opts.from` | `Record<string, number>` | Explicit start values per property |
+| Param           | Type                     | Description                                        |
+| --------------- | ------------------------ | -------------------------------------------------- |
+| `props`         | `AnimatableProps`        | Target property values                             |
+| `opts.duration` | `number`                 | Duration in ms                                     |
+| `opts.easing`   | `Ease`                   | `'linear'`, `'easeIn'`, `'easeOut'`, `'easeInOut'` |
+| `opts.from`     | `Record<string, number>` | Explicit start values per property                 |
 
 **Time behavior:**
+
 - The tween starts at the current cursor position
 - After `.to(...)`, the cursor advances by `duration` (sequential by default)
 
@@ -63,11 +64,11 @@ Adds tweens for the current target. One tween is emitted per numeric property in
 
 ### Animatable properties
 
-| Target | Core properties |
-|---|---|
-| Node | `x`, `y`, `opacity`, `scale`, `rotation` |
-| Edge | `opacity`, `strokeDashoffset` |
-| Overlay | Any numeric param field |
+| Target  | Core properties                          |
+| ------- | ---------------------------------------- |
+| Node    | `x`, `y`, `opacity`, `scale`, `rotation` |
+| Edge    | `opacity`, `strokeDashoffset`            |
+| Overlay | Any numeric param field                  |
 
 ---
 
@@ -104,8 +105,10 @@ Registers custom animatable properties for this animation spec:
 builder.animate((aBuilder) => {
   aBuilder.extendAdapter((register) => {
     register('r', {
-      get: (el) => el.shape.kind === 'circle' ? el.shape.r : 0,
-      set: (el, val) => { if (el.shape.kind === 'circle') el.shape.r = val; },
+      get: (el) => (el.shape.kind === 'circle' ? el.shape.r : 0),
+      set: (el, val) => {
+        if (el.shape.kind === 'circle') el.shape.r = val;
+      },
     });
   });
   aBuilder.node('pulse').to({ r: 40 }, { duration: 500, from: { r: 20 } });
@@ -135,7 +138,7 @@ builder.node('b').animateTo({ opacity: 0 }, { duration: 300, delay: 500 });
 For continuous effects, use named animations from the registry:
 
 ```typescript
-builder.edge('a', 'b').animate('flow');                    // built-in
+builder.edge('a', 'b').animate('flow'); // built-in
 builder.edge('a', 'b').animate('pulse', { duration: '1.5s' }); // custom
 ```
 
@@ -160,11 +163,11 @@ Starts playback of compiled animation specs.
 
 ### `PlaybackController`
 
-| Method | Description |
-|---|---|
-| `.play()` | Resume playback |
-| `.pause()` | Pause playback |
-| `.stop()` | Stop and reset |
+| Method      | Description             |
+| ----------- | ----------------------- |
+| `.play()`   | Resume playback         |
+| `.pause()`  | Pause playback          |
+| `.stop()`   | Stop and reset          |
 | `.seek(ms)` | Jump to a specific time |
 
 ### Mount with autoplay
@@ -186,4 +189,4 @@ builder.mount(container, { autoplay: true });
 
 ---
 
-*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+API) on GitHub.*
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+API) on GitHub._
