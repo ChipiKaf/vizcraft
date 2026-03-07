@@ -1,0 +1,137 @@
+---
+sidebar_position: 1
+title: Architecture
+description: How VizCraft's rendering pipeline works — from builder to SVG DOM.
+slug: /explanations/architecture
+tags: [explanation, architecture, rendering]
+---
+
+# Architecture
+
+This page explains VizCraft's internal architecture — how data flows from the builder API to rendered SVG, and how the runtime update system works.
+
+## Pipeline overview
+
+```
+viz() → VizBuilder → .build() → VizScene → .mount() → SVG DOM
+                                    ↑
+                        .animate() → AnimationSpec
+```
+
+1. **Builder phase** — You use the fluent API (`viz().node(...).edge(...)`) to accumulate scene definitions. Nothing is rendered yet.
+2. **Build phase** — `.build()` compiles the builder state into a `VizScene`, a plain serializable data object.
+3. **Mount phase** — `.mount(container)` renders the `VizScene` to SVG DOM elements inside the provided container.
+4. **Runtime phase** — Animations, mutations, and resize operations update the DOM via `patchRuntime()` or `commit()` without full re-renders.
+
+## VizScene: the data layer
+
+The `VizScene` is the single source of truth. It's a plain JavaScript object containing:
+
+- `nodes` — array of `VizNode` objects (position, shape, style, ports, labels)
+- `edges` — array of `VizEdge` objects (routing, markers, labels, style)
+- `overlays` — optional overlay specs
+- `animationSpecs` — compiled timeline data
+
+Because it's plain data, you can:
+- Serialize it to JSON
+- Send it over a network
+- Store it in a database
+- Diff it between frames
+- Render it on the server
+
+## SVG rendering
+
+On mount, VizCraft creates an SVG element with:
+
+```
+<svg viewBox="0 0 w h">
+  <defs>                    ← Marker definitions, filters, patterns
+  <g class="viz-edges">     ← Edge path elements
+  <g class="viz-nodes">     ← Node shape elements (ordered by zIndex)
+  <g class="viz-overlays">  ← Overlay elements
+</svg>
+```
+
+### Node rendering
+Each node becomes an SVG group (`<g>`) containing:
+- A shape element (`<rect>`, `<circle>`, `<path>`, etc.)
+- Optional label (`<text>` or `<foreignObject>`)
+- Optional embedded media (`<image>`, inline SVG)
+- Optional shadow filter (`<filter>`)
+
+### Edge rendering
+Each edge is rendered as a `<path>` with:
+- Computed path data based on routing mode (straight, curved, orthogonal)
+- Endpoint resolution (boundary intersection, port position, or angle-based)
+- Marker references (`<marker>` elements in `<defs>`)
+- Optional labels positioned along the path
+
+## Runtime patching
+
+VizCraft uses a **differential patching** strategy for runtime updates. Instead of re-rendering the entire SVG:
+
+1. **`patchRuntime(container)`** — Updates only the attributes that changed (transform, opacity, path data). Used after `resizeNode()` or animation frame updates.
+2. **`commit(container)`** — Reconciles incremental mutations (addNode, removeNode, etc.) by inserting/removing DOM elements as needed.
+
+This approach keeps DOM operations minimal, which is critical for:
+- 60fps animation playback
+- Interactive scrubbing
+- Large scenes with hundreds of nodes
+
+### What `runtime` properties do
+
+Each `VizNode` and `VizEdge` has an optional `runtime` field. During animation playback, the player writes to `runtime` (e.g., `runtime.x`, `runtime.opacity`) and then calls `patchRuntime()`. The patcher reads `runtime` values and applies them as SVG transforms or style attributes — **without** touching the base `pos` or `style` fields.
+
+This separation means:
+- Base properties = source of truth
+- Runtime overrides = transient, layered on top
+- Stopping an animation restores the base state automatically
+
+## Animation pipeline
+
+```
+builder.animate(cb) → AnimationBuilder → compile → AnimationSpec
+                                                        ↓
+                                                   Player.play()
+                                                        ↓
+                                               requestAnimationFrame loop
+                                                        ↓
+                                               adapter.set(target, prop, value)
+                                                        ↓
+                                               patchRuntime(container)
+```
+
+The animation system is adapter-based:
+- The **AnimationSpec** is pure data (tweens with targets, durations, easings)
+- The **adapter** bridges the spec to the host (DOM, React, or custom)
+- The **player** drives the animation loop by computing interpolated values and calling the adapter
+
+This design means animations can be:
+- Played back on any rendering host
+- Serialized and replayed later
+- Scrubbed to any point in time
+- Composed from multiple specs
+
+## Overlay system
+
+Overlays use a **registry pattern**:
+
+1. Each overlay spec has an `id` (kind) and `params` (data)
+2. The registry maps `id` → renderer function
+3. On mount/update, VizCraft calls `renderer.render()` or `renderer.update()` for each overlay
+
+The registry is global (singleton), so custom overlay kinds registered once are available everywhere.
+
+## Design constraints
+
+| Constraint | Rationale |
+|---|---|
+| Builder → data → DOM (never builder → DOM directly) | Keeps the data layer portable and testable |
+| Runtime patches, not full re-renders | Performance for animations and large scenes |
+| Adapter-based animation | Host-agnostic playback |
+| Registry for extensibility | Overlays and animations can be extended without modifying core |
+| SVG only (no Canvas/WebGL) | Semantic, accessible, CSS-stylable output |
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Architecture) on GitHub.*

@@ -1,0 +1,169 @@
+---
+sidebar_position: 2
+title: Animation System
+description: Understanding VizCraft's two animation systems — when to use timeline vs CSS animations.
+slug: /explanations/animation-system
+tags: [explanation, animation, timeline, css]
+---
+
+# Animation System
+
+VizCraft has **two** independent animation systems. Understanding when to use each one is key to getting the best results.
+
+## The two systems at a glance
+
+| | Timeline (data-only) | CSS/Registry |
+|---|---|---|
+| **How you author** | `builder.animate((aBuilder) => ...)` | `.animate('flow')` or CSS `@keyframes` |
+| **Output** | `AnimationSpec` (portable JSON) | CSS styles injected into SVG |
+| **Scrubable** | Yes — seek to any ms | No |
+| **Exportable** | Yes — serialize and replay | No |
+| **Composable** | Yes — multiple specs played together | Limited |
+| **Loop-able** | Via player repeat | Yes (CSS `infinite`) |
+| **Best for** | Sequenced transitions, tutorials, data viz, editor playback | Decorative effects (pulse, glow, flow dashes) |
+
+## Timeline system (data-only)
+
+### Mental model
+
+Think of it as a **video editor timeline**:
+
+1. You place tweens on a timeline (target + property + duration)
+2. The timeline compiles to a portable `AnimationSpec`
+3. A player reads the spec and drives updates each frame
+
+The key insight: **the spec is pure data**. It doesn't know about the DOM, React, or any rendering host. The adapter is what bridges the spec to reality.
+
+### Compilation pipeline
+
+```
+builder.animate(callback)
+  → AnimationBuilder (cursor-based compiler)
+    → AnimationSpec { version, tweens[] }
+      → Player (requestAnimationFrame loop)
+        → Adapter (reads/writes scene properties)
+          → patchRuntime (updates SVG DOM)
+```
+
+### Timeline cursor
+
+The `AnimationBuilder` maintains an internal time cursor (starts at 0). Each `.to()` call:
+1. Emits tweens starting at the current cursor position
+2. Advances the cursor by the tween's duration
+
+Use `.wait(ms)` to insert gaps and `.at(ms)` to jump to absolute positions.
+
+### Parallel animations
+
+To animate multiple elements simultaneously, use `.at()` to reset the cursor:
+
+```typescript
+builder.animate((aBuilder) => {
+  aBuilder.at(0).node('a').to({ x: 300 }, { duration: 500 });
+  aBuilder.at(0).node('b').to({ x: 300 }, { duration: 500 }); // same start time
+});
+```
+
+### Easing
+
+Easing controls the acceleration curve:
+
+| Easing | Curve |
+|---|---|
+| `'linear'` | Constant speed |
+| `'easeIn'` | Slow start, fast end |
+| `'easeOut'` | Fast start, slow end |
+| `'easeInOut'` | Slow at both ends |
+
+Easings are resolved at playback time via simple math functions — no spring physics or configurable curves (yet).
+
+### Custom properties
+
+The adapter pattern makes it possible to animate properties that don't exist in the core set. Register a custom property with `extendAdapter`:
+
+```typescript
+builder.animate((aBuilder) => {
+  aBuilder.extendAdapter((register) => {
+    register('r', {
+      get: (el) => el.shape.r,
+      set: (el, val) => { el.shape.r = val; },
+    });
+  });
+  aBuilder.node('pulse').to({ r: 40 }, { duration: 500, from: { r: 20 } });
+});
+```
+
+The adapter receives `get`/`set` callbacks that read/write directly on the `VizNode`/`VizEdge` data. The runtime patcher then reflects those changes to the DOM.
+
+## CSS/Registry system
+
+### Mental model
+
+This is for **continuous, decorative effects** — CSS `@keyframes` applied directly to SVG elements. Think of it as a CSS animation library for SVG.
+
+### How it works
+
+1. You call `.animate('flow')` on a node or edge
+2. At mount time, VizCraft asks the animation registry for the CSS
+3. The registry returns keyframes and an inline style
+4. VizCraft injects the CSS and applies the style to the element
+
+### Built-in animations
+
+| Name | Target | Effect |
+|---|---|---|
+| `'flow'` | Edge | Marching dashes (stroke-dashoffset animation) |
+
+### Registering custom CSS animations
+
+```typescript
+import { CoreAnimationRegistry } from 'vizcraft';
+
+CoreAnimationRegistry.registerEdge('pulse', (edge, opts) => ({
+  keyframes: `@keyframes pulse-${edge.id} {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }`,
+  style: `animation: pulse-${edge.id} ${opts?.duration ?? '2s'} infinite;`,
+}));
+```
+
+### Limitations
+
+- No scrubbing — CSS animations run independently on the browser's compositor
+- No seek/pause via JavaScript (without hacking `animation-play-state`)
+- Cannot compose with timeline animations
+- Cannot be serialized or exported
+- Limited to CSS-animatable properties (`opacity`, `transform`, `stroke-dashoffset`, etc.)
+
+## When to use which
+
+| Scenario | Use |
+|---|---|
+| Tutorial walkthrough with steps | **Timeline** |
+| Data flow visualization | **Timeline** (animate overlays along paths) |
+| Edge "data flowing" decoration | **CSS** (`'flow'`) |
+| Node pulse/glow on hover | **CSS** |
+| Scrub-able editor preview | **Timeline** |
+| SVG export at specific frame | **Timeline** (with `includeRuntime`) |
+| Infinite looping background effect | **CSS** |
+
+## Combining both systems
+
+You can use both simultaneously:
+
+```typescript
+// CSS flow effect on edges
+builder.edge('a', 'b').animate('flow');
+
+// Timeline animation on nodes
+builder.animate((aBuilder) => {
+  aBuilder.node('a').to({ opacity: 1 }, { duration: 500, from: { opacity: 0 } });
+});
+```
+
+The CSS animations run independently via the browser. The timeline animations run via `requestAnimationFrame` and `patchRuntime`.
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+System) on GitHub.*

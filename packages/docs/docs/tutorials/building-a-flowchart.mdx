@@ -1,0 +1,188 @@
+---
+sidebar_position: 2
+title: Building a Flowchart
+description: Walk through building a complete, styled flowchart with multiple shapes, edge routing, labels, and containers.
+slug: /tutorials/building-a-flowchart
+tags: [tutorial, flowchart, shapes, edges]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz } from 'vizcraft';
+
+export const step1 = viz()
+  .view(500, 300)
+  .node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start')
+  .node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input')
+  .node('check').at(250, 210).diamond(80, 60).fill('#FFF176').label('Valid?')
+  .done();
+
+export const step2 = viz()
+  .view(500, 300)
+  .node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start')
+  .node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input')
+  .node('check').at(250, 210).diamond(80, 60).fill('#FFF176').label('Valid?')
+  .edge('start', 'input').arrow()
+  .edge('input', 'check').arrow()
+  .done();
+
+export const step3 = viz()
+  .view(500, 400)
+  .node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start')
+  .node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input')
+  .node('check').at(250, 220).diamond(80, 60).fill('#FFF176').label('Valid?')
+  .node('process').at(250, 320).rect(120, 50, 6).fill('#81C784').label('Process data')
+  .node('error').at(430, 220).rect(100, 40, 6).fill('#EF5350').stroke('#C62828').label('Show error', { fill: 'white', fontSize: 12 })
+  .edge('start', 'input').arrow()
+  .edge('input', 'check').arrow()
+  .edge('check', 'process').arrow().label('Yes')
+  .edge('check', 'error').arrow().label('No')
+  .edge('error', 'input').arrow().curved().label('retry')
+  .done();
+
+export const finalFlowchart = viz()
+  .view(500, 480)
+  .node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start')
+  .node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input')
+  .node('check').at(250, 220).diamond(80, 60).fill('#FFF176').label('Valid?')
+  .node('process').at(250, 330).rect(120, 50, 6).fill('#81C784').label('Process data')
+  .node('error').at(430, 220).rect(100, 40, 6).fill('#EF5350').stroke('#C62828').label('Show error', { fill: 'white', fontSize: 12 })
+  .node('output').at(250, 420).document(120, 50).fill('#CE93D8').label('Save report')
+  .node('end').at(250, 460).circle(16).fill('#F44336')
+  .edge('start', 'input').arrow()
+  .edge('input', 'check').arrow()
+  .edge('check', 'process').arrow().label('Yes')
+  .edge('check', 'error').arrow().label('No')
+  .edge('error', 'input').arrow().curved().label('retry')
+  .edge('process', 'output').arrow()
+  .edge('output', 'end').arrow()
+  .done();
+
+# Building a Flowchart
+
+In this tutorial you will build a complete flowchart step by step — adding nodes, connecting them with edges, applying styles, and using different shape types that correspond to standard flowchart symbols.
+
+**Time:** ~15 minutes &nbsp;|&nbsp; **Prerequisites:** [Getting Started](/docs/tutorials/getting-started) completed
+
+---
+
+## Step 1: Lay out the basic shapes
+
+A flowchart uses different shapes for different purposes:
+
+| Shape | Meaning | Builder method |
+|---|---|---|
+| Circle | Start / End | `.circle(r)` |
+| Rectangle | Process | `.rect(w, h)` |
+| Diamond | Decision | `.diamond(w, h)` |
+| Parallelogram | Input / Output | `.parallelogram(w, h)` |
+| Document | Report / Document | `.document(w, h)` |
+
+Let's start with the first three nodes:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder.node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start');
+builder.node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input');
+builder.node('check').at(250, 210).diamond(80, 60).fill('#FFF176').label('Valid?');
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={step1} style={{ height: '300px', width: '100%' }} />
+</CodePreview>
+
+## Step 2: Connect with edges
+
+Now connect the nodes. Every edge needs a source and target node ID.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder.node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start');
+builder.node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input');
+builder.node('check').at(250, 210).diamond(80, 60).fill('#FFF176').label('Valid?');
+builder.edge('start', 'input').arrow();
+builder.edge('input', 'check').arrow();
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={step2} style={{ height: '300px', width: '100%' }} />
+</CodePreview>
+
+## Step 3: Add branching and labels
+
+The decision diamond branches into "Yes" and "No" paths. Use `.label()` on edges to annotate.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 400);
+builder.node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start');
+builder.node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input');
+builder.node('check').at(250, 220).diamond(80, 60).fill('#FFF176').label('Valid?');
+builder.node('process').at(250, 320).rect(120, 50, 6).fill('#81C784').label('Process data');
+builder.node('error').at(430, 220).rect(100, 40, 6).fill('#EF5350').stroke('#C62828')
+  .label('Show error', { fill: 'white', fontSize: 12 });
+// Edges
+builder.edge('start', 'input').arrow();
+builder.edge('input', 'check').arrow();
+builder.edge('check', 'process').arrow().label('Yes');
+builder.edge('check', 'error').arrow().label('No');
+builder.edge('error', 'input').arrow().curved().label('retry');
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={step3} style={{ height: '400px', width: '100%' }} />
+</CodePreview>
+
+Notice: the "retry" edge uses `.curved()` to route the loop back to the input without overlapping other edges.
+
+## Step 4: Complete the flowchart
+
+Add a document node for the output and a terminal circle:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 480);
+builder.node('start').at(250, 40).circle(22).fill('#4CAF50').label('Start');
+builder.node('input').at(250, 120).parallelogram(120, 50).fill('#90CAF9').label('Read input');
+builder.node('check').at(250, 220).diamond(80, 60).fill('#FFF176').label('Valid?');
+builder.node('process').at(250, 330).rect(120, 50, 6).fill('#81C784').label('Process data');
+builder.node('error').at(430, 220).rect(100, 40, 6).fill('#EF5350').stroke('#C62828')
+  .label('Show error', { fill: 'white', fontSize: 12 });
+builder.node('output').at(250, 420).document(120, 50).fill('#CE93D8').label('Save report');
+builder.node('end').at(250, 460).circle(16).fill('#F44336');
+// All edges
+builder.edge('start', 'input').arrow();
+builder.edge('input', 'check').arrow();
+builder.edge('check', 'process').arrow().label('Yes');
+builder.edge('check', 'error').arrow().label('No');
+builder.edge('error', 'input').arrow().curved().label('retry');
+builder.edge('process', 'output').arrow();
+builder.edge('output', 'end').arrow();
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={finalFlowchart} style={{ height: '480px', width: '100%' }} />
+</CodePreview>
+
+## What you learned
+
+In this tutorial you:
+
+1. Used **standard flowchart shapes** — circles, rectangles, diamonds, parallelograms, and documents.
+2. Connected nodes with **directed edges** using `.arrow()`.
+3. Added **edge labels** to annotate branches.
+4. Used **curved routing** for loopback edges.
+5. Applied **fills and strokes** for visual distinction.
+
+## Next steps
+
+- **[Nodes & Shapes](/docs/how-to/nodes-and-shapes)** — Explore all 22 shape types, shadows, sketch mode, and embedded media.
+- **[Edges & Connections](/docs/how-to/edges-and-connections)** — Markers, ports, rich-text labels, and self-loops.
+- **[Layout & Positioning](/docs/how-to/layout-and-positioning)** — Let algorithms arrange your nodes automatically.
+- **[Animations](/docs/how-to/animations)** — Add motion and timeline-driven sequences.
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Flowchart+Tutorial) on GitHub.*

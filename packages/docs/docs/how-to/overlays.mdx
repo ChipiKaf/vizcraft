@@ -1,0 +1,298 @@
+---
+sidebar_position: 5
+title: Overlays
+description: Add annotation layers, signals, selection rectangles, and custom overlay kinds.
+slug: /how-to/overlays
+tags: [how-to, overlays, annotations]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import VizPlaybackControls from '@site/src/components/VizPlaybackControls';
+import { viz, defaultCoreOverlayRegistry } from 'vizcraft';
+
+export const primitiveCss = `
+.viz-selection {
+  fill: #3b82f6;
+  fill-opacity: 0.12;
+  stroke: #3b82f6;
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+}
+`;
+
+export const primitiveOverlayBuilder = viz().view(520, 220);
+export const primitiveOverlayScene = primitiveOverlayBuilder
+  .node('a').at(160, 110).circle(18).label('A')
+  .node('b').at(360, 110).circle(18).label('B')
+  .overlay((o) =>
+    o
+      .text({ x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 }, { key: 'label' })
+      .rect({ x: 110, y: 70, w: 300, h: 80, rx: 10 }, { key: 'sel', className: 'viz-selection' })
+  );
+
+export const basicSignalBuilder = viz().view(520, 200);
+export const basicSignalScene = basicSignalBuilder
+  .node('a').at(120, 100).circle(18).label('A')
+  .node('b').at(400, 100).circle(18).label('B')
+  .overlay((o) =>
+    o.add('signal', { from: 'a', to: 'b', progress: 0.5, magnitude: 0.7 }, { key: 'sig' })
+  );
+
+export const multiOverlayBuilder = viz().view(520, 240);
+export const multiOverlayScene = multiOverlayBuilder
+  .grid(5, 3, { x: 30, y: 30 })
+  .node('a').at(120, 140).circle(18).label('A')
+  .node('b').at(400, 140).circle(18).label('B')
+  .overlay((o) =>
+    o
+      .add('grid-labels', {
+        colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+        rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+        yOffset: 18, xOffset: 18,
+      }, { key: 'labels' })
+      .add('signal', { from: 'a', to: 'b', progress: 0.25, magnitude: 0.5 }, { key: 'sig', className: 'viz-signal' })
+  );
+
+export const overlayAnimBuilder = viz().view(520, 200);
+export const overlayAnimScene = overlayAnimBuilder
+  .node('a').at(120, 100).circle(18).label('A')
+  .node('b').at(400, 100).circle(18).label('B')
+  .overlay((o) =>
+    o.add('signal', { from: 'a', to: 'b', progress: 0, magnitude: 0.2 }, { key: 'sig' })
+  );
+
+export const overlayAnim = overlayAnimBuilder.animate((aBuilder) => {
+  aBuilder.overlay('sig');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.at(0);
+  aBuilder.overlay('sig');
+  aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+  aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+  aBuilder.to({ magnitude: 1 }, { duration: 600, easing: 'easeOut' });
+  aBuilder.to({ magnitude: 0.2 }, { duration: 600, easing: 'easeIn' });
+});
+
+export const groupSwarmBuilder = viz().view(520, 200);
+export const groupSwarmScene = groupSwarmBuilder
+  .node('a').at(120, 100).rect(110, 78, 14).label('A', { dy: -52, fontWeight: 700 })
+  .node('b').at(400, 100).rect(110, 78, 14).label('B', { dy: -52, fontWeight: 700 })
+  .overlay((o) => {
+    const r = 5;
+    const gap = 4;
+    const step = r * 2 + gap;
+    const yOffsets = [-2 * step, -1 * step, 0, 1 * step, 2 * step];
+    o.group(
+      { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+      (g) => {
+        yOffsets.forEach((dy) => {
+          g.circle({ x: 0, y: dy, r, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+        });
+      },
+      { key: 'swarm' }
+    );
+  });
+
+export const groupSwarmAnim = groupSwarmBuilder.animate((aBuilder) => {
+  aBuilder.overlay('swarm');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+});
+
+# Overlays
+
+Overlays are an optional SVG layer that sits above nodes and edges. Use them for signals, annotations, selection indicators, grid labels, and other transient visual elements.
+
+## Mental model
+
+An overlay has two halves:
+
+- **Authoring:** use `builder.overlay((o) => ...)` to describe *what* overlays exist and *with what params*
+- **Rendering:** the overlay registry turns each spec into SVG (built-ins ship pre-registered; custom visuals need a registered renderer)
+
+## Built-in primitive overlays
+
+Three primitives work out of the box without a custom renderer: `rect`, `circle`, and `text`.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 220);
+builder
+  .node('a').at(160, 110).circle(18).label('A')
+  .node('b').at(360, 110).circle(18).label('B')
+  .overlay((o) =>
+    o
+      .text({ x: 24, y: 28, text: 'Overlay layer: on', fontSize: 14 }, { key: 'label' })
+      .rect({ x: 110, y: 70, w: 300, h: 80, rx: 10 }, { key: 'sel', className: 'viz-selection' })
+  );
+builder.mount(document.getElementById('container'), {
+  css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; stroke-width: 2; }'
+});
+`}>
+  <VizMount builder={primitiveOverlayScene} css={primitiveCss} />
+</CodePreview>
+
+## Signal overlay
+
+The built-in `signal` overlay draws a moving marker between two nodes:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder
+  .node('a').at(120, 100).circle(18).label('A')
+  .node('b').at(400, 100).circle(18).label('B')
+  .overlay('signal', { from: 'a', to: 'b', progress: 0.5, magnitude: 0.7 }, 'sig');
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={basicSignalScene} />
+</CodePreview>
+
+## Combining multiple overlays
+
+Use the callback form to compose several overlays in one call:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 240);
+builder
+  .grid(5, 3, { x: 30, y: 30 })
+  .node('a').at(120, 140).circle(18).label('A')
+  .node('b').at(400, 140).circle(18).label('B')
+  .overlay((o) =>
+    o
+      .add('grid-labels', {
+        colLabels: { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' },
+        rowLabels: { 0: 'top', 1: 'mid', 2: 'bot' },
+        yOffset: 18, xOffset: 18,
+      }, { key: 'labels' })
+      .add('signal', { from: 'a', to: 'b', progress: 0.25, magnitude: 0.5 }, { key: 'sig' })
+  );
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={multiOverlayScene} />
+</CodePreview>
+
+## Built-in overlay kinds
+
+These ship in the default registry and can be used immediately:
+
+| Kind | Description |
+|---|---|
+| `signal` | Moving marker between two nodes |
+| `grid-labels` | Axis/grid labels for the grid system |
+| `data-points` | Points attached to nodes |
+| `rect` | Primitive rectangle (via `.rect()` helper) |
+| `circle` | Primitive circle (via `.circle()` helper) |
+| `text` | Primitive text label (via `.text()` helper) |
+
+## Keys
+
+Overlays reconcile by unique key:
+
+- If `spec.key` is present, that's used
+- Otherwise, `spec.id` is used
+
+If you render **multiple** overlays with the same `id`, always provide a `key`. The callback builder auto-generates stable keys for unkeyed overlays of the same id.
+
+## Animating overlays
+
+Overlay params can be targeted by the data-only timeline animation system. Give the overlay instance a stable key and target it in animations with `aBuilder.overlay('key')`:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder
+  .node('a').at(120, 100).circle(18).label('A')
+  .node('b').at(400, 100).circle(18).label('B')
+  .overlay('signal', { from: 'a', to: 'b', progress: 0, magnitude: 0.2 }, 'sig');
+
+builder.animate((aBuilder) => {
+  aBuilder.overlay('sig');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+});
+
+builder.mount(document.getElementById('container'));
+builder.play();
+`}>
+  <VizPlaybackControls builder={overlayAnimScene} autoPlay={true} />
+</CodePreview>
+
+### Group overlays
+
+Move multiple overlay elements as one unit using a **group overlay**:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder
+  .node('a').at(120, 100).rect(110, 78, 14).label('A', { dy: -52, fontWeight: 700 })
+  .node('b').at(400, 100).rect(110, 78, 14).label('B', { dy: -52, fontWeight: 700 })
+  .overlay((o) => {
+    const r = 5, gap = 4, step = r * 2 + gap;
+    const yOffsets = [-2 * step, -step, 0, step, 2 * step];
+    o.group(
+      { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+      (g) => { yOffsets.forEach((dy) => g.circle({ x: 0, y: dy, r, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 })); },
+      { key: 'swarm' }
+    );
+  });
+
+builder.animate((aBuilder) => {
+  aBuilder.overlay('swarm');
+  aBuilder.to({ progress: 1 }, { duration: 1200, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 1200, easing: 'easeInOut' });
+});
+
+builder.mount(document.getElementById('container'));
+builder.play();
+`}>
+  <VizPlaybackControls builder={groupSwarmScene} autoPlay={true} />
+</CodePreview>
+
+## Registering custom overlay kinds
+
+When built-in kinds aren't enough, register a new renderer:
+
+```typescript
+import { defaultCoreOverlayRegistry } from 'vizcraft';
+
+defaultCoreOverlayRegistry.register('selection', {
+  render: ({ spec }) => {
+    const { x, y, w, h } = spec.params;
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" class="viz-selection" />`;
+  },
+  update: ({ spec }, g) => {
+    let rect = g.querySelector('rect');
+    if (!rect) {
+      rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      g.appendChild(rect);
+    }
+    rect.setAttribute('x', String(spec.params.x));
+    rect.setAttribute('y', String(spec.params.y));
+    rect.setAttribute('width', String(spec.params.w));
+    rect.setAttribute('height', String(spec.params.h));
+    rect.setAttribute('rx', '8');
+    rect.setAttribute('class', spec.className ?? 'viz-selection');
+  },
+});
+
+// Use it
+builder.overlay('selection', { x: 10, y: 10, w: 200, h: 120 }, 'sel');
+```
+
+:::note
+The default registry is a singleton. Register custom overlays once (idempotently).
+:::
+
+For the complete overlay builder API, see the [Overlay API Reference](/docs/reference/overlay-api).
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Overlays) on GitHub.*

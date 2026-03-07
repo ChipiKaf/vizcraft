@@ -1,0 +1,124 @@
+---
+sidebar_position: 3
+title: Design Principles
+description: The engineering principles behind VizCraft's API and architecture.
+slug: /explanations/design-principles
+tags: [explanation, design, principles]
+---
+
+# Design Principles
+
+The decisions that shape VizCraft's API and architecture.
+
+## Data-first
+
+VizCraft separates **data** from **rendering**. The `VizScene` is a plain, serializable JavaScript object. The builder produces it; the renderer consumes it. This separation enables:
+
+- **Server-side rendering** — build a scene on the server, export SVG
+- **Serialization** — save/load scenes as JSON
+- **Testing** — assert on data without needing a DOM
+- **Portability** — render the same scene in vanilla JS, React, or any future adapter
+
+## Fluent + declarative duality
+
+Every feature is available in two forms:
+
+**Fluent (builder chain):**
+```typescript
+viz().node('a').at(100, 100).circle(30).fill('#89b4fa').label('A')
+```
+
+**Declarative (options object):**
+```typescript
+viz().node('a', {
+  at: { x: 100, y: 100 },
+  circle: { r: 30 },
+  fill: '#89b4fa',
+  label: 'A',
+})
+```
+
+The fluent style is great for hand-written code. The declarative style is better for data-driven usage, form builders, and serialization.
+
+Both compile to the same underlying `VizNode`/`VizEdge` data structures.
+
+## Guard-first control flow
+
+Internal code follows the guard-first pattern — handle edge cases early and return, keeping the happy path un-nested:
+
+```typescript
+// ✅ Guard-first
+function doThing(input: string | undefined) {
+  if (!input) return;
+  // ... happy path
+}
+
+// ❌ Not this
+function doThing(input: string | undefined) {
+  if (input) {
+    // ... deeply nested
+  }
+}
+```
+
+## Composable, not monolithic
+
+Features are designed as composable modules:
+
+| Module | Responsibility |
+|---|---|
+| Builder | Accumulates scene definitions |
+| Renderer | Converts `VizScene` → SVG DOM |
+| Animation Player | Drives `AnimationSpec` playback |
+| Animation Adapter | Reads/writes properties per host |
+| Overlay Registry | Maps overlay kinds → renderers |
+| Hit Testing | Point/rect queries on scene data |
+| Pan/Zoom Controller | Viewport transforms |
+| Layout Algorithms | Compute node positions |
+
+Each module works independently. You can use hit testing without animations, or overlays without pan/zoom.
+
+## Registries for extensibility
+
+Animations and overlays use registries — global lookup tables that map a string ID to a handler. This lets you:
+
+- Use built-in behaviors out of the box
+- Register custom behaviors without modifying core
+- Override built-in behaviors if needed
+
+Registries use safe fallbacks: unknown IDs produce warnings (not errors) and render gracefully degraded output.
+
+## TypeScript strictness
+
+VizCraft is built with `strict: true` and `noUncheckedIndexedAccess: true`. Key typing patterns:
+
+- **Discriminated unions** for `NodeShape` (each variant has `kind`)
+- **Module augmentation** for extending `OverlayKindRegistry`
+- **Generic plugins** (`VizPlugin<Options>`) for type-safe plugin options
+- **Branded types** where semantic meaning matters
+
+## SVG-only rendering
+
+VizCraft deliberately outputs only SVG — no Canvas or WebGL. This means:
+
+- **CSS-stylable** — theme with CSS variables, dark mode, custom fonts
+- **Accessible** — screen readers can traverse the DOM
+- **Inspectable** — browser DevTools show the full element tree
+- **Print-friendly** — SVG scales perfectly to any resolution
+- **Exportable** — `.svg()` produces a standalone SVG string
+
+The trade-off is performance at very high element counts (>10,000 nodes). For most use cases (diagrams, flowcharts, data visualizations), SVG performs well.
+
+## Minimal DOM mutations
+
+The runtime patching system (`patchRuntime`, `commit`) applies the smallest possible set of DOM operations:
+
+1. Compute what changed (new position, opacity, path data)
+2. Apply only those attribute changes
+3. Skip unchanged elements entirely
+
+This is critical for 60fps animation playback and interactive scrubbing.
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Design+Principles) on GitHub.*

@@ -1,0 +1,259 @@
+---
+sidebar_position: 7
+title: Advanced Techniques
+description: Containers, scene mutations, node resizing, z-ordering, plugins, serialization, SVG export, and perimeter anchors.
+slug: /how-to/advanced-techniques
+tags: [how-to, advanced, plugins, mutations, serialization]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import ResizeDemo from '@site/src/components/ResizeDemo';
+import MutationDemo from '@site/src/components/MutationDemo';
+import ZOrderingDemo from '@site/src/components/ZOrderingDemo';
+import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
+
+export const selfLoopBuilder = viz().view(400, 200);
+export const selfLoopScene = selfLoopBuilder
+  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database')
+  .done()
+  .edge('db', 'db').loopSide('right').loopSize(60).arrow()
+  .label('Ping', { position: 'mid', dy: 0, dx: -32 })
+  .done();
+
+export const equidistantPortsScene = (() => {
+  const shape = { kind: 'cylinder', w: 120, h: 80 };
+  const ports = getEquidistantPorts(shape, 10);
+  const nodePorts = toNodePorts(ports);
+  const b = viz().view(600, 350);
+  const db = b.node('db').at(300, 175).cylinder(120, 80).label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
+  for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
+  b.node('svc1').at(80, 60).rect(80, 40, 6).label('Svc A').fill('#DCFCE7').stroke('#166534', 2);
+  b.node('svc2').at(80, 280).rect(80, 40, 6).label('Svc B').fill('#FEF3C7').stroke('#92400E', 2);
+  b.node('svc3').at(520, 60).rect(80, 40, 6).label('Svc C').fill('#FCE7F3').stroke('#9D174D', 2);
+  b.node('svc4').at(520, 280).rect(80, 40, 6).label('Svc D').fill('#E0E7FF').stroke('#3730A3', 2);
+  b.edge('svc1', 'db').toPort('p8').arrow();
+  b.edge('svc2', 'db').toPort('p6').arrow();
+  b.edge('db', 'svc3').fromPort('p2').arrow();
+  b.edge('db', 'svc4').fromPort('p4').arrow();
+  return b;
+})();
+
+# Advanced Techniques
+
+Power-user features for building editors, dynamic visualizations, and complex diagrams.
+
+## Self-loop edges
+
+Edges that connect a node to itself. Control placement and size with `.loopSide()` and `.loopSize()`:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(400, 200);
+builder
+  .node('db').at(200, 100).cylinder(80, 60).fill('#fab387').label('Database').done()
+  .edge('db', 'db').loopSide('right').loopSize(60).arrow()
+  .label('Ping', { position: 'mid', dy: 0, dx: -32 }).done();
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={selfLoopScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+## Freeform perimeter anchors
+
+Control the exact angle at which edges leave or arrive at nodes using `.fromAngle(deg)` and `.toAngle(deg)`:
+
+```typescript
+viz()
+  .node('a').at(100, 100).circle(30)
+  .node('b').at(300, 100).circle(30)
+  // Edge leaves A from bottom (90°), enters B from top (270°)
+  .edge('a', 'b').fromAngle(90).toAngle(270).arrow()
+  .build();
+```
+
+Angle convention: **0 = right**, **90 = down**, **180 = left**, **270 = up**.
+
+When `fromAngle`/`toAngle` is set, it takes precedence over `fromPort`/`toPort` and auto boundary resolution. You can mix: `.fromPort('right').toAngle(180)`.
+
+### `computeNodeAnchorAtAngle`
+
+For advanced use (custom renderers), resolve where an angle intersects a shape's perimeter:
+
+```typescript
+import { computeNodeAnchorAtAngle } from 'vizcraft';
+const point = computeNodeAnchorAtAngle(node, 45); // { x, y }
+```
+
+## Equidistant port distribution
+
+`getEquidistantPorts(shape, count?)` computes N points equally spaced by perimeter arc length along any shape. Useful for port-based editors, circuit diagrams, and dynamic port placement:
+
+<CodePreview code={`import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
+
+const shape = { kind: 'cylinder', w: 120, h: 80 };
+const ports = getEquidistantPorts(shape, 10);
+const nodePorts = toNodePorts(ports);
+
+const b = viz().view(600, 350);
+const db = b.node('db').at(300, 175).cylinder(120, 80)
+  .label('Database').fill('#DBEAFE').stroke('#1D4ED8', 2);
+for (const p of nodePorts) db.port(p.id, p.offset, p.direction);
+
+b.node('svc1').at(80, 60).rect(80,40,6).label('Svc A');
+b.edge('svc1', 'db').toPort('p8').arrow();
+b.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={equidistantPortsScene} style={{ height: '350px', width: '100%' }} />
+</CodePreview>
+
+Each `EquidistantPort` includes:
+
+| Field | Description |
+|---|---|
+| `id` | Stable identifier (`p0`, `p1`, …) |
+| `angle` | Angle from center in degrees |
+| `t` | Parametric proportion along perimeter [0, 1) |
+| `x`, `y` | Offset from node center |
+
+Use `toNodePorts()` to convert to standard `NodePort[]` for the builder.
+
+## Runtime node resizing
+
+Resize nodes at runtime without full DOM reconciliation:
+
+<CodePreview>
+  <ResizeDemo />
+</CodePreview>
+
+```typescript
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 200)
+  .node('dynamic', { rect: { w: 100, h: 50 }, at: { x: 200, y: 100 } })
+  .node('left', { circle: { r: 20 }, at: { x: 50, y: 100 } })
+  .edge('left', 'dynamic', { arrow: true });
+
+builder.mount(container);
+
+// Later: resize + patch
+builder.resizeNode('dynamic', { w: 180, h: 80 });
+builder.patchRuntime(container);
+```
+
+## Incremental scene mutations
+
+Add, update, and remove nodes/edges at runtime:
+
+<CodePreview>
+  <MutationDemo />
+</CodePreview>
+
+```typescript
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(600, 300)
+  .node('root', { circle: { r: 30 }, at: { x: 100, y: 150 } });
+
+builder.mount(container, { panZoom: true });
+
+// Mutate imperatively
+builder.addNode({
+  id: 'n1',
+  pos: { x: 250, y: 150 },
+  shape: { kind: 'rect', w: 80, h: 40 },
+});
+builder.addEdge({ id: 'e1', from: 'root', to: 'n1', arrow: 'end' });
+builder.commit(container);
+```
+
+## Z-ordering
+
+Control overlapping node draw order with `zIndex`:
+
+<CodePreview>
+  <ZOrderingDemo />
+</CodePreview>
+
+```typescript
+import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(600, 300)
+  .node('back', { circle: { r: 50 }, at: { x: 250, y: 150 }, zIndex: 1, fill: 'blue' })
+  .node('front', { circle: { r: 50 }, at: { x: 300, y: 150 }, zIndex: 5, fill: 'green' })
+  .node('dynamic', { circle: { r: 60 }, at: { x: 275, y: 100 }, zIndex: 0, fill: 'red' });
+
+builder.mount(container);
+
+// Bring to front at runtime
+builder.node('dynamic', { zIndex: 10 });
+builder.patchRuntime(container);
+```
+
+## Plugins
+
+Extend VizCraft with reusable plugins. A plugin is a function that receives a `VizBuilder` and can mutate the scene, register behaviors, or execute utilities:
+
+```typescript
+import { viz, VizPlugin } from 'vizcraft';
+
+const watermarkPlugin: VizPlugin<{ text: string }> = (builder, options) => {
+  builder.node('watermark', {
+    at: { x: 50, y: 50 },
+    rect: { w: 100, h: 30 },
+    label: options?.text ?? 'Watermark',
+    zIndex: 999,
+    opacity: 0.5,
+  });
+};
+
+const builder = viz().view(400, 200);
+builder
+  .node('a', { circle: { r: 20 }, at: { x: 150, y: 100 } })
+  .use(watermarkPlugin, { text: 'Draft Version' });
+```
+
+### Event hooks
+
+Plugins can listen for lifecycle events with `builder.on()`:
+
+```typescript
+const exportPlugin: VizPlugin = (builder) => {
+  builder.on('mount', ({ container, controller }) => {
+    const btn = document.createElement('button');
+    btn.innerText = 'Download PNG';
+    btn.onclick = () => {
+      // Export builder.svg() to PNG
+    };
+    btn.style.position = 'absolute';
+    btn.style.top = '10px';
+    btn.style.right = '10px';
+    container.appendChild(btn);
+  });
+};
+```
+
+## Serialization & SVG export
+
+### Build a VizScene
+
+```typescript
+const scene = builder.build();
+// scene is a plain data object: { nodes: [], edges: [], viewBox, ... }
+```
+
+### Export SVG string
+
+```typescript
+const svgString = builder.svg();
+
+// Include runtime state (animation frame, overlay positions)
+const animatedSvg = builder.svg({ includeRuntime: true });
+```
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Advanced) on GitHub.*

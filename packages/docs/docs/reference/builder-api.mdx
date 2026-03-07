@@ -1,0 +1,347 @@
+---
+sidebar_position: 1
+title: Builder API
+description: Complete API reference for viz(), VizBuilder, NodeBuilder, and EdgeBuilder.
+slug: /reference/builder-api
+tags: [reference, api, builder]
+---
+
+# Builder API
+
+Complete reference for the fluent builder chain. All methods return `this` for chaining unless noted otherwise.
+
+## `viz()`
+
+Creates a new `VizBuilder` instance.
+
+```typescript
+import { viz } from 'vizcraft';
+const builder = viz();
+```
+
+---
+
+## VizBuilder
+
+The top-level scene builder.
+
+### `.view(w, h)`
+
+Sets the SVG viewBox dimensions.
+
+```typescript
+builder.view(800, 600);
+```
+
+### `.grid(cols, rows, opts?)`
+
+Defines a grid system for cell-based node positioning.
+
+| Param | Type | Description |
+|---|---|---|
+| `cols` | `number` | Number of columns |
+| `rows` | `number` | Number of rows |
+| `opts.x` | `number` | Left padding |
+| `opts.y` | `number` | Top padding |
+
+### `.node(id)` → `NodeBuilder`
+
+Creates or re-opens a node definition. Returns a `NodeBuilder` for chaining node-specific methods.
+
+### `.node(id, opts)` → `VizBuilder`
+
+Creates a node declaratively via `NodeOptions`. Returns the `VizBuilder` (not `NodeBuilder`).
+
+See [NodeOptions](#nodeoptions) for the full options shape.
+
+### `.edge(from, to)` → `EdgeBuilder`
+
+Creates or re-opens an edge. Returns an `EdgeBuilder`.
+
+### `.edge(from, to, opts)` → `VizBuilder`
+
+Creates an edge declaratively via `EdgeOptions`. Returns the `VizBuilder`.
+
+See [EdgeOptions](#edgeoptions) for the full options shape.
+
+### `.overlay(id, params, key?)`
+
+Adds a single overlay instance (shorthand form).
+
+### `.overlay(callback)`
+
+Adds overlays via the `OverlayBuilder` callback form. See [Overlay API](/docs/reference/overlay-api).
+
+### `.animate(callback)` → `AnimationSpec`
+
+Defines a data-only timeline animation. See [Animation API](/docs/reference/animation-api).
+
+### `.layout(algorithm, options?)`
+
+Applies an auto-layout algorithm to compute node positions.
+
+```typescript
+import { circularLayout } from 'vizcraft';
+builder.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+```
+
+### `.use(plugin, options?)`
+
+Applies a `VizPlugin` to the builder.
+
+```typescript
+builder.use(watermarkPlugin, { text: 'Draft' });
+```
+
+### `.on(event, callback)`
+
+Subscribes to lifecycle events.
+
+| Event | Payload | Description |
+|---|---|---|
+| `'build'` | `{ scene }` | After `.build()` compiles the scene |
+| `'mount'` | `{ container, controller }` | After `.mount()` renders to DOM |
+
+### `.build()` → `VizScene`
+
+Compiles the builder state into a plain `VizScene` data object.
+
+### `.mount(container, opts?)` → `MountController`
+
+Renders the scene to a DOM element.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `panZoom` | `boolean` | `false` | Enable interactive pan & zoom |
+| `minZoom` | `number` | `0.1` | Minimum zoom level |
+| `maxZoom` | `number` | `5` | Maximum zoom level |
+| `initialZoom` | `'fit' \| number` | `'fit'` | Initial zoom |
+| `autoplay` | `boolean` | `false` | Auto-play animations |
+| `css` | `string` | — | Injected CSS string |
+| `overlayRegistry` | `OverlayRegistry` | default | Custom overlay registry |
+
+### `.svg(opts?)` → `string`
+
+Exports the scene as an SVG string.
+
+| Option | Type | Description |
+|---|---|---|
+| `includeRuntime` | `boolean` | Include runtime state (animation frame) |
+
+### `.play(container?, specs?)` → `PlaybackController`
+
+Starts animation playback.
+
+### `.resizeNode(id, size)`
+
+Resizes a node at runtime.
+
+```typescript
+builder.resizeNode('dynamic', { w: 180, h: 80 });
+```
+
+### `.patchRuntime(container)`
+
+Applies runtime changes (resize, property overrides) to the mounted SVG.
+
+### `.addNode(nodeData)` / `.addEdge(edgeData)`
+
+Imperatively add nodes/edges for incremental mutations.
+
+### `.updateNode(id, partial)` / `.removeNode(id)`
+
+Update or remove nodes at runtime.
+
+### `.commit(container)`
+
+Syncs incremental mutations to the DOM.
+
+---
+
+## NodeBuilder
+
+Returned by `builder.node(id)`. All methods return `this` for chaining.
+
+### Shape methods
+
+Each method sets the node's geometry:
+
+| Method | Params | Notes |
+|---|---|---|
+| `.circle(r)` | radius | |
+| `.rect(w, h, rx?)` | width, height, corner radius | |
+| `.diamond(w, h)` | width, height | |
+| `.ellipse(rx, ry)` | horizontal, vertical radii | |
+| `.hexagon(r, orientation?)` | radius, `'pointy'` or `'flat'` | |
+| `.cylinder(w, h, arcHeight?)` | width, height, cap arc | |
+| `.triangle(w, h, direction?)` | width, height, `'up'`/`'down'`/`'left'`/`'right'` | |
+| `.star(points, outerR, innerR?)` | tip count, outer radius, inner radius | |
+| `.cloud(w, h)` | bounding width/height | |
+| `.cross(size, barWidth?)` | overall size, bar thickness | |
+| `.cube(w, h, depth?)` | width, height, isometric depth | |
+| `.arc(r, startAngle, endAngle, closed?)` | radius, start°, end°, close path | |
+| `.blockArrow(length, bodyW, headW, headL, dir?)` | dimensions + direction | |
+| `.callout(w, h, opts?)` | width, height, pointer options | |
+| `.document(w, h, waveHeight?)` | width, height, wave amplitude | |
+| `.note(w, h, foldSize?)` | width, height, fold corner size | |
+| `.parallelogram(w, h, skew?)` | width, height, skew offset | |
+| `.trapezoid(topW, bottomW, h)` | top/bottom widths, height | |
+| `.path(d, w, h)` | SVG path data, bounding box | Custom shape escape hatch |
+
+### Positioning
+
+| Method | Description |
+|---|---|
+| `.at(x, y)` | Set absolute position |
+| `.cell(col, row, align?)` | Place in grid cell |
+
+### Styling
+
+| Method | Description |
+|---|---|
+| `.fill(color)` | Fill color |
+| `.stroke(color, width?)` | Stroke color and optional width |
+| `.opacity(value)` | Opacity (0–1) |
+| `.dash(pattern)` | Dash pattern: `'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`, or SVG dasharray |
+| `.shadow(opts?)` | Drop shadow (`{ dx, dy, blur, color }`) |
+| `.sketch(enabled?, seed?)` | Hand-drawn rendering mode |
+| `.class(className)` | CSS class |
+| `.zIndex(n)` | Z-ordering depth |
+
+### Labels
+
+| Method | Description |
+|---|---|
+| `.label(text, opts?)` | Simple text label |
+| `.multiLineLabel(lines, opts?)` | Multi-line label (array of strings) |
+| `.richLabel(callback)` | Rich text builder: `(l) => l.bold('Hi').text(' world')` |
+
+### Media
+
+| Method | Description |
+|---|---|
+| `.image(href, w, h, opts?)` | Embed an image |
+| `.icon(id, size, opts?)` | Embed an icon from the registry |
+| `.svgContent(content, w, h, opts?)` | Embed inline SVG |
+
+### Ports
+
+| Method | Description |
+|---|---|
+| `.port(id, offset, direction?)` | Add a named connection port |
+
+### Containers
+
+| Method | Description |
+|---|---|
+| `.container(config?)` | Mark as a container node |
+| `.parent(parentId)` | Set parent container |
+
+### Interaction
+
+| Method | Description |
+|---|---|
+| `.onClick(handler)` | Attach click handler `(id, node) => void` |
+
+### Animation
+
+| Method | Description |
+|---|---|
+| `.animate(callback)` | Per-node animation via `AnimationBuilder` |
+| `.animateTo(props, opts)` | Quick transition shorthand |
+
+### Chaining control
+
+| Method | Returns | Description |
+|---|---|---|
+| `.done()` | `VizBuilder` | Return to the parent builder |
+
+---
+
+## EdgeBuilder
+
+Returned by `builder.edge(from, to)`. All methods return `this` for chaining.
+
+### Routing & path
+
+| Method | Description |
+|---|---|
+| `.routing(mode)` | `'straight'`, `'curved'`, `'orthogonal'` |
+| `.waypoint(x, y)` | Add an intermediate waypoint |
+
+### Markers
+
+| Method | Description |
+|---|---|
+| `.arrow()` | Add arrow marker at target end |
+| `.arrowBoth()` | Arrows at both ends |
+| `.arrowStart()` | Arrow at source end |
+| `.marker(end?, start?)` | Set explicit marker types |
+
+### Port connection
+
+| Method | Description |
+|---|---|
+| `.fromPort(portId)` | Connect from a specific source port |
+| `.toPort(portId)` | Connect to a specific target port |
+| `.fromAngle(degrees)` | Fixed perimeter angle at source |
+| `.toAngle(degrees)` | Fixed perimeter angle at target |
+
+### Self-loops
+
+| Method | Description |
+|---|---|
+| `.loopSide(side)` | Loop direction: `'top'`, `'right'`, `'bottom'`, `'left'` |
+| `.loopSize(px)` | Loop extension distance |
+
+### Styling
+
+| Method | Description |
+|---|---|
+| `.stroke(color, width?)` | Stroke color and width |
+| `.fill(color)` | Fill color |
+| `.opacity(value)` | Opacity |
+| `.dash(pattern)` | Dash pattern |
+| `.sketch(enabled?)` | Hand-drawn mode |
+| `.class(className)` | CSS class |
+| `.hitArea(width)` | Invisible hit-area width |
+
+### Labels
+
+| Method | Description |
+|---|---|
+| `.label(text, opts?)` | Add a label (chainable for multiple) |
+
+### Animation
+
+| Method | Description |
+|---|---|
+| `.animate(name, opts?)` | CSS/registry animation (e.g. `'flow'`) |
+
+### Data
+
+| Method | Description |
+|---|---|
+| `.meta(data)` | Attach metadata |
+| `.data(payload)` | Attach custom data |
+| `.onClick(handler)` | Attach click handler |
+
+### Chaining control
+
+| Method | Returns | Description |
+|---|---|---|
+| `.done()` | `VizBuilder` | Return to the parent builder |
+
+---
+
+## NodeOptions
+
+Full declarative options object for `builder.node(id, opts)`. See the [Types reference](/docs/reference/types#nodeoptions) for all fields.
+
+## EdgeOptions
+
+Full declarative options object for `builder.edge(from, to, opts)`. See the [Types reference](/docs/reference/types#edgeoptions) for all fields.
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Builder+API) on GitHub.*

@@ -1,0 +1,9 @@
+{
+  "label": "Tutorials",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "title": "Tutorials",
+    "description": "Step-by-step lessons that walk you through building something meaningful with VizCraft. Start here if you are new."
+  }
+}

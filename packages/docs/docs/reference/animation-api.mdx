@@ -1,0 +1,189 @@
+---
+sidebar_position: 2
+title: Animation API
+description: Complete reference for AnimationBuilder, timeline control, and playback.
+slug: /reference/animation-api
+tags: [reference, api, animation]
+---
+
+# Animation API
+
+Reference for the `AnimationBuilder` you receive as `aBuilder` inside `builder.animate((aBuilder) => ...)`.
+
+The animation builder is a **timeline compiler**: you select targets, add tweens, and control the cursor. The output is a portable [AnimationSpec](/docs/reference/types#animationspec).
+
+---
+
+## Target selection
+
+### `aBuilder.node(id)`
+
+Targets a node by id.
+
+- Target form: `node:<id>`
+- Returns: `AnimationBuilder` (chainable)
+
+### `aBuilder.edge(id)` / `aBuilder.edge(from, to, id?)`
+
+Targets an edge by id.
+
+- Target form: `edge:<id>` (commonly `edge:a->b`)
+- Convenience: `aBuilder.edge('a', 'b')` → `aBuilder.edge('a->b')`
+- Returns: `AnimationBuilder` (chainable)
+
+### `aBuilder.overlay(key)`
+
+Targets an overlay instance by key.
+
+- Target form: `overlay:<key>`
+- Returns: `AnimationBuilder` (chainable)
+
+---
+
+## Writing tweens
+
+### `aBuilder.to(props, opts)`
+
+Adds tweens for the current target. One tween is emitted per numeric property in `props`.
+
+**Parameters:**
+
+| Param | Type | Description |
+|---|---|---|
+| `props` | `AnimatableProps` | Target property values |
+| `opts.duration` | `number` | Duration in ms |
+| `opts.easing` | `Ease` | `'linear'`, `'easeIn'`, `'easeOut'`, `'easeInOut'` |
+| `opts.from` | `Record<string, number>` | Explicit start values per property |
+
+**Time behavior:**
+- The tween starts at the current cursor position
+- After `.to(...)`, the cursor advances by `duration` (sequential by default)
+
+**Throws** if called without selecting a target first.
+
+### Animatable properties
+
+| Target | Core properties |
+|---|---|
+| Node | `x`, `y`, `opacity`, `scale`, `rotation` |
+| Edge | `opacity`, `strokeDashoffset` |
+| Overlay | Any numeric param field |
+
+---
+
+## Timeline control
+
+### `aBuilder.wait(ms)`
+
+Advances the cursor by `ms` without adding tweens.
+
+### `aBuilder.at(ms)`
+
+Sets the cursor to an absolute time offset. Use this to schedule parallel sequences:
+
+```typescript
+builder.animate((aBuilder) => {
+  // Move A and B simultaneously
+  aBuilder.at(0).node('a');
+  aBuilder.to({ x: 320 }, { duration: 1200, easing: 'easeInOut' });
+
+  aBuilder.at(0).node('b');
+  aBuilder.to({ y: 150 }, { duration: 1200, easing: 'easeInOut' });
+});
+```
+
+---
+
+## Custom properties
+
+### `aBuilder.extendAdapter(callback)`
+
+Registers custom animatable properties for this animation spec:
+
+```typescript
+builder.animate((aBuilder) => {
+  aBuilder.extendAdapter((register) => {
+    register('r', {
+      get: (el) => el.shape.kind === 'circle' ? el.shape.r : 0,
+      set: (el, val) => { if (el.shape.kind === 'circle') el.shape.r = val; },
+    });
+  });
+  aBuilder.node('pulse').to({ r: 40 }, { duration: 500, from: { r: 20 } });
+});
+```
+
+---
+
+## Per-element animation
+
+Nodes and edges can define inline animations:
+
+```typescript
+// Callback form
+builder.node('a').animate((anim) => {
+  anim.to({ scale: 1.5, opacity: 0.5 }, { duration: 400, easing: 'easeOut' });
+});
+
+// Quick transition
+builder.node('b').animateTo({ opacity: 0 }, { duration: 300, delay: 500 });
+```
+
+---
+
+## CSS / registry animations
+
+For continuous effects, use named animations from the registry:
+
+```typescript
+builder.edge('a', 'b').animate('flow');                    // built-in
+builder.edge('a', 'b').animate('pulse', { duration: '1.5s' }); // custom
+```
+
+### Registering custom CSS animations
+
+```typescript
+import { CoreAnimationRegistry } from 'vizcraft';
+
+CoreAnimationRegistry.registerEdge('pulse', (edge, opts) => ({
+  keyframes: `@keyframes pulse-${edge.id} { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }`,
+  style: `animation: pulse-${edge.id} ${opts?.duration ?? '2s'} infinite;`,
+}));
+```
+
+---
+
+## Playback
+
+### `builder.play(container?, specs?)` → `PlaybackController`
+
+Starts playback of compiled animation specs.
+
+### `PlaybackController`
+
+| Method | Description |
+|---|---|
+| `.play()` | Resume playback |
+| `.pause()` | Pause playback |
+| `.stop()` | Stop and reset |
+| `.seek(ms)` | Jump to a specific time |
+
+### Mount with autoplay
+
+```typescript
+builder.mount(container, { autoplay: true });
+```
+
+---
+
+## Output types
+
+- [AnimationSpec](/docs/reference/types#animationspec) — the compiled timeline
+- [TweenSpec](/docs/reference/types#tweenspec) — individual tween unit
+- [AnimatableProps](/docs/reference/types#animatableprops) — property bag
+- [TweenOptions](/docs/reference/types#tweenoptions) — tween configuration
+- [Ease](/docs/reference/types#ease) — easing functions
+- [PlaybackController](/docs/reference/types#playbackcontroller) — playback control
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animation+API) on GitHub.*

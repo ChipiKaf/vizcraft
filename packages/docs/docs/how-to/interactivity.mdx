@@ -1,0 +1,196 @@
+---
+sidebar_position: 6
+title: Interactivity
+description: Handle click events, hit testing, port snapping, rubber-band selection, and pan/zoom.
+slug: /how-to/interactivity
+tags: [how-to, interactivity, hit-testing, pan-zoom]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import HitTestingDemo from '@site/src/components/HitTestingDemo';
+import { viz } from 'vizcraft';
+
+export const interactiveBuilder = viz().view(400, 200);
+export const interactiveScene = interactiveBuilder
+  .node('btn').at(200, 100).rect(120, 50, 10).label('Click Me').class('interactive-node')
+  .onClick((id) => alert(`Clicked node ${id}`))
+  .done();
+
+export const panZoomScene = viz()
+  .view(800, 600)
+  .node('a', { circle: { r: 40 }, at: { x: 200, y: 200 }, fill: '#f6c177', label: 'Start' })
+  .node('b', { diamond: { w: 100, h: 80 }, at: { x: 600, y: 200 }, fill: '#cba6f7', label: 'Decision' })
+  .node('c', { cylinder: { w: 80, h: 100 }, at: { x: 200, y: 400 }, fill: '#9ccfd8', label: 'Data' })
+  .node('d', { star: { points: 5, outerR: 45, innerR: 20 }, at: { x: 600, y: 400 }, fill: '#eb6f92', label: 'Finish' })
+  .node('center', { hexagon: { r: 50 }, at: { x: 400, y: 300 }, fill: '#ebbcba', label: 'Hub' })
+  .edge('a', 'center', { stroke: { color: '#666', width: 2 }, arrow: true })
+  .edge('center', 'b', { stroke: { color: '#666', width: 2 }, arrow: true })
+  .edge('center', 'c', { stroke: { color: '#666', width: 2 }, arrow: true, dash: 'dashed' })
+  .edge('c', 'd', { stroke: { color: '#666', width: 2 }, arrow: true, routing: 'orthogonal' })
+  .edge('b', 'd', { stroke: { color: '#666', width: 2 }, arrow: true })
+  .node('far', { cloud: { w: 100, h: 60 }, at: { x: 1000, y: -100 }, fill: '#31748f', label: 'Cloud' })
+  .edge('b', 'far', { stroke: { color: '#666', width: 2 }, arrow: true, dash: 'dotted' });
+
+# Interactivity
+
+VizCraft provides click handlers for basic interactions and a mathematical hit testing API for building full editors.
+
+## Click events
+
+Attach click handlers to nodes and edges with `.onClick()`:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(400, 200);
+builder
+  .node('btn').at(200, 100).rect(120, 50, 10)
+  .label('Click Me')
+  .class('interactive-node')
+  .onClick((id) => alert(\`Clicked node \${id}\`))
+  .done();
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={interactiveScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+:::info
+Interactive elements automatically receive `cursor: pointer` when an `onClick` handler is attached.
+:::
+
+## Hit testing
+
+VizCraft provides a DOM-independent hit testing API for building advanced interactions (drag-and-drop, connection snapping, marquee selection). All queries run against the `VizScene` data structure — no DOM required.
+
+### Interactive demo
+
+<HitTestingDemo />
+
+### Point hit testing
+
+`hitTest` returns the topmost element at a given coordinate, checking in Z-index order:
+
+```typescript
+import { hitTest } from 'vizcraft';
+
+const result = hitTest(scene, { x: 250, y: 150 });
+
+if (result?.type === 'node') {
+  console.log('Hit node:', result.id);
+} else if (result?.type === 'port') {
+  console.log('Hit port:', result.portId, 'on node:', result.nodeId);
+} else if (result?.type === 'edge') {
+  console.log('Hit edge:', result.id);
+} else {
+  console.log('Hit empty space');
+}
+```
+
+Customize tolerances for edges and ports:
+
+```typescript
+const easyHit = hitTest(scene, point, {
+  edgeTolerance: 15,  // easier to click thin lines
+  portTolerance: 20,  // easier to snap to ports
+});
+```
+
+### Rectangle selection (marquee)
+
+`hitTestRect` returns all nodes and edges intersecting a rectangle:
+
+```typescript
+import { hitTestRect } from 'vizcraft';
+
+const rect = { x: 100, y: 100, w: 300, h: 200 };
+const selected = hitTestRect(scene, rect);
+
+selected.forEach(item => {
+  if (item.type === 'node') {
+    console.log('Selected node:', item.id);
+  }
+});
+```
+
+### Nearest port snapping
+
+When drawing a new connection, snap to the closest port:
+
+```typescript
+import { nearestPort } from 'vizcraft';
+
+const port = nearestPort(scene, { x: 260, y: 150 }, { maxDistance: 50 });
+
+if (port) {
+  console.log('Snap to:', port.nodeId, port.portId, 'at distance:', port.distance);
+}
+```
+
+### Edge proximity
+
+Check distance from a point to a specific edge:
+
+```typescript
+import { edgeDistance } from 'vizcraft';
+
+const dist = edgeDistance(scene, 'a->b', { x: 200, y: 150 });
+```
+
+## Pan & zoom
+
+Enable interactive viewport controls for large diagrams:
+
+<CodePreview>
+  <VizMount
+    className="border border-solid border-gray-200 dark:border-gray-800 rounded-lg shadow-sm"
+    style={{ height: '400px', cursor: 'grab', overflow: 'hidden' }}
+    panZoom={true}
+    builder={panZoomScene}
+  />
+</CodePreview>
+
+```typescript
+import { viz } from 'vizcraft';
+
+const scene = viz()
+  .view(800, 600)
+  .node('a', { circle: { r: 40 }, at: { x: 200, y: 200 }, fill: '#f6c177' })
+  .node('b', { diamond: { w: 100, h: 80 }, at: { x: 600, y: 200 }, fill: '#cba6f7' })
+  .edge('a', 'b', { arrow: true });
+
+const controller = scene.mount(document.getElementById('viz'), {
+  panZoom: true,
+  minZoom: 0.1,    // default
+  maxZoom: 5,      // default
+  initialZoom: 'fit',  // default
+});
+```
+
+Interactions:
+- **Scroll wheel / trackpad** to zoom
+- **Click and drag** background to pan
+- **Double click** background to auto-fit
+
+### Programmatic viewport control
+
+```typescript
+// Fit all elements into view
+controller.fitToContent(20); // 20px padding
+
+// Zoom and center on a specific node
+controller.zoomToNode('user-node');
+
+// Manual control
+controller.setZoom(2.5);
+controller.setPan({ x: -100, y: -50 });
+controller.reset();
+
+// Subscribe to viewport changes
+const unsubscribe = controller.onChange(({ zoom, pan }) => {
+  console.log('Scale:', zoom, 'Translation:', pan);
+});
+```
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Interactivity) on GitHub.*

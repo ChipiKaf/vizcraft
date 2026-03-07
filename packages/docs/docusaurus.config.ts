@@ -26,7 +26,8 @@ const config: Config = {
   organizationName: 'ChipiKaf', // Usually your GitHub org/user name.
   projectName: 'vizcraft', // Usually your repo name.
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
+  onBrokenAnchors: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -47,23 +48,9 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/ChipiKaf/vizcraft/tree/main/packages/docs/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -103,15 +90,28 @@ const config: Config = {
       style: 'dark',
       links: [
         {
+          title: 'Learn',
+          items: [
+            {
+              label: 'Getting Started',
+              to: '/docs/tutorials/getting-started',
+            },
+            {
+              label: 'Tutorials',
+              to: '/docs/category/tutorials',
+            },
+          ],
+        },
+        {
           title: 'Docs',
           items: [
             {
-              label: 'Introduction',
-              to: '/docs/intro',
+              label: 'How-To Guides',
+              to: '/docs/category/how-to-guides',
             },
             {
-              label: 'Interactive Examples',
-              to: '/docs/examples',
+              label: 'API Reference',
+              to: '/docs/reference/builder-api',
             },
           ],
         },

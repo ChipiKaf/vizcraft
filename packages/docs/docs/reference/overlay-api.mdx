@@ -1,0 +1,200 @@
+---
+sidebar_position: 3
+title: Overlay API
+description: Complete reference for the overlay builder, registry, and built-in overlay kinds.
+slug: /reference/overlay-api
+tags: [reference, api, overlays]
+---
+
+# Overlay API
+
+Reference for overlay authoring (`builder.overlay(...)`, `OverlayBuilder`) and the overlay registry.
+
+Overlays are **data-only specs** (`VizOverlaySpec`) rendered by the overlay registry.
+
+---
+
+## `builder.overlay(...)`
+
+### Direct form
+
+```typescript
+builder.overlay(id, params, key?)
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `id` | `string` | Overlay kind (e.g. `'signal'`, `'rect'`) |
+| `params` | `object` | Overlay-specific parameters |
+| `key` | `string` | Stable key (recommended for animation targeting) |
+
+Built-in overlay ids are type-safe via `OverlayKindRegistry`.
+
+### Callback form
+
+```typescript
+builder.overlay((o: OverlayBuilder) => {
+  o.add('grid-labels', { colLabels: { 0: '0' } }, { key: 'labels' })
+   .add('signal', { from: 'a', to: 'b', progress: 0 }, { key: 'sig' });
+});
+```
+
+---
+
+## OverlayBuilder
+
+Received as `o` in the callback form. Import: `import { OverlayBuilder } from 'vizcraft'`.
+
+### `o.add(id, params, options?)`
+
+Adds an overlay spec.
+
+| Param | Type | Description |
+|---|---|---|
+| `id` | `string` | Overlay kind |
+| `params` | `object` | Overlay parameters |
+| `options.key` | `string` | Stable key |
+| `options.className` | `string` | CSS class for styling |
+
+**Auto-keying:** When multiple unkeyed overlays of the same `id` are added, keys are auto-generated (`<id>#1`, `<id>#2`, etc.).
+
+### `o.remove(keyOrId)`
+
+Removes overlays by key (always) or by id (for unkeyed overlays).
+
+### `o.clear()`
+
+Removes all accumulated overlay specs.
+
+### `o.build()` → `VizOverlaySpec[]`
+
+Returns a shallow copy of accumulated specs.
+
+### Primitive convenience methods
+
+| Method | Equivalent |
+|---|---|
+| `o.rect(params, opts?)` | `o.add('rect', params, opts)` |
+| `o.circle(params, opts?)` | `o.add('circle', params, opts)` |
+| `o.text(params, opts?)` | `o.add('text', params, opts)` |
+
+### `o.group(params, children, options?)`
+
+Creates a group overlay for animating multiple elements as one unit.
+
+```typescript
+o.group(
+  { from: 'a', to: 'b', progress: 0, magnitude: 0.2 },
+  (g) => {
+    g.circle({ x: 0, y: -12, r: 5 });
+    g.circle({ x: 0, y: 0, r: 5 });
+    g.circle({ x: 0, y: 12, r: 5 });
+  },
+  { key: 'swarm' }
+);
+```
+
+Child coordinates are **group-local** (transformed by the group's translate/scale/rotate). Animatable group params: `x`, `y`, `scale`, `rotation`, `opacity`, `progress`, `magnitude`.
+
+---
+
+## Built-in overlay kinds
+
+### Primitives (no custom renderer needed)
+
+| Kind | Params | Notes |
+|---|---|---|
+| `rect` | `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }` | Rectangle |
+| `circle` | `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }` | Circle |
+| `text` | `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }` | Text label |
+| `group` | `{ x?, y?, scale?, rotation?, opacity?, children }` | Grouped elements |
+
+### Pre-registered kinds
+
+| Kind | Params | Description |
+|---|---|---|
+| `signal` | `{ from, to, progress, magnitude }` | Moving marker between two nodes |
+| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }` | Grid axis labels |
+| `data-points` | varies | Points attached to nodes |
+
+---
+
+## Styling overlays
+
+### Via params (portable)
+
+```typescript
+o.rect({ x: 10, y: 10, w: 200, h: 80, fill: '#dcfce7', stroke: '#22c55e', strokeWidth: 2 });
+```
+
+### Via CSS (themeable)
+
+```typescript
+o.rect({ x: 10, y: 10, w: 200, h: 80 }, { key: 'sel', className: 'viz-selection' });
+```
+
+Inject CSS at mount time:
+
+```typescript
+builder.mount(container, {
+  css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; stroke-width: 2; }'
+});
+```
+
+---
+
+## Animating overlays
+
+Target overlays in the timeline animation system by key:
+
+```typescript
+builder.animate((aBuilder) => {
+  aBuilder.overlay('sig');
+  aBuilder.to({ progress: 1 }, { duration: 900, easing: 'easeInOut' });
+});
+```
+
+Any numeric property in `spec.params` can be tweened.
+
+---
+
+## Custom overlay registry
+
+Register new overlay kinds with the global registry:
+
+```typescript
+import { defaultCoreOverlayRegistry } from 'vizcraft';
+
+defaultCoreOverlayRegistry.register('selection', {
+  render: ({ spec }) => {
+    const { x, y, w, h } = spec.params;
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" />`;
+  },
+  update: ({ spec }, g) => {
+    // Efficient DOM patching for animations
+    let rect = g.querySelector('rect');
+    if (!rect) {
+      rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      g.appendChild(rect);
+    }
+    rect.setAttribute('x', String(spec.params.x));
+    // ... set other attributes
+  },
+});
+```
+
+### Type-safe custom overlays
+
+Augment `OverlayKindRegistry` for TypeScript support:
+
+```typescript
+declare module 'vizcraft' {
+  interface OverlayKindRegistry {
+    selection: { x: number; y: number; w: number; h: number };
+  }
+}
+```
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Overlay+API) on GitHub.*

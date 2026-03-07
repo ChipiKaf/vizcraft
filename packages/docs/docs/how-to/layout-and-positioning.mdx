@@ -1,0 +1,163 @@
+---
+sidebar_position: 3
+title: Layout & Positioning
+description: Position nodes manually, use the grid system, or apply automatic layout algorithms.
+slug: /how-to/layout-and-positioning
+tags: [how-to, layout, grid, positioning]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz, circularLayout, gridLayout } from 'vizcraft';
+
+export const gridScene = viz().view(500, 300)
+  .grid(5, 3, { x: 20, y: 20 })
+  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
+  .node('n2').cell(2, 1).label('2,1').circle(30)
+  .node('n3').cell(4, 2).label('4,2').diamond(60, 60)
+  .done();
+
+export const circularLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('a').circle(30).fill('#89b4fa');
+  b.node('b').circle(30).fill('#a6e3a1');
+  b.node('c').circle(30).fill('#f9e2af');
+  b.node('d').circle(30).fill('#f38ba8');
+  b.edge('a', 'b');
+  b.edge('b', 'c');
+  b.edge('c', 'd');
+  b.edge('d', 'a');
+  b.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+  return b;
+})();
+
+export const gridLayoutBuilder = (() => {
+  const b = viz().view(500, 300);
+  b.node('1').rect(40, 40).fill('#cba6f7');
+  b.node('2').rect(40, 40).fill('#89b4fa');
+  b.node('3').rect(40, 40).fill('#a6e3a1');
+  b.node('4').rect(40, 40).fill('#f9e2af');
+  b.node('5').rect(40, 40).fill('#fab387');
+  b.node('6').rect(40, 40).fill('#f38ba8');
+  b.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+  b.edge('1', '2').routing('orthogonal');
+  b.edge('2', '3').routing('orthogonal');
+  b.edge('4', '5').routing('orthogonal');
+  b.edge('5', '6').routing('orthogonal');
+  return b;
+})();
+
+# Layout & Positioning
+
+Three approaches to positioning nodes: manual coordinates, a grid system, or automatic layout algorithms.
+
+## Manual positioning
+
+Use `.at(x, y)` to place nodes at exact coordinates within the viewBox:
+
+```typescript
+import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder.node('a').at(100, 150).circle(24);
+builder.node('b').at(400, 150).rect(80, 40);
+builder.edge('a', 'b').arrow();
+builder.mount(document.getElementById('container')!);
+```
+
+## Grid system
+
+Define a grid with `.grid(cols, rows, opts?)` and position nodes with `.cell(col, row)`:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder
+  .grid(5, 3, { x: 20, y: 20 }) // 5 cols, 3 rows, 20px padding
+  .node('n1').cell(0, 0).label('0,0').rect(60, 40)
+  .node('n2').cell(2, 1).label('2,1').circle(30)
+  .node('n3').cell(4, 2).label('4,2').diamond(60, 60)
+  .done();
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={gridScene} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
+</CodePreview>
+
+Grid options:
+
+| Option | Type | Description |
+|---|---|---|
+| `x` | `number` | Left padding |
+| `y` | `number` | Top padding |
+
+## Auto-layout algorithms
+
+Instead of positioning nodes manually, let an algorithm compute coordinates for you.
+
+### Circular layout
+
+Arrange nodes in a circle:
+
+<CodePreview code={`import { viz, circularLayout } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder.node('a').circle(30).fill('#89b4fa');
+builder.node('b').circle(30).fill('#a6e3a1');
+builder.node('c').circle(30).fill('#f9e2af');
+builder.node('d').circle(30).fill('#f38ba8');
+builder.edge('a', 'b');
+builder.edge('b', 'c');
+builder.edge('c', 'd');
+builder.edge('d', 'a');
+builder.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={circularLayoutBuilder} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
+</CodePreview>
+
+### Grid layout
+
+Arrange nodes in rows and columns:
+
+<CodePreview code={`import { viz, gridLayout } from 'vizcraft';
+
+const builder = viz().view(500, 300);
+builder.node('1').rect(40, 40).fill('#cba6f7');
+builder.node('2').rect(40, 40).fill('#89b4fa');
+builder.node('3').rect(40, 40).fill('#a6e3a1');
+builder.node('4').rect(40, 40).fill('#f9e2af');
+builder.node('5').rect(40, 40).fill('#fab387');
+builder.node('6').rect(40, 40).fill('#f38ba8');
+builder.layout(gridLayout, { cols: 3, x: 100, y: 70, colSpacing: 150, rowSpacing: 160 });
+builder.edge('1', '2').routing('orthogonal');
+builder.edge('2', '3').routing('orthogonal');
+builder.edge('4', '5').routing('orthogonal');
+builder.edge('5', '6').routing('orthogonal');
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={gridLayoutBuilder} style={{ height: '300px', width: '100%', border: '1px solid #ccc' }} />
+</CodePreview>
+
+### Custom algorithms
+
+A layout algorithm is a function conforming to the `LayoutAlgorithm<Options>` signature — it receives a `LayoutGraph` (nodes + edges) and returns a `LayoutResult` mapping node IDs to `{ x, y }`:
+
+```typescript
+import type { LayoutAlgorithm } from 'vizcraft';
+
+const myLayout: LayoutAlgorithm<{ spacing: number }> = (graph, opts) => {
+  const result: Record<string, { x: number; y: number }> = {};
+  graph.nodes.forEach((node, i) => {
+    result[node.id] = { x: i * (opts?.spacing ?? 100), y: 100 };
+  });
+  return result;
+};
+
+builder.layout(myLayout, { spacing: 120 });
+```
+
+You can also integrate third-party layout engines (like Dagre, ELK, or D3-force) by wrapping them in a `LayoutAlgorithm` function.
+
+---
+
+*Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Layout) on GitHub.*

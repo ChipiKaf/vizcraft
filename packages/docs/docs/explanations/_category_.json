@@ -1,0 +1,9 @@
+{
+  "label": "Explanations",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "title": "Explanations",
+    "description": "Background reading on architecture, design decisions, and the theory behind VizCraft's systems."
+  }
+}

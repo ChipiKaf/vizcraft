@@ -20,16 +20,16 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro"
+            to="/docs/tutorials/getting-started"
           >
-            Get Started 🚀
+            Get Started
           </Link>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/examples"
+            to="/docs/intro"
             style={{ marginLeft: '10px' }}
           >
-            Live Demo 🎮
+            Documentation
           </Link>
         </div>
       </div>
@@ -41,8 +41,8 @@ export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />"
+      title={`${siteConfig.title} — SVG Scene Builder`}
+      description="Fluent, type-safe SVG scene builder with native animation orchestration"
     >
       <HomepageHeader />
       <main>
