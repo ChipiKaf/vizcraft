@@ -383,23 +383,17 @@ function estimateNodeDims(shape: NodeShape): { w: number; h: number } {
   return { w: 60, h: 60 };
 }
 
-/**
- * Extended result for self-loop edges that includes the true exit/entry
- * boundary points in addition to the label positions.
- */
+/** Extends EdgePathResult with true boundary exit/entry points for self-loops. */
 export interface SelfLoopResult extends EdgePathResult {
-  /** True exit point on the node boundary where the loop departs. */
+  /** Boundary point where the loop departs the node. */
   exitPoint: Vec2;
-  /** True entry point on the node boundary where the loop returns. */
+  /** Boundary point where the loop returns to the node. */
   entryPoint: Vec2;
 }
 
 /**
- * Compute the SVG path and label positions for a self-loop edge.
- * A self-loop exits and enters the same node on the specified side.
- *
- * @param node The target node
- * @param edge The self-referencing VizEdge
+ * Compute the SVG path and positions for a self-loop edge.
+ * Exits and enters the same node on the specified side.
  */
 export function computeSelfLoop(node: VizNode, edge: VizEdge): SelfLoopResult {
   const c = effectivePos(node);

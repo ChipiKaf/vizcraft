@@ -6,9 +6,7 @@ import {
 } from './resolveEdgeGeometry';
 import type { VizNode, VizEdge } from '../types';
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Build a minimal scene with two rectangular nodes and a connecting edge. */
+/** Two rectangular nodes connected by a single edge. */
 function twoNodeScene() {
   return viz()
     .view(400, 400)
@@ -34,7 +32,6 @@ describe('resolveEdgeGeometry', () => {
     expect(geo!.isSelfLoop).toBe(false);
     expect(geo!.waypoints).toEqual([]);
 
-    // mid should be somewhere between the two nodes
     expect(geo!.mid.x).toBeGreaterThan(50);
     expect(geo!.mid.x).toBeLessThan(200);
   });
@@ -43,10 +40,7 @@ describe('resolveEdgeGeometry', () => {
     const scene = twoNodeScene();
     const geo = resolveEdgeGeometry(scene, 'e1')!;
 
-    // startAnchor/endAnchor are true boundary intersections,
-    // NOT the ~15%/~85% label positions (start/end from EdgePathResult).
-    // For a rect node at (50,50) 40×40 → boundary at x∈[30,70], y∈[30,70]
-    // For a rect node at (200,200) 40×40 → boundary at x∈[180,220], y∈[180,220]
+    // Node A at (50,50) 40×40 → boundary [30,70]; Node B at (200,200) → [180,220]
     expect(geo.startAnchor.x).toBeGreaterThanOrEqual(30);
     expect(geo.startAnchor.x).toBeLessThanOrEqual(70);
     expect(geo.startAnchor.y).toBeGreaterThanOrEqual(30);
@@ -62,11 +56,9 @@ describe('resolveEdgeGeometry', () => {
     const scene = twoNodeScene();
     const geo = resolveEdgeGeometry(scene, 'e1')!;
 
-    // startLabel/endLabel are the legacy start/end from EdgePathResult
     expect(geo.startLabel).toEqual(geo.start);
     expect(geo.endLabel).toEqual(geo.end);
 
-    // Label positions should be between nodes but not at the boundary
     expect(geo.startLabel.x).toBeGreaterThan(50);
     expect(geo.startLabel.x).toBeLessThan(200);
     expect(geo.endLabel.x).toBeGreaterThan(50);
@@ -84,7 +76,7 @@ describe('resolveEdgeGeometry', () => {
     const geo = resolveEdgeGeometry(scene, 'loop');
     expect(geo).not.toBeNull();
     expect(geo!.isSelfLoop).toBe(true);
-    expect(geo!.d).toContain('C'); // Self-loops use cubic bezier
+    expect(geo!.d).toContain('C');
   });
 
   it('returns boundary anchors and label positions for self-loop edges', () => {
@@ -97,20 +89,17 @@ describe('resolveEdgeGeometry', () => {
 
     const geo = resolveEdgeGeometry(scene, 'loop')!;
 
-    // For a self-loop on a rect at (100,100) 60×60 → boundary at x∈[70,130], y∈[70,130]
-    // startAnchor (exit point) should be on the node boundary
+    // Rect at (100,100) 60×60 → boundary [70,130]
     expect(geo.startAnchor.x).toBeGreaterThanOrEqual(70);
     expect(geo.startAnchor.x).toBeLessThanOrEqual(130);
     expect(geo.startAnchor.y).toBeGreaterThanOrEqual(70);
     expect(geo.startAnchor.y).toBeLessThanOrEqual(130);
 
-    // endAnchor (entry point) should also be on the node boundary
     expect(geo.endAnchor.x).toBeGreaterThanOrEqual(70);
     expect(geo.endAnchor.x).toBeLessThanOrEqual(130);
     expect(geo.endAnchor.y).toBeGreaterThanOrEqual(70);
     expect(geo.endAnchor.y).toBeLessThanOrEqual(130);
 
-    // startLabel and endLabel should be aliases of start/end
     expect(geo.startLabel).toEqual(geo.start);
     expect(geo.endLabel).toEqual(geo.end);
   });
@@ -140,7 +129,6 @@ describe('resolveEdgeGeometry', () => {
   });
 
   it('returns null when a referenced node id is missing', () => {
-    // Create a scene, then fabricate an edge that references a non-existent node
     const scene = twoNodeScene();
     scene.edges.push({
       id: 'bad',
@@ -163,7 +151,7 @@ describe('resolveEdgeGeometry', () => {
 
     const geo = resolveEdgeGeometry(scene, 'curved-e');
     expect(geo).not.toBeNull();
-    expect(geo!.d).toContain('Q'); // Quadratic bezier for auto-curved
+    expect(geo!.d).toContain('Q');
   });
 
   it('handles orthogonal routing', () => {
@@ -178,7 +166,6 @@ describe('resolveEdgeGeometry', () => {
 
     const geo = resolveEdgeGeometry(scene, 'orth-e');
     expect(geo).not.toBeNull();
-    // Orthogonal generates L-shaped path segments
     expect(geo!.d).toContain('L');
   });
 

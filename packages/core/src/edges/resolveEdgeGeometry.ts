@@ -1,10 +1,4 @@
-/**
- * Convenience function that resolves the full rendered geometry for an edge
- * in a single call. Handles node lookup, dangling edges, self-loop detection,
- * port/angle/boundary anchors, waypoints, and routing.
- *
- * @module
- */
+/** Resolves full rendered geometry for an edge in a single call. @module */
 
 import type { Vec2, VizScene, VizEdge, VizNode } from '../types';
 import type { EdgePathResult } from './paths';
@@ -14,30 +8,21 @@ import {
   computeSelfLoop,
 } from './paths';
 
-// ── Public types ────────────────────────────────────────────────────────────
-
-/**
- * Fully resolved edge geometry returned by {@link resolveEdgeGeometry}.
- *
- * Extends `EdgePathResult` with extra convenience fields so consumers
- * never need to orchestrate multiple helpers manually.
- */
+/** Fully resolved edge geometry. Extends `EdgePathResult` with anchor and label positions. */
 export interface ResolvedEdgeGeometry extends EdgePathResult {
-  /** True boundary/port position where the edge exits the source node. */
+  /** Boundary/port position where the edge exits the source node. */
   startAnchor: Vec2;
-  /** True boundary/port position where the edge enters the target node. */
+  /** Boundary/port position where the edge enters the target node. */
   endAnchor: Vec2;
-  /** Label position ~15% along the path (alias of `start` from EdgePathResult). */
+  /** Label position ~15% along the path (alias of `start`). */
   startLabel: Vec2;
-  /** Label position ~85% along the path (alias of `end` from EdgePathResult). */
+  /** Label position ~85% along the path (alias of `end`). */
   endLabel: Vec2;
   /** Waypoints used for the path (empty array when none). */
   waypoints: Vec2[];
-  /** Whether this edge is a self-loop (same source and target node). */
+  /** Whether this edge is a self-loop. */
   isSelfLoop: boolean;
 }
-
-// ── Implementation ──────────────────────────────────────────────────────────
 
 /**
  * Resolve all rendered geometry for a single edge in one call.
@@ -70,30 +55,21 @@ export function resolveEdgeGeometry(
 }
 
 /**
- * Lower-level helper: resolve geometry from an edge + a node lookup map.
- *
- * Useful when the caller already has a `Map` built (e.g. inside a render loop
- * processing many edges).
- *
- * @internal exported for advanced consumers and testing — prefer
- * {@link resolveEdgeGeometry} for typical usage.
+ * Resolve geometry from an edge + a pre-built node map.
+ * Prefer {@link resolveEdgeGeometry} unless you already hold the map.
+ * @internal
  */
 export function resolveEdgeGeometryFromData(
   edge: VizEdge,
   nodesById: Map<string, VizNode>
 ): ResolvedEdgeGeometry | null {
-  // ── Node lookup (null-safe for dangling edges) ──────────────────────────
   const startNode = edge.from ? (nodesById.get(edge.from) ?? null) : null;
   const endNode = edge.to ? (nodesById.get(edge.to) ?? null) : null;
 
-  // Bail out if a referenced node id doesn't exist.
   if (edge.from && !startNode) return null;
   if (edge.to && !endNode) return null;
-
-  // Bail out if both endpoints are entirely unresolvable.
   if (!startNode && !edge.fromAt && !endNode && !edge.toAt) return null;
 
-  // ── Self-loop detection ─────────────────────────────────────────────────
   const isSelfLoop = !!(startNode && endNode && startNode === endNode);
 
   let pathResult: EdgePathResult;
