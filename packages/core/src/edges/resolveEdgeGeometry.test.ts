@@ -6,9 +6,7 @@ import {
 } from './resolveEdgeGeometry';
 import type { VizNode, VizEdge } from '../types';
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Build a minimal scene with two rectangular nodes and a connecting edge. */
+/** Two rectangular nodes connected by a single edge. */
 function twoNodeScene() {
   return viz()
     .view(400, 400)
@@ -34,17 +32,37 @@ describe('resolveEdgeGeometry', () => {
     expect(geo!.isSelfLoop).toBe(false);
     expect(geo!.waypoints).toEqual([]);
 
-    // mid should be somewhere between the two nodes
     expect(geo!.mid.x).toBeGreaterThan(50);
     expect(geo!.mid.x).toBeLessThan(200);
   });
 
-  it('returns startAnchor and endAnchor as aliases of start/end', () => {
+  it('returns startAnchor/endAnchor as true boundary points, not label positions', () => {
     const scene = twoNodeScene();
     const geo = resolveEdgeGeometry(scene, 'e1')!;
 
-    expect(geo.startAnchor).toEqual(geo.start);
-    expect(geo.endAnchor).toEqual(geo.end);
+    // Node A at (50,50) 40×40 → boundary [30,70]; Node B at (200,200) → [180,220]
+    expect(geo.startAnchor.x).toBeGreaterThanOrEqual(30);
+    expect(geo.startAnchor.x).toBeLessThanOrEqual(70);
+    expect(geo.startAnchor.y).toBeGreaterThanOrEqual(30);
+    expect(geo.startAnchor.y).toBeLessThanOrEqual(70);
+
+    expect(geo.endAnchor.x).toBeGreaterThanOrEqual(180);
+    expect(geo.endAnchor.x).toBeLessThanOrEqual(220);
+    expect(geo.endAnchor.y).toBeGreaterThanOrEqual(180);
+    expect(geo.endAnchor.y).toBeLessThanOrEqual(220);
+  });
+
+  it('returns startLabel/endLabel as the ~15%/~85% label positions', () => {
+    const scene = twoNodeScene();
+    const geo = resolveEdgeGeometry(scene, 'e1')!;
+
+    expect(geo.startLabel).toEqual(geo.start);
+    expect(geo.endLabel).toEqual(geo.end);
+
+    expect(geo.startLabel.x).toBeGreaterThan(50);
+    expect(geo.startLabel.x).toBeLessThan(200);
+    expect(geo.endLabel.x).toBeGreaterThan(50);
+    expect(geo.endLabel.x).toBeLessThan(200);
   });
 
   it('detects a self-loop edge', () => {
@@ -58,7 +76,32 @@ describe('resolveEdgeGeometry', () => {
     const geo = resolveEdgeGeometry(scene, 'loop');
     expect(geo).not.toBeNull();
     expect(geo!.isSelfLoop).toBe(true);
-    expect(geo!.d).toContain('C'); // Self-loops use cubic bezier
+    expect(geo!.d).toContain('C');
+  });
+
+  it('returns boundary anchors and label positions for self-loop edges', () => {
+    const scene = viz()
+      .view(400, 400)
+      .node('a', { at: { x: 100, y: 100 }, rect: { w: 60, h: 60 } })
+      .edge('a', 'a', 'loop')
+      .done()
+      .build();
+
+    const geo = resolveEdgeGeometry(scene, 'loop')!;
+
+    // Rect at (100,100) 60×60 → boundary [70,130]
+    expect(geo.startAnchor.x).toBeGreaterThanOrEqual(70);
+    expect(geo.startAnchor.x).toBeLessThanOrEqual(130);
+    expect(geo.startAnchor.y).toBeGreaterThanOrEqual(70);
+    expect(geo.startAnchor.y).toBeLessThanOrEqual(130);
+
+    expect(geo.endAnchor.x).toBeGreaterThanOrEqual(70);
+    expect(geo.endAnchor.x).toBeLessThanOrEqual(130);
+    expect(geo.endAnchor.y).toBeGreaterThanOrEqual(70);
+    expect(geo.endAnchor.y).toBeLessThanOrEqual(130);
+
+    expect(geo.startLabel).toEqual(geo.start);
+    expect(geo.endLabel).toEqual(geo.end);
   });
 
   it('handles dangling edge with fromAt only', () => {
@@ -86,7 +129,6 @@ describe('resolveEdgeGeometry', () => {
   });
 
   it('returns null when a referenced node id is missing', () => {
-    // Create a scene, then fabricate an edge that references a non-existent node
     const scene = twoNodeScene();
     scene.edges.push({
       id: 'bad',
@@ -109,7 +151,7 @@ describe('resolveEdgeGeometry', () => {
 
     const geo = resolveEdgeGeometry(scene, 'curved-e');
     expect(geo).not.toBeNull();
-    expect(geo!.d).toContain('Q'); // Quadratic bezier for auto-curved
+    expect(geo!.d).toContain('Q');
   });
 
   it('handles orthogonal routing', () => {
@@ -124,7 +166,6 @@ describe('resolveEdgeGeometry', () => {
 
     const geo = resolveEdgeGeometry(scene, 'orth-e');
     expect(geo).not.toBeNull();
-    // Orthogonal generates L-shaped path segments
     expect(geo!.d).toContain('L');
   });
 

@@ -383,14 +383,19 @@ function estimateNodeDims(shape: NodeShape): { w: number; h: number } {
   return { w: 60, h: 60 };
 }
 
+/** Extends EdgePathResult with true boundary exit/entry points for self-loops. */
+export interface SelfLoopResult extends EdgePathResult {
+  /** Boundary point where the loop departs the node. */
+  exitPoint: Vec2;
+  /** Boundary point where the loop returns to the node. */
+  entryPoint: Vec2;
+}
+
 /**
- * Compute the SVG path and label positions for a self-loop edge.
- * A self-loop exits and enters the same node on the specified side.
- *
- * @param node The target node
- * @param edge The self-referencing VizEdge
+ * Compute the SVG path and positions for a self-loop edge.
+ * Exits and enters the same node on the specified side.
  */
-export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
+export function computeSelfLoop(node: VizNode, edge: VizEdge): SelfLoopResult {
   const c = effectivePos(node);
   const dims = estimateNodeDims(effectiveShape(node));
   const w = dims.w;
@@ -406,6 +411,7 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
 
   let d = '';
   let start: Vec2, mid: Vec2, end: Vec2;
+  let exitPt: Vec2, entryPt: Vec2;
 
   switch (side) {
     case 'top': {
@@ -415,6 +421,8 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
       const ey = c.y - h / 2;
       const cpY = sy - size * 1.5;
       d = `M ${sx} ${sy} C ${sx - spread / 2} ${cpY}, ${ex + spread / 2} ${cpY}, ${ex} ${ey}`;
+      exitPt = { x: sx, y: sy };
+      entryPt = { x: ex, y: ey };
       start = { x: sx, y: sy - size * 0.2 };
       mid = { x: c.x, y: sy - size };
       end = { x: ex, y: ey - size * 0.2 };
@@ -427,6 +435,8 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
       const ey = c.y + h / 2;
       const cpY = sy + size * 1.5;
       d = `M ${sx} ${sy} C ${sx - spread / 2} ${cpY}, ${ex + spread / 2} ${cpY}, ${ex} ${ey}`;
+      exitPt = { x: sx, y: sy };
+      entryPt = { x: ex, y: ey };
       start = { x: sx, y: sy + size * 0.2 };
       mid = { x: c.x, y: sy + size };
       end = { x: ex, y: ey + size * 0.2 };
@@ -439,6 +449,8 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
       const ey = c.y + spread / 2;
       const cpX = sx - size * 1.5;
       d = `M ${sx} ${sy} C ${cpX} ${sy - spread / 2}, ${cpX} ${ey + spread / 2}, ${ex} ${ey}`;
+      exitPt = { x: sx, y: sy };
+      entryPt = { x: ex, y: ey };
       start = { x: sx - size * 0.2, y: sy };
       mid = { x: sx - size, y: c.y };
       end = { x: ex - size * 0.2, y: ey };
@@ -451,6 +463,8 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
       const ey = c.y + spread / 2;
       const cpX = sx + size * 1.5;
       d = `M ${sx} ${sy} C ${cpX} ${sy - spread / 2}, ${cpX} ${ey + spread / 2}, ${ex} ${ey}`;
+      exitPt = { x: sx, y: sy };
+      entryPt = { x: ex, y: ey };
       start = { x: sx + size * 0.2, y: sy };
       mid = { x: sx + size, y: c.y };
       end = { x: ex + size * 0.2, y: ey };
@@ -458,5 +472,5 @@ export function computeSelfLoop(node: VizNode, edge: VizEdge): EdgePathResult {
     }
   }
 
-  return { d, start, mid, end };
+  return { d, start, mid, end, exitPoint: exitPt, entryPoint: entryPt };
 }
