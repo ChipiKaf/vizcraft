@@ -1,0 +1,352 @@
+---
+sidebar_position: 4
+title: Fluent vs Declarative API
+description: VizCraft offers two equivalent ways to define scenes — fluent chaining and declarative options objects. Learn when to use each and how they compose.
+slug: /explanations/fluent-vs-declarative
+tags: [explanation, api, builder, patterns]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz } from 'vizcraft';
+
+export const fluentScene = viz()
+  .view(400, 160)
+  .node('a').at(80, 80).circle(26).fill('#89b4fa').label('A')
+  .node('b').at(320, 80).rect(60, 40, 8).fill('#a6e3a1').label('B')
+  .edge('a', 'b').arrow().label('hello').done();
+
+export const declarativeScene = viz()
+  .view(400, 160)
+  .node('a', {
+    at: { x: 80, y: 80 },
+    circle: { r: 26 },
+    fill: '#89b4fa',
+    label: 'A',
+  })
+  .node('b', {
+    at: { x: 320, y: 80 },
+    rect: { w: 60, h: 40, rx: 8 },
+    fill: '#a6e3a1',
+    label: 'B',
+  })
+  .edge('a', 'b', {
+    arrow: true,
+    label: 'hello',
+  });
+
+# Fluent vs Declarative API
+
+VizCraft supports **two equivalent ways** to define nodes, edges, and other scene elements. Both compile to the same underlying data structures (`VizNode`, `VizEdge`) and produce identical rendering.
+
+## The two styles
+
+### Fluent (builder chain)
+
+Chain methods on a builder object. Great for interactive, hand-written code:
+
+```typescript
+viz()
+  .view(400, 160)
+  .node('a').at(80, 80).circle(26).fill('#89b4fa').label('A')
+  .node('b').at(320, 80).rect(60, 40, 8).fill('#a6e3a1').label('B')
+  .edge('a', 'b').arrow().label('hello').done()
+  .mount(container);
+```
+
+<VizMount builder={fluentScene} style={{ height: '160px', width: '100%' }} />
+
+### Declarative (options object)
+
+Pass a plain options object. Great for data-driven, programmatic, or serialized usage:
+
+```typescript
+viz()
+  .view(400, 160)
+  .node('a', {
+    at: { x: 80, y: 80 },
+    circle: { r: 26 },
+    fill: '#89b4fa',
+    label: 'A',
+  })
+  .node('b', {
+    at: { x: 320, y: 80 },
+    rect: { w: 60, h: 40, rx: 8 },
+    fill: '#a6e3a1',
+    label: 'B',
+  })
+  .edge('a', 'b', {
+    arrow: true,
+    label: 'hello',
+  })
+  .mount(container);
+```
+
+<VizMount builder={declarativeScene} style={{ height: '160px', width: '100%' }} />
+
+Both produce the **exact same SVG output**.
+
+---
+
+## When to use which
+
+| Scenario | Recommended style | Why |
+|---|---|---|
+| Hand-authoring a diagram | **Fluent** | Concise, readable, IDE autocomplete guides you |
+| Generating nodes from a data array | **Declarative** | Object spreading and mapping are natural |
+| Form / editor building scenes | **Declarative** | Options objects serialize/deserialize cleanly |
+| One-off complex styling | **Fluent** | Chain expressive methods without nesting objects |
+| Bulk + detail in one builder | **Both** | Declarative for bulk, fluent for special elements |
+
+:::tip Rule of thumb
+If you're **writing** the scene by hand, use fluent. If you're **computing** the scene from data, use declarative.
+:::
+
+---
+
+## How the overloads work
+
+The distinction is driven by the second argument:
+
+### Nodes
+
+```typescript
+// Fluent — returns NodeBuilder for chaining
+builder.node('a')            // → NodeBuilder
+
+// Declarative — returns VizBuilder (element complete)
+builder.node('a', { ... })   // → VizBuilder
+```
+
+When you pass a [`NodeOptions`](/reference/types#nodeoptions) object, the node is fully configured and the call returns the parent `VizBuilder` directly. When you omit options, you get a `NodeBuilder` back for chaining.
+
+### Edges
+
+```typescript
+// Fluent — returns EdgeBuilder for chaining
+builder.edge('a', 'b')            // → EdgeBuilder
+builder.edge('a', 'b', 'myId')   // → EdgeBuilder (with custom id)
+
+// Declarative — returns VizBuilder (element complete)
+builder.edge('a', 'b', { ... })   // → VizBuilder
+```
+
+Same pattern: an [`EdgeOptions`](/reference/types#edgeoptions) object means the edge is complete, so `VizBuilder` is returned. A `string` third argument is treated as a custom edge id (returning `EdgeBuilder`).
+
+### Dangling edges
+
+```typescript
+// Fluent
+builder.danglingEdge('preview')
+  .from('src').toAt({ x: 300, y: 200 }).arrow().done()
+
+// Declarative
+builder.danglingEdge('preview', {
+  from: 'src',
+  toAt: { x: 300, y: 200 },
+  arrow: true,
+})
+```
+
+---
+
+## Side-by-side examples
+
+### Styled node
+
+<table>
+<tr><th>Fluent</th><th>Declarative</th></tr>
+<tr>
+<td>
+
+```typescript
+builder.node('db')
+  .at(200, 100)
+  .cylinder(80, 60)
+  .fill('#fab387')
+  .stroke('#e64553', 2)
+  .shadow()
+  .label('Database')
+```
+
+</td>
+<td>
+
+```typescript
+builder.node('db', {
+  at: { x: 200, y: 100 },
+  cylinder: { w: 80, h: 60 },
+  fill: '#fab387',
+  stroke: { color: '#e64553', width: 2 },
+  shadow: true,
+  label: 'Database',
+})
+```
+
+</td>
+</tr>
+</table>
+
+### Edge with routing and markers
+
+<table>
+<tr><th>Fluent</th><th>Declarative</th></tr>
+<tr>
+<td>
+
+```typescript
+builder.edge('a', 'b')
+  .curved()
+  .arrow()
+  .stroke('#6c7086', 2)
+  .dashed()
+  .label('async')
+  .done()
+```
+
+</td>
+<td>
+
+```typescript
+builder.edge('a', 'b', {
+  routing: 'curved',
+  arrow: true,
+  stroke: { color: '#6c7086', width: 2 },
+  dash: 'dashed',
+  label: 'async',
+})
+```
+
+</td>
+</tr>
+</table>
+
+### Edge with ports
+
+<table>
+<tr><th>Fluent</th><th>Declarative</th></tr>
+<tr>
+<td>
+
+```typescript
+builder.edge('srv', 'db')
+  .fromPort('out-1')
+  .toPort('in')
+  .arrow()
+  .done()
+```
+
+</td>
+<td>
+
+```typescript
+builder.edge('srv', 'db', {
+  fromPort: 'out-1',
+  toPort: 'in',
+  arrow: true,
+})
+```
+
+</td>
+</tr>
+</table>
+
+### Self-loop
+
+<table>
+<tr><th>Fluent</th><th>Declarative</th></tr>
+<tr>
+<td>
+
+```typescript
+builder.edge('n1', 'n1')
+  .loopSide('right')
+  .loopSize(40)
+  .arrow()
+  .done()
+```
+
+</td>
+<td>
+
+```typescript
+builder.edge('n1', 'n1', {
+  loopSide: 'right',
+  loopSize: 40,
+  arrow: true,
+})
+```
+
+</td>
+</tr>
+</table>
+
+---
+
+## Mixing styles in one builder
+
+Both styles compose freely in a single builder chain. Use declarative for bulk data-driven elements and fluent for one-off complex elements:
+
+```typescript
+const nodes = [
+  { id: 'a', x: 50, y: 50, label: 'Input' },
+  { id: 'b', x: 200, y: 50, label: 'Process' },
+  { id: 'c', x: 350, y: 50, label: 'Output' },
+];
+
+const b = viz().view(500, 200);
+
+// Declarative: generate nodes from data
+for (const n of nodes) {
+  b.node(n.id, {
+    at: { x: n.x, y: n.y },
+    rect: { w: 80, h: 40 },
+    label: n.label,
+  });
+}
+
+// Declarative: generate edges from data
+const connections = [['a', 'b'], ['b', 'c']];
+for (const [from, to] of connections) {
+  b.edge(from, to, { arrow: true });
+}
+
+// Fluent: add a special highlighted node
+b.node('alert')
+  .at(200, 150)
+  .diamond(60, 60)
+  .fill('#f38ba8')
+  .stroke('#e64553', 2)
+  .shadow({ blur: 8, color: 'rgba(230,69,83,0.4)' })
+  .label('⚠️ Alert');
+
+// Fluent: add a special styled edge
+b.edge('b', 'alert')
+  .curved()
+  .dashed()
+  .stroke('#f38ba8')
+  .arrow()
+  .label('error')
+  .done();
+
+b.mount(container);
+```
+
+This pattern is common in real applications: generate the bulk of the diagram from a data source, then add special-case elements with fluent chaining.
+
+---
+
+## Under the hood
+
+Declarative options are pure **syntactic sugar**. Internally, `node(id, opts)` calls the same builder methods that fluent chaining uses. Both paths produce the same `VizNode` / `VizEdge` data in the resulting `VizScene`.
+
+This means:
+- No rendering differences between the two styles (ever)
+- No performance difference
+- Feature parity is guaranteed — if a builder method exists, the equivalent option exists
+
+See the [Builder API reference](/reference/builder-api) for the full method listing, and the [Types reference](/reference/types#nodeoptions) for `NodeOptions` and `EdgeOptions` shapes.
+
+---
+
+_Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Fluent+vs+Declarative) on GitHub._
