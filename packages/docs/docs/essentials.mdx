@@ -5,7 +5,14 @@ title: Essentials
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
-import { viz, circularLayout, gridLayout, registerIcon, getEquidistantPorts, toNodePorts } from 'vizcraft';
+import {
+  viz,
+  circularLayout,
+  gridLayout,
+  registerIcon,
+  getEquidistantPorts,
+  toNodePorts,
+} from 'vizcraft';
 
 export const _registerEssentialsIcons = (() => {
   registerIcon(
@@ -1848,20 +1855,59 @@ When you need **N evenly spaced ports** along a shape's perimeter (think circuit
 Ports receive **stable, location-based IDs** so that persisted edge–port references survive count changes.
 
 export const equidistantPortScene = (() => {
-  const rectPorts = toNodePorts(getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8));
-  const circlePorts = toNodePorts(getEquidistantPorts({ kind: 'circle', r: 40 }, 8));
-  const hexPorts = toNodePorts(getEquidistantPorts({ kind: 'hexagon', r: 40 }, 6));
+  const rectPorts = toNodePorts(
+    getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8)
+  );
+  const circlePorts = toNodePorts(
+    getEquidistantPorts({ kind: 'circle', r: 40 }, 8)
+  );
+  const hexPorts = toNodePorts(
+    getEquidistantPorts({ kind: 'hexagon', r: 40 }, 6)
+  );
   const b = viz().view(700, 320);
-  const nb = b.node('rect').at(120, 160).rect(120, 60, 6).label('Rect').fill('#DBEAFE').stroke('#1D4ED8', 2);
+  const nb = b
+    .node('rect')
+    .at(120, 160)
+    .rect(120, 60, 6)
+    .label('Rect')
+    .fill('#DBEAFE')
+    .stroke('#1D4ED8', 2);
   for (const p of rectPorts) nb.port(p.id, p.offset, p.direction);
-  const nb2 = b.node('circle').at(360, 160).circle(40).label('Circle').fill('#FEF3C7').stroke('#92400E', 2);
+  const nb2 = b
+    .node('circle')
+    .at(360, 160)
+    .circle(40)
+    .label('Circle')
+    .fill('#FEF3C7')
+    .stroke('#92400E', 2);
   for (const p of circlePorts) nb2.port(p.id, p.offset, p.direction);
-  const nb3 = b.node('hex').at(580, 160).hexagon(40).label('Hex').fill('#DCFCE7').stroke('#166534', 2);
+  const nb3 = b
+    .node('hex')
+    .at(580, 160)
+    .hexagon(40)
+    .label('Hex')
+    .fill('#DCFCE7')
+    .stroke('#166534', 2);
   for (const p of hexPorts) nb3.port(p.id, p.offset, p.direction);
-  b.edge('rect', 'circle').fromPort('right-0').toPort('180-0').arrow().stroke('#6366F1').label('right-0 → 180-0');
-  b.edge('circle', 'hex').fromPort('0-0').toPort('left-0').arrow().stroke('#059669').label('0-0 → left-0');
-  b.edge('rect', 'hex').fromPort('top-1').toPort('top-left-0').arrow().stroke('#DC2626').label('top-1 → top-left-0');
-  return b.done();
+  b.edge('rect', 'circle')
+    .fromPort('right-0')
+    .toPort('180-0')
+    .arrow()
+    .stroke('#6366F1')
+    .label('right-0 → 180-0');
+  b.edge('circle', 'hex')
+    .fromPort('0-0')
+    .toPort('left-0')
+    .arrow()
+    .stroke('#059669')
+    .label('0-0 → left-0');
+  b.edge('rect', 'hex')
+    .fromPort('top-1')
+    .toPort('top-left-0')
+    .arrow()
+    .stroke('#DC2626')
+    .label('top-1 → top-left-0');
+  return b;
 })();
 
 <CodePreview code={`
@@ -1881,22 +1927,21 @@ const b = viz().view(700, 320);
 
 // Attach generated ports to each node
 const rect = b.node('rect').at(120, 160).rect(120, 60, 6)
-  .label('Rect').fill('#DBEAFE').stroke('#1D4ED8', 2);
+.label('Rect').fill('#DBEAFE').stroke('#1D4ED8', 2);
 for (const p of rectPorts) rect.port(p.id, p.offset, p.direction);
 
 const circle = b.node('circle').at(360, 160).circle(40)
-  .label('Circle').fill('#FEF3C7').stroke('#92400E', 2);
+.label('Circle').fill('#FEF3C7').stroke('#92400E', 2);
 for (const p of circlePorts) circle.port(p.id, p.offset, p.direction);
 
 const hex = b.node('hex').at(580, 160).hexagon(40)
-  .label('Hex').fill('#DCFCE7').stroke('#166534', 2);
+.label('Hex').fill('#DCFCE7').stroke('#166534', 2);
 for (const p of hexPorts) hex.port(p.id, p.offset, p.direction);
 
 // Connect using stable port IDs — hover nodes to see ports
 b.edge('rect', 'circle').fromPort('right-0').toPort('180-0').arrow();
 b.edge('circle', 'hex').fromPort('0-0').toPort('left-0').arrow();
 b.edge('rect', 'hex').fromPort('top-1').toPort('top-left-0').arrow();
-b.done();
 `}>
 
   <VizMount builder={equidistantPortScene} style={{ height: '320px', width: '100%' }} />
@@ -1927,14 +1972,15 @@ Unlike simple angular spacing, `getEquidistantPorts` distributes points by **per
 
 Port IDs are **stable across count changes**: ports near the same perimeter region keep the same ID prefix regardless of the total port count. This means persisted `fromPort`/`toPort` references survive when the port count changes.
 
-| Field    | Description                                                                  |
-| -------- | ---------------------------------------------------------------------------- |
-| `id`     | Location-based identifier (e.g. `top-0`, `right-1`, `0-0`, `270-1`)         |
-| `angle`  | Angle from center in degrees (0 = right, 90 = down)                         |
-| `t`      | Parametric proportion along perimeter \[0, 1)                               |
-| `x`, `y` | Offset from node center                                                     |
+| Field    | Description                                                         |
+| -------- | ------------------------------------------------------------------- |
+| `id`     | Location-based identifier (e.g. `top-0`, `right-1`, `0-0`, `270-1`) |
+| `angle`  | Angle from center in degrees (0 = right, 90 = down)                 |
+| `t`      | Parametric proportion along perimeter \[0, 1)                       |
+| `x`, `y` | Offset from node center                                             |
 
 **ID schemes:**
+
 - **Polygon shapes** with named sides (rect, diamond, triangle, hexagon, parallelogram, trapezoid): `{side}-{index}` (e.g. `top-0`, `right-1`)
 - **Curved / complex shapes** (circle, ellipse, cylinder, star, cross): `{angleBucket}-{index}` where the bucket is a 90° quadrant (e.g. `0-0`, `90-1`, `270-0`)
 
