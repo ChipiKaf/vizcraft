@@ -624,4 +624,54 @@ builder.setEdgePathResolver((edge, scene, defaultResolver) => {
 
 ---
 
+## Resolve edge geometry {#resolve-edge-geometry}
+
+Use `resolveEdgeGeometry(scene, edgeId)` to get the full rendered geometry of an edge in a **single call**. It handles node lookup, self-loop detection, port/angle/boundary anchors, waypoints, and routing — no need to orchestrate multiple helpers manually.
+
+```typescript
+import { resolveEdgeGeometry } from 'vizcraft';
+
+const geo = resolveEdgeGeometry(scene, 'edge-1');
+if (!geo) return; // edge not found or unresolvable
+
+// SVG path
+overlayPath.setAttribute('d', geo.d);
+
+// Label positions
+positionToolbar(geo.mid);          // midpoint
+positionSourceLabel(geo.start);    // ~15% along path
+positionTargetLabel(geo.end);      // ~85% along path
+
+// Anchor points (same as start/end but named for clarity)
+drawHandle(geo.startAnchor);
+drawHandle(geo.endAnchor);
+
+// Waypoints and self-loop flag
+geo.waypoints.forEach(drawWaypointDot);
+if (geo.isSelfLoop) { /* handle loop-specific overlays */ }
+```
+
+Returns `null` when:
+- The edge id is not found in the scene.
+- A referenced node id does not exist.
+- Both endpoints are missing (no `from`/`to` and no `fromAt`/`toAt`).
+
+The return type is [`ResolvedEdgeGeometry`](/reference/types#resolvededgegeometry), which extends [`EdgePathResult`](/reference/types#edgepathresult).
+
+For batch processing, use the lower-level `resolveEdgeGeometryFromData(edge, nodesById)` to avoid rebuilding the node map on each call:
+
+```typescript
+import { resolveEdgeGeometryFromData } from 'vizcraft';
+
+const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
+
+for (const edge of scene.edges) {
+  const geo = resolveEdgeGeometryFromData(edge, nodesById);
+  if (!geo) continue;
+  // use geo.d, geo.mid, etc.
+}
+```
+
+---
+
 _Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Edges) on GitHub._
