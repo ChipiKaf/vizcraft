@@ -5,7 +5,7 @@ title: Essentials
 
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
-import { viz, circularLayout, gridLayout, registerIcon } from 'vizcraft';
+import { viz, circularLayout, gridLayout, registerIcon, getEquidistantPorts, toNodePorts } from 'vizcraft';
 
 export const _registerEssentialsIcons = (() => {
   registerIcon(
@@ -1843,7 +1843,66 @@ For the full type reference (including default ports per shape and utility funct
 
 #### Equidistant port distribution
 
-When you need **N evenly spaced ports** along a shape's perimeter (think circuit-board connectors, port-based editors, or radial menus), use `getEquidistantPorts`:
+When you need **N evenly spaced ports** along a shape's perimeter (think circuit-board connectors, port-based editors, or radial menus), use `getEquidistantPorts`.
+
+Ports receive **stable, location-based IDs** so that persisted edge–port references survive count changes.
+
+export const equidistantPortScene = (() => {
+  const rectPorts = toNodePorts(getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8));
+  const circlePorts = toNodePorts(getEquidistantPorts({ kind: 'circle', r: 40 }, 8));
+  const hexPorts = toNodePorts(getEquidistantPorts({ kind: 'hexagon', r: 40 }, 6));
+  const b = viz().view(700, 320);
+  const nb = b.node('rect').at(120, 160).rect(120, 60, 6).label('Rect').fill('#DBEAFE').stroke('#1D4ED8', 2);
+  for (const p of rectPorts) nb.port(p.id, p.offset, p.direction);
+  const nb2 = b.node('circle').at(360, 160).circle(40).label('Circle').fill('#FEF3C7').stroke('#92400E', 2);
+  for (const p of circlePorts) nb2.port(p.id, p.offset, p.direction);
+  const nb3 = b.node('hex').at(580, 160).hexagon(40).label('Hex').fill('#DCFCE7').stroke('#166534', 2);
+  for (const p of hexPorts) nb3.port(p.id, p.offset, p.direction);
+  b.edge('rect', 'circle').fromPort('right-0').toPort('180-0').arrow().stroke('#6366F1').label('right-0 → 180-0');
+  b.edge('circle', 'hex').fromPort('0-0').toPort('left-0').arrow().stroke('#059669').label('0-0 → left-0');
+  b.edge('rect', 'hex').fromPort('top-1').toPort('top-left-0').arrow().stroke('#DC2626').label('top-1 → top-left-0');
+  return b.done();
+})();
+
+<CodePreview code={`
+import { viz, getEquidistantPorts, toNodePorts } from 'vizcraft';
+
+// Generate equidistant ports with stable, location-based IDs
+const rectPorts = toNodePorts(getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8));
+// → [{ id: 'top-0', … }, { id: 'top-1', … }, { id: 'right-0', … }, …]
+
+const circlePorts = toNodePorts(getEquidistantPorts({ kind: 'circle', r: 40 }, 8));
+// → [{ id: '0-0', … }, { id: '0-1', … }, { id: '90-0', … }, …]
+
+const hexPorts = toNodePorts(getEquidistantPorts({ kind: 'hexagon', r: 40 }, 6));
+// → [{ id: 'top-right-0', … }, { id: 'right-0', … }, …]
+
+const b = viz().view(700, 320);
+
+// Attach generated ports to each node
+const rect = b.node('rect').at(120, 160).rect(120, 60, 6)
+  .label('Rect').fill('#DBEAFE').stroke('#1D4ED8', 2);
+for (const p of rectPorts) rect.port(p.id, p.offset, p.direction);
+
+const circle = b.node('circle').at(360, 160).circle(40)
+  .label('Circle').fill('#FEF3C7').stroke('#92400E', 2);
+for (const p of circlePorts) circle.port(p.id, p.offset, p.direction);
+
+const hex = b.node('hex').at(580, 160).hexagon(40)
+  .label('Hex').fill('#DCFCE7').stroke('#166534', 2);
+for (const p of hexPorts) hex.port(p.id, p.offset, p.direction);
+
+// Connect using stable port IDs — hover nodes to see ports
+b.edge('rect', 'circle').fromPort('right-0').toPort('180-0').arrow();
+b.edge('circle', 'hex').fromPort('0-0').toPort('left-0').arrow();
+b.edge('rect', 'hex').fromPort('top-1').toPort('top-left-0').arrow();
+b.done();
+`}>
+
+  <VizMount builder={equidistantPortScene} style={{ height: '320px', width: '100%' }} />
+</CodePreview>
+
+Hover over any node to see its port positions. Edge labels show the port IDs used for each connection — notice how they encode the port's location (e.g. `right-0`, `180-0`, `top-left-0`).
 
 ```typescript
 import { getEquidistantPorts, toNodePorts, findPortNearest } from 'vizcraft';
