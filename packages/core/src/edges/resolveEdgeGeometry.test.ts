@@ -39,12 +39,38 @@ describe('resolveEdgeGeometry', () => {
     expect(geo!.mid.x).toBeLessThan(200);
   });
 
-  it('returns startAnchor and endAnchor as aliases of start/end', () => {
+  it('returns startAnchor/endAnchor as true boundary points, not label positions', () => {
     const scene = twoNodeScene();
     const geo = resolveEdgeGeometry(scene, 'e1')!;
 
-    expect(geo.startAnchor).toEqual(geo.start);
-    expect(geo.endAnchor).toEqual(geo.end);
+    // startAnchor/endAnchor are true boundary intersections,
+    // NOT the ~15%/~85% label positions (start/end from EdgePathResult).
+    // For a rect node at (50,50) 40×40 → boundary at x∈[30,70], y∈[30,70]
+    // For a rect node at (200,200) 40×40 → boundary at x∈[180,220], y∈[180,220]
+    expect(geo.startAnchor.x).toBeGreaterThanOrEqual(30);
+    expect(geo.startAnchor.x).toBeLessThanOrEqual(70);
+    expect(geo.startAnchor.y).toBeGreaterThanOrEqual(30);
+    expect(geo.startAnchor.y).toBeLessThanOrEqual(70);
+
+    expect(geo.endAnchor.x).toBeGreaterThanOrEqual(180);
+    expect(geo.endAnchor.x).toBeLessThanOrEqual(220);
+    expect(geo.endAnchor.y).toBeGreaterThanOrEqual(180);
+    expect(geo.endAnchor.y).toBeLessThanOrEqual(220);
+  });
+
+  it('returns startLabel/endLabel as the ~15%/~85% label positions', () => {
+    const scene = twoNodeScene();
+    const geo = resolveEdgeGeometry(scene, 'e1')!;
+
+    // startLabel/endLabel are the legacy start/end from EdgePathResult
+    expect(geo.startLabel).toEqual(geo.start);
+    expect(geo.endLabel).toEqual(geo.end);
+
+    // Label positions should be between nodes but not at the boundary
+    expect(geo.startLabel.x).toBeGreaterThan(50);
+    expect(geo.startLabel.x).toBeLessThan(200);
+    expect(geo.endLabel.x).toBeGreaterThan(50);
+    expect(geo.endLabel.x).toBeLessThan(200);
   });
 
   it('detects a self-loop edge', () => {
@@ -59,6 +85,34 @@ describe('resolveEdgeGeometry', () => {
     expect(geo).not.toBeNull();
     expect(geo!.isSelfLoop).toBe(true);
     expect(geo!.d).toContain('C'); // Self-loops use cubic bezier
+  });
+
+  it('returns boundary anchors and label positions for self-loop edges', () => {
+    const scene = viz()
+      .view(400, 400)
+      .node('a', { at: { x: 100, y: 100 }, rect: { w: 60, h: 60 } })
+      .edge('a', 'a', 'loop')
+      .done()
+      .build();
+
+    const geo = resolveEdgeGeometry(scene, 'loop')!;
+
+    // For a self-loop on a rect at (100,100) 60×60 → boundary at x∈[70,130], y∈[70,130]
+    // startAnchor (exit point) should be on the node boundary
+    expect(geo.startAnchor.x).toBeGreaterThanOrEqual(70);
+    expect(geo.startAnchor.x).toBeLessThanOrEqual(130);
+    expect(geo.startAnchor.y).toBeGreaterThanOrEqual(70);
+    expect(geo.startAnchor.y).toBeLessThanOrEqual(130);
+
+    // endAnchor (entry point) should also be on the node boundary
+    expect(geo.endAnchor.x).toBeGreaterThanOrEqual(70);
+    expect(geo.endAnchor.x).toBeLessThanOrEqual(130);
+    expect(geo.endAnchor.y).toBeGreaterThanOrEqual(70);
+    expect(geo.endAnchor.y).toBeLessThanOrEqual(130);
+
+    // startLabel and endLabel should be aliases of start/end
+    expect(geo.startLabel).toEqual(geo.start);
+    expect(geo.endLabel).toEqual(geo.end);
   });
 
   it('handles dangling edge with fromAt only', () => {

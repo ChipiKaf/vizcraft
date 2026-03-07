@@ -23,10 +23,14 @@ import {
  * never need to orchestrate multiple helpers manually.
  */
 export interface ResolvedEdgeGeometry extends EdgePathResult {
-  /** Source anchor position (alias of `start` from EdgePathResult, ~15% along path). */
+  /** True boundary/port position where the edge exits the source node. */
   startAnchor: Vec2;
-  /** Target anchor position (alias of `end` from EdgePathResult, ~85% along path). */
+  /** True boundary/port position where the edge enters the target node. */
   endAnchor: Vec2;
+  /** Label position ~15% along the path (alias of `start` from EdgePathResult). */
+  startLabel: Vec2;
+  /** Label position ~85% along the path (alias of `end` from EdgePathResult). */
+  endLabel: Vec2;
   /** Waypoints used for the path (empty array when none). */
   waypoints: Vec2[];
   /** Whether this edge is a self-loop (same source and target node). */
@@ -93,9 +97,14 @@ export function resolveEdgeGeometryFromData(
   const isSelfLoop = !!(startNode && endNode && startNode === endNode);
 
   let pathResult: EdgePathResult;
+  let anchorStart: Vec2;
+  let anchorEnd: Vec2;
 
   if (isSelfLoop) {
-    pathResult = computeSelfLoop(startNode!, edge);
+    const selfLoop = computeSelfLoop(startNode!, edge);
+    pathResult = selfLoop;
+    anchorStart = selfLoop.exitPoint;
+    anchorEnd = selfLoop.entryPoint;
   } else {
     const endpoints = computeEdgeEndpoints(startNode, endNode, edge);
     pathResult = computeEdgePath(
@@ -104,12 +113,16 @@ export function resolveEdgeGeometryFromData(
       edge.routing,
       edge.waypoints
     );
+    anchorStart = endpoints.start;
+    anchorEnd = endpoints.end;
   }
 
   return {
     ...pathResult,
-    startAnchor: pathResult.start,
-    endAnchor: pathResult.end,
+    startAnchor: anchorStart,
+    endAnchor: anchorEnd,
+    startLabel: pathResult.start,
+    endLabel: pathResult.end,
     waypoints: edge.waypoints ?? [],
     isSelfLoop,
   };

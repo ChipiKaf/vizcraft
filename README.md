@@ -334,12 +334,14 @@ import { resolveEdgeGeometry } from 'vizcraft';
 const geo = resolveEdgeGeometry(scene, 'edge-1');
 if (!geo) return; // edge not found or unresolvable
 
-overlayPath.setAttribute('d', geo.d);  // SVG path
-positionToolbar(geo.mid);               // midpoint
-drawHandle(geo.startAnchor);            // source anchor
-drawHandle(geo.endAnchor);              // target anchor
-geo.waypoints.forEach(drawDot);         // waypoints
-if (geo.isSelfLoop) { /* ... */ }       // self-loop flag
+overlayPath.setAttribute('d', geo.d);    // SVG path
+positionToolbar(geo.mid);                // midpoint
+drawHandle(geo.startAnchor);             // true boundary exit point
+drawHandle(geo.endAnchor);               // true boundary entry point
+positionSourceLabel(geo.startLabel);     // ~15% along path
+positionTargetLabel(geo.endLabel);       // ~85% along path
+geo.waypoints.forEach(drawDot);          // waypoints
+if (geo.isSelfLoop) { /* ... */ }        // self-loop flag
 ```
 
 | Method | Description |
