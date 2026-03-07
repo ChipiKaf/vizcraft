@@ -8,6 +8,7 @@ export * from './overlays/builder';
 export * from './edges/paths';
 export * from './edges/labels';
 export * from './edges/styles';
+export * from './edges/resolveEdgeGeometry';
 export {
   getDefaultPorts,
   getNodePorts,

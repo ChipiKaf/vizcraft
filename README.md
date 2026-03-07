@@ -324,6 +324,24 @@ b.danglingEdge('preview')
 b.danglingEdge('e1', { from: 'srv', toAt: { x: 300, y: 200 }, arrow: true })
 ```
 
+#### Resolving edge geometry
+
+`resolveEdgeGeometry(scene, edgeId)` resolves all rendered geometry for an edge in a single call — anchor points, SVG path, midpoint, label positions, waypoints, and self-loop detection:
+
+```ts
+import { resolveEdgeGeometry } from 'vizcraft';
+
+const geo = resolveEdgeGeometry(scene, 'edge-1');
+if (!geo) return; // edge not found or unresolvable
+
+overlayPath.setAttribute('d', geo.d);  // SVG path
+positionToolbar(geo.mid);               // midpoint
+drawHandle(geo.startAnchor);            // source anchor
+drawHandle(geo.endAnchor);              // target anchor
+geo.waypoints.forEach(drawDot);         // waypoints
+if (geo.isSelfLoop) { /* ... */ }       // self-loop flag
+```
+
 | Method | Description |
 |--------|-------------|
 | `.straight()` | Direct line (default). With waypoints → polyline. |
