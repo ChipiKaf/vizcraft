@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.7.0
+
+### Minor Changes
+
+- [#98](https://github.com/ChipiKaf/vizcraft/pull/98) [`b513c21`](https://github.com/ChipiKaf/vizcraft/commit/b513c21308d115b0634cf63a0c63b3708684a172) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add `resolveEdgeGeometry(scene, edgeId)` convenience function that resolves all rendered geometry for an edge in a single call — node lookup, self-loop detection, port/angle/boundary anchors, waypoints, routing, SVG path, midpoint, and label positions. Also exports `resolveEdgeGeometryFromData` for batch processing with a pre-built node map.
+
 ## 1.6.0
 
 ### Minor Changes
