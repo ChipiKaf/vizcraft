@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.8.0
+
+### Minor Changes
+
+- [`dd6f311`](https://github.com/ChipiKaf/vizcraft/commit/dd6f311f3c89e78e85d66a85eb6df68b04c38aba) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add async layout support and `getNodeBoundingBox` utility. `LayoutAlgorithm` now accepts async algorithms via the new `.layoutAsync()` builder method. `getNodeBoundingBox(shape)` returns a tight axis-aligned bounding box for any `NodeShape`, accounting for orientation, direction, and pointer height.
+
 ## 1.7.1
 
 ### Patch Changes
