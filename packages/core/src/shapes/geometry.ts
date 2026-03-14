@@ -1704,3 +1704,18 @@ function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
       return { hw: 0, hh: 0 };
   }
 }
+
+/**
+ * Compute the bounding-box size of a node shape.
+ *
+ * Returns `{ width, height }` that tightly enclose the shape.
+ * This is the canonical utility for layout algorithms and collision
+ * detection — use it instead of duplicating per-shape switch logic.
+ */
+export function getNodeBoundingBox(shape: NodeShape): {
+  width: number;
+  height: number;
+} {
+  const { hw, hh } = shapeBoundingBox(shape);
+  return { width: hw * 2, height: hh * 2 };
+}

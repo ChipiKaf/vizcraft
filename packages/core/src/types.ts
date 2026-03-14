@@ -836,9 +836,12 @@ export interface LayoutResult {
 
 /**
  * A layout algorithm computes positions for nodes in a graph.
+ *
+ * May return the result synchronously or as a `Promise` for integration
+ * with async layout engines (e.g. ELK via web workers).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LayoutAlgorithm<Options = any> = (
   graph: LayoutGraph,
   options?: Options
-) => LayoutResult;
+) => LayoutResult | Promise<LayoutResult>;

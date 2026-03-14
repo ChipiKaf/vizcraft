@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { circularLayout, gridLayout } from './algorithms';
-import { LayoutGraph, VizNode } from '../types';
+import { LayoutGraph, LayoutResult, VizNode } from '../types';
+import { getNodeBoundingBox } from '../shapes/geometry';
 
 function createMockNodes(count: number): VizNode[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -89,5 +90,113 @@ describe('Layout Algorithms', () => {
       // y = 10 + 1*20 = 30
       expect(result.nodes['n5']).toEqual({ x: 30, y: 30 });
     });
+  });
+});
+
+describe('getNodeBoundingBox', () => {
+  it('returns correct size for circle', () => {
+    expect(getNodeBoundingBox({ kind: 'circle', r: 25 })).toEqual({
+      width: 50,
+      height: 50,
+    });
+  });
+
+  it('returns correct size for rect', () => {
+    expect(getNodeBoundingBox({ kind: 'rect', w: 120, h: 60 })).toEqual({
+      width: 120,
+      height: 60,
+    });
+  });
+
+  it('returns correct size for diamond', () => {
+    expect(getNodeBoundingBox({ kind: 'diamond', w: 80, h: 80 })).toEqual({
+      width: 80,
+      height: 80,
+    });
+  });
+
+  it('returns correct size for ellipse', () => {
+    expect(getNodeBoundingBox({ kind: 'ellipse', rx: 50, ry: 30 })).toEqual({
+      width: 100,
+      height: 60,
+    });
+  });
+
+  it('returns correct size for hexagon', () => {
+    expect(getNodeBoundingBox({ kind: 'hexagon', r: 40 })).toEqual({
+      width: 80,
+      height: 80,
+    });
+  });
+
+  it('returns correct size for star', () => {
+    expect(getNodeBoundingBox({ kind: 'star', points: 5, outerR: 30 })).toEqual(
+      { width: 60, height: 60 }
+    );
+  });
+
+  it('returns correct size for trapezoid', () => {
+    expect(
+      getNodeBoundingBox({ kind: 'trapezoid', topW: 60, bottomW: 100, h: 50 })
+    ).toEqual({ width: 100, height: 50 });
+  });
+
+  it('returns correct size for image shape', () => {
+    expect(
+      getNodeBoundingBox({ kind: 'image', href: 'x.png', w: 200, h: 150 })
+    ).toEqual({ width: 200, height: 150 });
+  });
+
+  it('returns correct size for blockArrow', () => {
+    expect(
+      getNodeBoundingBox({
+        kind: 'blockArrow',
+        length: 100,
+        bodyWidth: 30,
+        headWidth: 50,
+        headLength: 20,
+      })
+    ).toEqual({ width: 100, height: 50 });
+  });
+
+  it('returns correct size for cylinder', () => {
+    expect(getNodeBoundingBox({ kind: 'cylinder', w: 80, h: 100 })).toEqual({
+      width: 80,
+      height: 100,
+    });
+  });
+
+  it('returns correct size for path shape', () => {
+    expect(
+      getNodeBoundingBox({ kind: 'path', d: 'M0 0', w: 60, h: 40 })
+    ).toEqual({ width: 60, height: 40 });
+  });
+});
+
+describe('Async LayoutAlgorithm support', () => {
+  it('async layout algorithm satisfies LayoutAlgorithm type', async () => {
+    const asyncLayout = async (graph: LayoutGraph): Promise<LayoutResult> => {
+      // Simulate async work
+      await Promise.resolve();
+      const result: LayoutResult = { nodes: {} };
+      graph.nodes.forEach((node, i) => {
+        result.nodes[node.id] = { x: i * 100, y: 0 };
+      });
+      return result;
+    };
+
+    const graph: LayoutGraph = { nodes: createMockNodes(3), edges: [] };
+    const result = await asyncLayout(graph);
+
+    expect(result.nodes['n0']).toEqual({ x: 0, y: 0 });
+    expect(result.nodes['n1']).toEqual({ x: 100, y: 0 });
+    expect(result.nodes['n2']).toEqual({ x: 200, y: 0 });
+  });
+
+  it('sync layout algorithm still satisfies LayoutAlgorithm type', () => {
+    // circularLayout is sync, verifying it still Type-checks as LayoutAlgorithm
+    const graph: LayoutGraph = { nodes: createMockNodes(2), edges: [] };
+    const result = circularLayout(graph, { radius: 50 });
+    expect(Object.keys(result.nodes)).toHaveLength(2);
   });
 });

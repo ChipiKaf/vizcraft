@@ -26,6 +26,7 @@ import type {
   VizEventMap,
   LayoutAlgorithm,
   LayoutGraph,
+  LayoutResult,
   SvgExportOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
@@ -417,12 +418,23 @@ export interface VizBuilder extends VizSceneMutator {
   use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder;
 
   /**
-   * Applies a layout algorithm to the current nodes and edges.
-   * @param algorithm The layout function to execute
+   * Applies a **synchronous** layout algorithm to the current nodes and edges.
+   * @param algorithm The layout function to execute (must return synchronously)
    * @param options Optional configuration for the layout algorithm
    * @returns The builder, for fluent chaining
    */
   layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder;
+
+  /**
+   * Applies a layout algorithm that may be asynchronous (e.g. ELK via web workers).
+   * @param algorithm The layout function to execute (may return a Promise)
+   * @param options Optional configuration for the layout algorithm
+   * @returns A Promise that resolves to the builder, for fluent chaining
+   */
+  layoutAsync<O>(
+    algorithm: LayoutAlgorithm<O>,
+    options?: O
+  ): Promise<VizBuilder>;
 
   /**
    * Listen for lifecycle events (e.g. 'build', 'mount').
@@ -1208,6 +1220,35 @@ class VizBuilderImpl implements VizBuilder {
 
     const result = algorithm(graph, options);
 
+    // Guard: if the algorithm returned a Promise, throw a helpful error
+    if (result instanceof Promise) {
+      throw new Error(
+        'VizBuilder.layout: received a Promise from the layout algorithm. ' +
+          'Use .layoutAsync() for async layout engines.'
+      );
+    }
+
+    this._applyLayoutResult(result);
+    return this;
+  }
+
+  async layoutAsync<O>(
+    algorithm: LayoutAlgorithm<O>,
+    options?: O
+  ): Promise<VizBuilder> {
+    const scene = this.build();
+    const graph: LayoutGraph = {
+      nodes: scene.nodes,
+      edges: scene.edges,
+    };
+
+    const result = await algorithm(graph, options);
+    this._applyLayoutResult(result);
+    return this;
+  }
+
+  /** @internal Apply positions and waypoints from a layout result. */
+  private _applyLayoutResult(result: LayoutResult): void {
     // Apply computed node positions
     for (const [id, pos] of Object.entries(result.nodes)) {
       this.updateNode(id, { pos });
@@ -1221,8 +1262,6 @@ class VizBuilderImpl implements VizBuilder {
         }
       }
     }
-
-    return this;
   }
 
   setEdgePathResolver(resolver: EdgePathResolver | null): VizBuilder {

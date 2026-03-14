@@ -15,6 +15,7 @@ export {
   findPort,
   resolvePortPosition,
   computeNodeAnchorAtAngle,
+  getNodeBoundingBox,
 } from './shapes/geometry';
 export * from './animation/spec';
 export * from './animation/builder';
