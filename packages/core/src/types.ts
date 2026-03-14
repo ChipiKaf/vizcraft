@@ -835,10 +835,25 @@ export interface LayoutResult {
 }
 
 /**
- * A layout algorithm computes positions for nodes in a graph.
+ * A synchronous layout algorithm that computes positions for nodes in a graph.
+ *
+ * Use this type for algorithms that return results immediately.
+ * See also {@link LayoutAlgorithm} for algorithms that may be async.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SyncLayoutAlgorithm<Options = any> = (
+  graph: LayoutGraph,
+  options?: Options
+) => LayoutResult;
+
+/**
+ * A layout algorithm that may be synchronous or asynchronous.
+ *
+ * Use with {@link VizBuilder.layoutAsync} for async engines (e.g. ELK via
+ * web workers). For the sync-only variant, see {@link SyncLayoutAlgorithm}.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LayoutAlgorithm<Options = any> = (
   graph: LayoutGraph,
   options?: Options
-) => LayoutResult;
+) => LayoutResult | Promise<LayoutResult>;

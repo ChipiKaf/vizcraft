@@ -367,4 +367,61 @@ Returned by [`resolveEdgeGeometry`](/how-to/edges-and-connections#resolve-edge-g
 
 ---
 
+## Layout Types {#layout-types}
+
+### LayoutGraph
+
+Input graph structure passed to layout algorithms.
+
+| Field   | Type        | Description |
+| ------- | ----------- | ----------- |
+| `nodes` | `VizNode[]` | All nodes   |
+| `edges` | `VizEdge[]` | All edges   |
+
+### LayoutResult
+
+Result returned by a layout algorithm.
+
+| Field    | Type                                       | Description                     |
+| -------- | ------------------------------------------ | ------------------------------- |
+| `nodes`  | `Record<string, { x: number; y: number }>` | Computed node positions         |
+| `edges?` | `Record<string, { waypoints?: Vec2[] }>`   | Optional edge routing waypoints |
+
+### LayoutAlgorithm
+
+A function that computes node positions. May return synchronously or as a `Promise` for async engines.
+
+```typescript
+// Sync-only variant (for .layout())
+type SyncLayoutAlgorithm<Options = any> = (
+  graph: LayoutGraph,
+  options?: Options
+) => LayoutResult;
+
+// Sync or async variant (for .layoutAsync())
+type LayoutAlgorithm<Options = any> = (
+  graph: LayoutGraph,
+  options?: Options
+) => LayoutResult | Promise<LayoutResult>;
+```
+
+---
+
+## Utilities {#utilities}
+
+### `getNodeBoundingBox(shape)` {#getnodeboundingbox}
+
+Computes the tight axis-aligned bounding-box size for a given `NodeShape`.
+
+```typescript
+import { getNodeBoundingBox } from 'vizcraft';
+
+const { width, height } = getNodeBoundingBox({ kind: 'circle', r: 25 });
+// → { width: 50, height: 50 }
+```
+
+Supports every `NodeShape` variant (circle, rect, diamond, ellipse, hexagon, star, trapezoid, callout, blockArrow, etc.) and accounts for orientation, direction, pointer height, and other shape-specific parameters.
+
+---
+
 _Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Types) on GitHub._

@@ -11,8 +11,14 @@ import {
   circularLayout,
   gridLayout,
   computeEdgeEndpoints,
+  getNodeBoundingBox,
 } from './index';
-import type { VizNode } from './index';
+import type {
+  VizNode,
+  LayoutAlgorithm,
+  LayoutResult,
+  LayoutGraph,
+} from './index';
 import type { SceneChanges, VizSceneMutator, VizPlugin } from './types';
 
 describe('vizcraft core', () => {
@@ -4306,6 +4312,81 @@ describe('vizcraft core', () => {
       const scene = builder.build();
       expect(scene.nodes.find((n) => n.id === 'a')?.pos.x).toBe(10);
       expect(scene.nodes.find((n) => n.id === 'b')?.pos.x).toBe(60);
+    });
+
+    it('layoutAsync applies an async layout algorithm', async () => {
+      const asyncLayout: LayoutAlgorithm = async (
+        graph: LayoutGraph
+      ): Promise<LayoutResult> => {
+        await Promise.resolve();
+        const result: LayoutResult = { nodes: {} };
+        graph.nodes.forEach((node, i) => {
+          result.nodes[node.id] = { x: i * 100, y: i * 50 };
+        });
+        return result;
+      };
+
+      const builder = viz();
+      builder.node('a');
+      builder.node('b');
+      builder.node('c');
+
+      await builder.layoutAsync(asyncLayout);
+
+      const scene = builder.build();
+      expect(scene.nodes.find((n) => n.id === 'a')?.pos).toEqual({
+        x: 0,
+        y: 0,
+      });
+      expect(scene.nodes.find((n) => n.id === 'b')?.pos).toEqual({
+        x: 100,
+        y: 50,
+      });
+      expect(scene.nodes.find((n) => n.id === 'c')?.pos).toEqual({
+        x: 200,
+        y: 100,
+      });
+    });
+
+    it('layoutAsync works with sync algorithms too', async () => {
+      const builder = viz();
+      builder.node('a');
+      builder.node('b');
+
+      await builder.layoutAsync(circularLayout, {
+        cx: 0,
+        cy: 0,
+        radius: 100,
+      });
+
+      const scene = builder.build();
+      expect(scene.nodes.find((n) => n.id === 'a')?.pos.x).toBeCloseTo(100);
+    });
+
+    it('layout() throws when given an async algorithm', () => {
+      const asyncLayout: LayoutAlgorithm = async (
+        graph: LayoutGraph
+      ): Promise<LayoutResult> => {
+        const result: LayoutResult = { nodes: {} };
+        graph.nodes.forEach((node) => {
+          result.nodes[node.id] = { x: 0, y: 0 };
+        });
+        return result;
+      };
+
+      const builder = viz();
+      builder.node('a');
+
+      expect(() => builder.layout(asyncLayout)).toThrow(
+        'Use .layoutAsync() for async layout engines.'
+      );
+    });
+
+    it('getNodeBoundingBox is exported from the barrel', () => {
+      expect(getNodeBoundingBox({ kind: 'rect', w: 100, h: 50 })).toEqual({
+        width: 100,
+        height: 50,
+      });
     });
   });
 

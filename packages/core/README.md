@@ -17,6 +17,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 
 - **Fluent Builder API**: Define your visualization scene using a readable, chainable API.
 - **Grid System**: Built-in 2D grid system for easy, structured layout of nodes.
+- **Auto-Layout Algorithms**: Built-in circular and grid layouts, custom sync/async algorithm support (e.g. ELK), and a `getNodeBoundingBox` utility for robust layout integration.
 - **Two Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`) and data-only timeline animations (`AnimationSpec`).
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.

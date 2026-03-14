@@ -1648,7 +1648,7 @@ export function resolvePortPosition(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Approximate half-width / half-height for shapes that have a bounding box. */
+/** Axis-aligned half-width / half-height for each node shape. */
 function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
   switch (shape.kind) {
     case 'circle':
@@ -1659,16 +1659,32 @@ function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
       return { hw: shape.w / 2, hh: shape.h / 2 };
     case 'ellipse':
       return { hw: shape.rx, hh: shape.ry };
-    case 'hexagon':
-      return { hw: shape.r, hh: shape.r };
+    case 'hexagon': {
+      const orientation = shape.orientation ?? 'pointy';
+      // pointy-top: width = r·√3, height = 2r
+      // flat-top:   width = 2r,   height = r·√3
+      const SQRT3_2 = Math.sqrt(3) / 2;
+      return orientation === 'pointy'
+        ? { hw: shape.r * SQRT3_2, hh: shape.r }
+        : { hw: shape.r, hh: shape.r * SQRT3_2 };
+    }
     case 'cylinder':
       return { hw: shape.w / 2, hh: shape.h / 2 };
     case 'arc':
       return { hw: shape.r, hh: shape.r };
-    case 'blockArrow':
-      return { hw: shape.length / 2, hh: shape.headWidth / 2 };
-    case 'callout':
-      return { hw: shape.w / 2, hh: shape.h / 2 };
+    case 'blockArrow': {
+      const dir = shape.direction ?? 'right';
+      return dir === 'up' || dir === 'down'
+        ? { hw: shape.headWidth / 2, hh: shape.length / 2 }
+        : { hw: shape.length / 2, hh: shape.headWidth / 2 };
+    }
+    case 'callout': {
+      const side = shape.pointerSide ?? 'bottom';
+      const pH = shape.pointerHeight ?? Math.round(shape.h * 0.25);
+      const hw = shape.w / 2 + (side === 'left' || side === 'right' ? pH : 0);
+      const hh = shape.h / 2 + (side === 'top' || side === 'bottom' ? pH : 0);
+      return { hw, hh };
+    }
     case 'cloud':
       return { hw: shape.w / 2, hh: shape.h / 2 };
     case 'cross':
@@ -1703,4 +1719,20 @@ function shapeBoundingBox(shape: NodeShape): { hw: number; hh: number } {
     default:
       return { hw: 0, hh: 0 };
   }
+}
+
+/**
+ * Compute the tight axis-aligned bounding-box size of a node shape.
+ *
+ * Returns `{ width, height }` that enclose the rendered shape, accounting for
+ * orientation, direction, pointer height, and other shape-specific parameters.
+ * Intended as a convenience helper for layout algorithms and collision
+ * detection, to avoid duplicating per-shape switch logic.
+ */
+export function getNodeBoundingBox(shape: NodeShape): {
+  width: number;
+  height: number;
+} {
+  const { hw, hh } = shapeBoundingBox(shape);
+  return { width: hw * 2, height: hh * 2 };
 }

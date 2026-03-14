@@ -78,11 +78,22 @@ Defines a data-only timeline animation. See [Animation API](/docs/reference/anim
 
 ### `.layout(algorithm, options?)`
 
-Applies an auto-layout algorithm to compute node positions.
+Applies a **synchronous** auto-layout algorithm to compute node positions.
 
 ```typescript
 import { circularLayout } from 'vizcraft';
 builder.layout(circularLayout, { cx: 250, cy: 150, radius: 80 });
+```
+
+Throws if the algorithm returns a `Promise` — use `.layoutAsync()` instead.
+
+### `.layoutAsync(algorithm, options?)` → `Promise<VizBuilder>`
+
+Applies an async layout algorithm (e.g. ELK via web workers). Works with both sync and async algorithms.
+
+```typescript
+await builder.layoutAsync(elkLayout);
+builder.mount(container);
 ```
 
 ### `.use(plugin, options?)`

@@ -24,8 +24,10 @@ import type {
   SceneChanges,
   VizPlugin,
   VizEventMap,
+  SyncLayoutAlgorithm,
   LayoutAlgorithm,
   LayoutGraph,
+  LayoutResult,
   SvgExportOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
@@ -71,6 +73,18 @@ import { getEffectiveNodeBounds } from './interaction/hitTest';
 import { defaultCoreIconRegistry } from './shapes/icons';
 import { NodeBuilderImpl, applyNodeOptions } from './nodes/builder';
 import { EdgeBuilderImpl, applyEdgeOptions } from './edges/builder';
+
+/**
+ * Runtime check for Promise-like values without `as any` casting.
+ */
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'then' in value &&
+    typeof value.then === 'function'
+  );
+}
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -417,12 +431,23 @@ export interface VizBuilder extends VizSceneMutator {
   use<O>(plugin: VizPlugin<O>, options?: O): VizBuilder;
 
   /**
-   * Applies a layout algorithm to the current nodes and edges.
-   * @param algorithm The layout function to execute
+   * Applies a **synchronous** layout algorithm to the current nodes and edges.
+   * @param algorithm The layout function to execute (must return synchronously)
    * @param options Optional configuration for the layout algorithm
    * @returns The builder, for fluent chaining
    */
-  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder;
+  layout<O>(algorithm: SyncLayoutAlgorithm<O>, options?: O): VizBuilder;
+
+  /**
+   * Applies a layout algorithm that may be asynchronous (e.g. ELK via web workers).
+   * @param algorithm The layout function to execute (may return a Promise)
+   * @param options Optional configuration for the layout algorithm
+   * @returns A Promise that resolves to the builder, for fluent chaining
+   */
+  layoutAsync<O>(
+    algorithm: LayoutAlgorithm<O>,
+    options?: O
+  ): Promise<VizBuilder>;
 
   /**
    * Listen for lifecycle events (e.g. 'build', 'mount').
@@ -1199,7 +1224,7 @@ class VizBuilderImpl implements VizBuilder {
     return this;
   }
 
-  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder {
+  layout<O>(algorithm: SyncLayoutAlgorithm<O>, options?: O): VizBuilder {
     const scene = this.build(); // gets full constructed VizNode[]
     const graph: LayoutGraph = {
       nodes: scene.nodes,
@@ -1208,6 +1233,35 @@ class VizBuilderImpl implements VizBuilder {
 
     const result = algorithm(graph, options);
 
+    // Guard: if the algorithm returned a Promise-like, throw a helpful error
+    if (isPromiseLike(result)) {
+      throw new Error(
+        'VizBuilder.layout: received a Promise from the layout algorithm. ' +
+          'Use .layoutAsync() for async layout engines.'
+      );
+    }
+
+    this._applyLayoutResult(result);
+    return this;
+  }
+
+  async layoutAsync<O>(
+    algorithm: LayoutAlgorithm<O>,
+    options?: O
+  ): Promise<VizBuilder> {
+    const scene = this.build();
+    const graph: LayoutGraph = {
+      nodes: scene.nodes,
+      edges: scene.edges,
+    };
+
+    const result = await algorithm(graph, options);
+    this._applyLayoutResult(result);
+    return this;
+  }
+
+  /** @internal Apply positions and waypoints from a layout result. */
+  private _applyLayoutResult(result: LayoutResult): void {
     // Apply computed node positions
     for (const [id, pos] of Object.entries(result.nodes)) {
       this.updateNode(id, { pos });
@@ -1221,8 +1275,6 @@ class VizBuilderImpl implements VizBuilder {
         }
       }
     }
-
-    return this;
   }
 
   setEdgePathResolver(resolver: EdgePathResolver | null): VizBuilder {
