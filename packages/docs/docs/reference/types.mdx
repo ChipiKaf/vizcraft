@@ -392,6 +392,13 @@ Result returned by a layout algorithm.
 A function that computes node positions. May return synchronously or as a `Promise` for async engines.
 
 ```typescript
+// Sync-only variant (for .layout())
+type SyncLayoutAlgorithm<Options = any> = (
+  graph: LayoutGraph,
+  options?: Options
+) => LayoutResult;
+
+// Sync or async variant (for .layoutAsync())
 type LayoutAlgorithm<Options = any> = (
   graph: LayoutGraph,
   options?: Options
@@ -404,7 +411,7 @@ type LayoutAlgorithm<Options = any> = (
 
 ### `getNodeBoundingBox(shape)` {#getnodeboundingbox}
 
-Computes the bounding-box size of any `NodeShape`.
+Computes the tight axis-aligned bounding-box size for a given `NodeShape`.
 
 ```typescript
 import { getNodeBoundingBox } from 'vizcraft';
@@ -413,7 +420,7 @@ const { width, height } = getNodeBoundingBox({ kind: 'circle', r: 25 });
 // → { width: 50, height: 50 }
 ```
 
-Handles every `NodeShape` variant (circle, rect, diamond, ellipse, hexagon, star, trapezoid, etc.).
+Supports every `NodeShape` variant (circle, rect, diamond, ellipse, hexagon, star, trapezoid, callout, blockArrow, etc.) and accounts for orientation, direction, pointer height, and other shape-specific parameters.
 
 ---
 

@@ -221,7 +221,7 @@ const spacedLayout: LayoutAlgorithm = (graph) => {
 };
 ```
 
-`getNodeBoundingBox` handles every `NodeShape` variant — circles, rects, diamonds, stars, hexagons, and all others — so your layout code stays correct as VizCraft adds new shapes.
+`getNodeBoundingBox` supports all current `NodeShape` variants — circles, rects, diamonds, stars, hexagons, callouts, block arrows, and others — and centralizes the bounding-box logic so your layout code doesn't need to special-case shapes. It accounts for orientation, direction, pointer height, and other shape-specific parameters.
 
 ---
 

@@ -122,11 +122,20 @@ describe('getNodeBoundingBox', () => {
     });
   });
 
-  it('returns correct size for hexagon', () => {
-    expect(getNodeBoundingBox({ kind: 'hexagon', r: 40 })).toEqual({
-      width: 80,
-      height: 80,
+  it('returns correct size for hexagon (default pointy-top)', () => {
+    const box = getNodeBoundingBox({ kind: 'hexagon', r: 40 });
+    expect(box.width).toBeCloseTo(40 * Math.sqrt(3), 5);
+    expect(box.height).toBeCloseTo(80, 5);
+  });
+
+  it('returns correct size for hexagon (flat-top)', () => {
+    const box = getNodeBoundingBox({
+      kind: 'hexagon',
+      r: 40,
+      orientation: 'flat',
     });
+    expect(box.width).toBeCloseTo(80, 5);
+    expect(box.height).toBeCloseTo(40 * Math.sqrt(3), 5);
   });
 
   it('returns correct size for star', () => {
@@ -147,7 +156,7 @@ describe('getNodeBoundingBox', () => {
     ).toEqual({ width: 200, height: 150 });
   });
 
-  it('returns correct size for blockArrow', () => {
+  it('returns correct size for blockArrow (default right)', () => {
     expect(
       getNodeBoundingBox({
         kind: 'blockArrow',
@@ -157,6 +166,49 @@ describe('getNodeBoundingBox', () => {
         headLength: 20,
       })
     ).toEqual({ width: 100, height: 50 });
+  });
+
+  it('returns correct size for blockArrow (up)', () => {
+    expect(
+      getNodeBoundingBox({
+        kind: 'blockArrow',
+        length: 100,
+        bodyWidth: 30,
+        headWidth: 50,
+        headLength: 20,
+        direction: 'up',
+      })
+    ).toEqual({ width: 50, height: 100 });
+  });
+
+  it('returns correct size for callout (default bottom pointer)', () => {
+    expect(getNodeBoundingBox({ kind: 'callout', w: 100, h: 60 })).toEqual({
+      width: 100,
+      height: 60 + Math.round(60 * 0.25) * 2,
+    });
+  });
+
+  it('returns correct size for callout (right pointer)', () => {
+    expect(
+      getNodeBoundingBox({
+        kind: 'callout',
+        w: 100,
+        h: 60,
+        pointerSide: 'right',
+        pointerHeight: 20,
+      })
+    ).toEqual({ width: 140, height: 60 });
+  });
+
+  it('returns correct size for callout (explicit pointerHeight)', () => {
+    expect(
+      getNodeBoundingBox({
+        kind: 'callout',
+        w: 100,
+        h: 60,
+        pointerHeight: 30,
+      })
+    ).toEqual({ width: 100, height: 120 });
   });
 
   it('returns correct size for cylinder', () => {

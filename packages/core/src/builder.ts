@@ -24,6 +24,7 @@ import type {
   SceneChanges,
   VizPlugin,
   VizEventMap,
+  SyncLayoutAlgorithm,
   LayoutAlgorithm,
   LayoutGraph,
   LayoutResult,
@@ -72,6 +73,18 @@ import { getEffectiveNodeBounds } from './interaction/hitTest';
 import { defaultCoreIconRegistry } from './shapes/icons';
 import { NodeBuilderImpl, applyNodeOptions } from './nodes/builder';
 import { EdgeBuilderImpl, applyEdgeOptions } from './edges/builder';
+
+/**
+ * Runtime check for Promise-like values without `as any` casting.
+ */
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'then' in value &&
+    typeof value.then === 'function'
+  );
+}
 
 /**
  * Sanitise a CSS color value for use as a suffix in an SVG marker `id`.
@@ -423,7 +436,7 @@ export interface VizBuilder extends VizSceneMutator {
    * @param options Optional configuration for the layout algorithm
    * @returns The builder, for fluent chaining
    */
-  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder;
+  layout<O>(algorithm: SyncLayoutAlgorithm<O>, options?: O): VizBuilder;
 
   /**
    * Applies a layout algorithm that may be asynchronous (e.g. ELK via web workers).
@@ -1211,7 +1224,7 @@ class VizBuilderImpl implements VizBuilder {
     return this;
   }
 
-  layout<O>(algorithm: LayoutAlgorithm<O>, options?: O): VizBuilder {
+  layout<O>(algorithm: SyncLayoutAlgorithm<O>, options?: O): VizBuilder {
     const scene = this.build(); // gets full constructed VizNode[]
     const graph: LayoutGraph = {
       nodes: scene.nodes,
@@ -1220,8 +1233,8 @@ class VizBuilderImpl implements VizBuilder {
 
     const result = algorithm(graph, options);
 
-    // Guard: if the algorithm returned a Promise, throw a helpful error
-    if (result instanceof Promise) {
+    // Guard: if the algorithm returned a Promise-like, throw a helpful error
+    if (isPromiseLike(result)) {
       throw new Error(
         'VizBuilder.layout: received a Promise from the layout algorithm. ' +
           'Use .layoutAsync() for async layout engines.'
