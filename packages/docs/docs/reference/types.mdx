@@ -373,8 +373,8 @@ Returned by [`resolveEdgeGeometry`](/how-to/edges-and-connections#resolve-edge-g
 
 Input graph structure passed to layout algorithms.
 
-| Field   | Type       | Description |
-| ------- | ---------- | ----------- |
+| Field   | Type        | Description |
+| ------- | ----------- | ----------- |
 | `nodes` | `VizNode[]` | All nodes   |
 | `edges` | `VizEdge[]` | All edges   |
 
@@ -382,10 +382,10 @@ Input graph structure passed to layout algorithms.
 
 Result returned by a layout algorithm.
 
-| Field    | Type                                              | Description                               |
-| -------- | ------------------------------------------------- | ----------------------------------------- |
-| `nodes`  | `Record<string, { x: number; y: number }>`        | Computed node positions                   |
-| `edges?` | `Record<string, { waypoints?: Vec2[] }>`           | Optional edge routing waypoints           |
+| Field    | Type                                       | Description                     |
+| -------- | ------------------------------------------ | ------------------------------- |
+| `nodes`  | `Record<string, { x: number; y: number }>` | Computed node positions         |
+| `edges?` | `Record<string, { waypoints?: Vec2[] }>`   | Optional edge routing waypoints |
 
 ### LayoutAlgorithm
 
