@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.7.1
+
+### Patch Changes
+
+- [#101](https://github.com/ChipiKaf/vizcraft/pull/101) [`c5084ad`](https://github.com/ChipiKaf/vizcraft/commit/c5084ad12a36b545df987cd425fd431cfb9903d4) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Fix `resolveEdgeGeometry`: `startAnchor`/`endAnchor` now return the true boundary/port positions where the edge exits/enters each node, instead of the ~15%/~85% label positions. Added `startLabel` and `endLabel` fields as explicit aliases for the label positions. For self-loops, anchors correspond to the exit/entry points on the node boundary.
+
 ## 1.7.0
 
 ### Minor Changes
