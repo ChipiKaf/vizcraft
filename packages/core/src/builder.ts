@@ -73,6 +73,16 @@ import { getEffectiveNodeBounds } from './interaction/hitTest';
 import { defaultCoreIconRegistry } from './shapes/icons';
 import { NodeBuilderImpl, applyNodeOptions } from './nodes/builder';
 import { EdgeBuilderImpl, applyEdgeOptions } from './edges/builder';
+import {
+  resolveShadow,
+  shadowFilterId,
+  shadowFilterSvg,
+} from './rendering/shadow';
+import {
+  resolveSketchSeed,
+  sketchFilterId,
+  sketchFilterSvg,
+} from './rendering/sketch';
 
 /**
  * Runtime check for Promise-like values without `as any` casting.
@@ -108,19 +118,6 @@ function markerIdFor(
     : `${base}${suffix}`;
 }
 
-/** @deprecated Use markerIdFor instead. Kept for backward compatibility. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function arrowMarkerIdFor(stroke: string | undefined): string {
-  return markerIdFor('arrow', stroke);
-}
-
-const SHADOW_DEFAULTS = {
-  dx: 2,
-  dy: 2,
-  blur: 4,
-  color: 'rgba(0,0,0,0.2)',
-} as const;
-
 /**
  * Resolves edge endpoints for dangling edges.
  * Returns `null` when a referenced node id doesn't exist.
@@ -139,98 +136,6 @@ function resolveDanglingEdge(
   return { start, end };
 }
 
-/** Apply defaults to a partial shadow config. */
-function resolveShadow(shadow: {
-  dx?: number;
-  dy?: number;
-  blur?: number;
-  color?: string;
-}): { dx: number; dy: number; blur: number; color: string } {
-  return {
-    dx: shadow.dx ?? SHADOW_DEFAULTS.dx,
-    dy: shadow.dy ?? SHADOW_DEFAULTS.dy,
-    blur: shadow.blur ?? SHADOW_DEFAULTS.blur,
-    color: shadow.color ?? SHADOW_DEFAULTS.color,
-  };
-}
-
-/** Deterministic filter id keyed by config tuple for dedup. */
-function shadowFilterId(cfg: {
-  dx: number;
-  dy: number;
-  blur: number;
-  color: string;
-}): string {
-  const colorSuffix = cfg.color.replace(/[^a-zA-Z0-9]/g, '_');
-  return `viz-shadow-${cfg.dx}-${cfg.dy}-${cfg.blur}-${colorSuffix}`;
-}
-
-/** SVG markup for a drop-shadow `<filter>`. */
-function shadowFilterSvg(
-  id: string,
-  cfg: { dx: number; dy: number; blur: number; color: string }
-): string {
-  return `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${cfg.dx}" dy="${cfg.dy}" stdDeviation="${cfg.blur}" flood-color="${escapeXmlAttr(cfg.color)}" flood-opacity="1"/></filter>`;
-}
-
-/** Deterministic filter id for sketch displacement keyed by seed. */
-function sketchFilterId(seed: number): string {
-  return `viz-sketch-${seed}`;
-}
-
-/** Simple seeded float in [0, 1) derived from a seed via xorshift-like mix. */
-function sketchRand(seed: number, salt: number): number {
-  let s = ((seed ^ (salt * 2654435761)) >>> 0) | 1;
-  s ^= s << 13;
-  s ^= s >>> 17;
-  s ^= s << 5;
-  return (s >>> 0) / 4294967296;
-}
-
-/** Lerp a value between min and max using a seeded random. */
-function sketchLerp(
-  seed: number,
-  salt: number,
-  min: number,
-  max: number
-): number {
-  return min + sketchRand(seed, salt) * (max - min);
-}
-
-/** SVG markup for a sketch `<filter>` using dual-pass displacement for a hand-drawn double-stroke look. */
-function sketchFilterSvg(id: string, seed: number): string {
-  const s2 = seed + 37;
-  // Derive unique per-seed parameters
-  const freq2 = sketchLerp(seed, 1, 0.009, 0.015).toFixed(4);
-  const scale1 = sketchLerp(seed, 2, 2.5, 4).toFixed(1);
-  const scale2 = sketchLerp(seed, 3, 3, 5).toFixed(1);
-  const dx = sketchLerp(seed, 4, 0.3, 1.6).toFixed(2);
-  const dy = sketchLerp(seed, 5, 0.2, 1.3).toFixed(2);
-  return (
-    `<filter id="${id}" filterUnits="userSpaceOnUse" x="-10000" y="-10000" width="20000" height="20000">` +
-    `<feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="${seed}" result="n1"/>` +
-    `<feTurbulence type="fractalNoise" baseFrequency="${freq2}" numOctaves="2" seed="${s2}" result="n2"/>` +
-    `<feDisplacementMap in="SourceGraphic" in2="n1" scale="${scale1}" xChannelSelector="R" yChannelSelector="G" result="s1"/>` +
-    `<feDisplacementMap in="SourceGraphic" in2="n2" scale="${scale2}" xChannelSelector="G" yChannelSelector="R" result="s2"/>` +
-    `<feOffset in="s2" dx="${dx}" dy="${dy}" result="s2off"/>` +
-    '<feComposite in="s1" in2="s2off" operator="over"/>' +
-    '</filter>'
-  );
-}
-
-/** Resolve the effective sketch seed for a node, falling back to the hash of its id. */
-function resolveSketchSeed(
-  nodeStyle: { sketchSeed?: number } | undefined,
-  id: string
-): number {
-  if (nodeStyle?.sketchSeed !== undefined) return nodeStyle.sketchSeed;
-  let h = 0;
-  for (let i = 0; i < id.length; i++) {
-    h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
 /**
  * Generate SVG markup for a single marker definition.
  * @param markerType The type of marker
@@ -247,6 +152,24 @@ function escapeXmlAttr(value: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/** Lookup table mapping each marker type to a function that returns its inner SVG shape markup.
+ *  The parameter `c` is the XML-escaped, safe color string to embed in SVG attributes. */
+const MARKER_INNER: Partial<Record<EdgeMarkerType, (c: string) => string>> = {
+  arrow: (c) => `<polygon points="0,2 10,5 0,8" fill="${c}" />`,
+  arrowOpen: (c) =>
+    `<polyline points="0,2 10,5 0,8" fill="white" stroke="${c}" stroke-width="1.5" stroke-linejoin="miter" />`,
+  diamond: (c) => `<polygon points="0,5 5,2 10,5 5,8" fill="${c}" />`,
+  diamondOpen: (c) =>
+    `<polygon points="0,5 5,2 10,5 5,8" fill="white" stroke="${c}" stroke-width="1.5" />`,
+  circle: (c) => `<circle cx="5" cy="5" r="3" fill="${c}" />`,
+  circleOpen: (c) =>
+    `<circle cx="5" cy="5" r="3" fill="white" stroke="${c}" stroke-width="1.5" />`,
+  square: (c) => `<rect x="2" y="2" width="6" height="6" fill="${c}" />`,
+  bar: (c) =>
+    `<line x1="5" y1="1" x2="5" y2="9" stroke="${c}" stroke-width="2" stroke-linecap="round" />`,
+  halfArrow: (c) => `<polygon points="0,2 10,5 0,5" fill="${c}" />`,
+};
+
 function generateMarkerSvg(
   markerType: EdgeMarkerType,
   color: string,
@@ -254,74 +177,15 @@ function generateMarkerSvg(
   position: 'start' | 'end' = 'end'
 ): string {
   if (markerType === 'none') return '';
+  const innerFn = MARKER_INNER[markerType];
+  if (!innerFn) return '';
 
-  // Sanitise color for safe interpolation into SVG attribute strings
   const safeColor = escapeXmlAttr(color);
-
-  // Common marker properties
-  const viewBox = '0 0 10 10';
+  const orient = position === 'start' ? 'auto-start-reverse' : 'auto';
   // refX=9 positions the marker tip at the path endpoint.
   // Start markers use orient="auto-start-reverse" which flips the marker,
   // so the same refX=9 keeps the tip at the node boundary.
-  const refX = '9';
-  const refY = '5'; // Center vertically
-  const markerWidth = '10';
-  const markerHeight = '10';
-
-  let content = '';
-
-  switch (markerType) {
-    case 'arrow':
-      // Filled triangle
-      content = `<polygon points="0,2 10,5 0,8" fill="${safeColor}" />`;
-      break;
-
-    case 'arrowOpen':
-      // Open V-shape triangle (white fill hides the edge line behind the marker)
-      content = `<polyline points="0,2 10,5 0,8" fill="white" stroke="${safeColor}" stroke-width="1.5" stroke-linejoin="miter" />`;
-      break;
-
-    case 'diamond':
-      // Filled diamond
-      content = `<polygon points="0,5 5,2 10,5 5,8" fill="${safeColor}" />`;
-      break;
-
-    case 'diamondOpen':
-      // Open diamond (white fill hides the edge line behind the marker)
-      content = `<polygon points="0,5 5,2 10,5 5,8" fill="white" stroke="${safeColor}" stroke-width="1.5" />`;
-      break;
-
-    case 'circle':
-      // Filled circle
-      content = `<circle cx="5" cy="5" r="3" fill="${safeColor}" />`;
-      break;
-
-    case 'circleOpen':
-      // Open circle (white fill hides the edge line behind the marker)
-      content = `<circle cx="5" cy="5" r="3" fill="white" stroke="${safeColor}" stroke-width="1.5" />`;
-      break;
-
-    case 'square':
-      // Filled square
-      content = `<rect x="2" y="2" width="6" height="6" fill="${safeColor}" />`;
-      break;
-
-    case 'bar':
-      // Perpendicular line (T shape)
-      content = `<line x1="5" y1="1" x2="5" y2="9" stroke="${safeColor}" stroke-width="2" stroke-linecap="round" />`;
-      break;
-
-    case 'halfArrow':
-      // Single-sided arrow (top half of a filled triangle)
-      content = `<polygon points="0,2 10,5 0,5" fill="${safeColor}" />`;
-      break;
-
-    default:
-      return '';
-  }
-
-  const orient = position === 'start' ? 'auto-start-reverse' : 'auto';
-  return `<marker id="${id}" viewBox="${viewBox}" refX="${refX}" refY="${refY}" markerWidth="${markerWidth}" markerHeight="${markerHeight}" orient="${orient}">${content}</marker>`;
+  return `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="${orient}">${innerFn(safeColor)}</marker>`;
 }
 
 function mediaTopLeft(
