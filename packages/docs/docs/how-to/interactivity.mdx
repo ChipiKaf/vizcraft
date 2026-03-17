@@ -29,6 +29,7 @@ export const panZoomScene = viz()
     fill: '#f6c177',
     label: 'Start',
   })
+
   .node('b', {
     diamond: { w: 100, h: 80 },
     at: { x: 600, y: 200 },
@@ -77,6 +78,42 @@ export const panZoomScene = viz()
     arrow: true,
     dash: 'dotted',
   });
+
+export const tooltipPlain = viz()
+  .view(400, 160)
+  .node('server')
+  .at(200, 80)
+  .rect(140, 50, 10)
+  .label('API Server')
+  .fill('#f6c177')
+  .tooltip('Handles REST requests')
+  .done();
+
+export const tooltipStructured = viz()
+  .view(400, 160)
+  .node('db')
+  .at(200, 80)
+  .cylinder(100, 60)
+  .label('PostgreSQL')
+  .fill('#9ccfd8')
+  .tooltip({
+    title: 'Database',
+    sections: [
+      { label: 'Engine', value: 'PostgreSQL 16' },
+      { label: 'Connections', value: '42 / 100' },
+    ],
+  })
+  .done();
+
+export const tooltipEdge = viz()
+  .view(400, 160)
+  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
+  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
+  .edge('a', 'b')
+    .tooltip('Latency: 12 ms')
+    .stroke('#666', 2)
+    .arrow()
+  .done();
 
 # Interactivity
 
@@ -256,25 +293,41 @@ Add hover tooltips to nodes and edges. Tooltips appear after a short delay
 
 ### Plain text tooltip
 
-```typescript
-import { viz } from 'vizcraft';
+<CodePreview code={`import { viz } from 'vizcraft';
 
-const scene = viz()
+const builder = viz()
+  .view(400, 160)
   .node('server')
+  .at(200, 80)
+  .rect(140, 50, 10)
   .label('API Server')
+  .fill('#f6c177')
   .tooltip('Handles REST requests')
   .done();
-```
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipPlain} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
+
+:::tip
+Hover over the node to see the tooltip.
+:::
 
 ### Structured tooltip
 
 Pass an object with an optional `title` and an array of `sections` (label/value
 pairs) for richer content:
 
-```typescript
-const scene = viz()
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 160)
   .node('db')
+  .at(200, 80)
+  .cylinder(100, 60)
   .label('PostgreSQL')
+  .fill('#9ccfd8')
   .tooltip({
     title: 'Database',
     sections: [
@@ -283,20 +336,32 @@ const scene = viz()
     ],
   })
   .done();
-```
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipStructured} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
 
 ### Edge tooltips
 
 Edges support the same API:
 
-```typescript
-const scene = viz()
-  .node('a').label('A').done()
-  .node('b').label('B').done()
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 160)
+  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
+  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
   .edge('a', 'b')
     .tooltip('Latency: 12 ms')
+    .stroke('#666', 2)
+    .arrow()
   .done();
-```
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipEdge} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
 
 ### Declarative form
 
