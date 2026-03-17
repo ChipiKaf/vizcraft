@@ -248,6 +248,21 @@ Each method sets the node's geometry:
 | `.container(config?)` | Mark as a container node |
 | `.parent(parentId)`   | Set parent container     |
 
+### Compartments
+
+| Method                  | Description                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `.compartment(id, cb?)` | Add a compartment section. Optional callback receives a `CompartmentBuilder` |
+
+#### CompartmentBuilder
+
+Returned inside the `.compartment(id, cb)` callback. All methods return `this` for chaining.
+
+| Method                | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `.label(text, opts?)` | Set the compartment label (defaults `textAnchor: 'start'`) |
+| `.height(px)`         | Set explicit height (auto-sized from label when omitted)   |
+
 ### Interaction
 
 | Method              | Description                               |

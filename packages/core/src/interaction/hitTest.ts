@@ -3,7 +3,7 @@ import { computeEdgePath, computeEdgeEndpoints } from '../edges/paths';
 
 /** Result of a point hit test. */
 export type HitResult =
-  | { type: 'node'; id: string }
+  | { type: 'node'; id: string; compartmentId?: string }
   | { type: 'edge'; id: string }
   | { type: 'port'; nodeId: string; portId: string; position: Vec2 }
   | null;
@@ -236,6 +236,30 @@ function hitTestNode(node: VizNode, point: Vec2): boolean {
   return true;
 }
 
+/**
+ * Determine which compartment (if any) was hit inside a compartmented node.
+ * Returns the compartment id, or `undefined` if the node has no compartments.
+ */
+function hitTestCompartment(node: VizNode, point: Vec2): string | undefined {
+  if (!node.compartments || node.compartments.length === 0) return undefined;
+
+  const pos = {
+    x: node.runtime?.x ?? node.pos.x,
+    y: node.runtime?.y ?? node.pos.y,
+  };
+  const bounds = getEffectiveNodeBounds(node);
+  const nodeTop = pos.y - bounds.h / 2;
+  const localY = point.y - nodeTop;
+
+  for (const c of node.compartments) {
+    if (localY >= c.y && localY < c.y + c.height) {
+      return c.id;
+    }
+  }
+
+  return undefined;
+}
+
 // ----------------------------------------------------------------------------
 // Core Hit Testing API
 // ----------------------------------------------------------------------------
@@ -276,7 +300,8 @@ export function hitTest(
   for (let i = scene.nodes.length - 1; i >= 0; i--) {
     const node = scene.nodes[i]!;
     if (hitTestNode(node, point)) {
-      return { type: 'node', id: node.id };
+      const compartmentId = hitTestCompartment(node, point);
+      return { type: 'node', id: node.id, compartmentId };
     }
   }
 

@@ -1,5 +1,6 @@
 import type {
   VizNode,
+  VizNodeCompartment,
   NodeLabel,
   AnimationConfig,
   ContainerConfig,
@@ -15,6 +16,7 @@ import type {
   RichLabelBuilder,
   NodeBuilder,
   EdgeBuilder,
+  CompartmentBuilder,
 } from '../builder';
 import { RichLabelBuilderImpl } from '../builder';
 import type {
@@ -146,11 +148,117 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   // Containment
   if (opts.container) nb.container(opts.container);
   if (opts.parent) nb.parent(opts.parent);
+
+  // Compartments (declarative)
+  if (opts.compartments) {
+    for (const c of opts.compartments) {
+      nb.compartment(c.id, (cb) => {
+        if (c.label) {
+          if (typeof c.label === 'string') cb.label(c.label);
+          else {
+            const { text, ...rest } = c.label;
+            cb.label(text, rest);
+          }
+        }
+        if (c.height !== undefined) cb.height(c.height);
+      });
+    }
+  }
+}
+
+/** Default height for a compartment when no explicit height is provided and no label is set. */
+const DEFAULT_COMPARTMENT_HEIGHT = 30;
+/** Default per-line height used to estimate auto-sizing from label text. */
+const COMPARTMENT_LINE_HEIGHT = 16;
+/** Vertical padding inside each compartment. */
+const COMPARTMENT_PADDING_Y = 10;
+
+/** Pending compartment definition before y/height are computed. */
+interface PendingCompartment {
+  id: string;
+  label?: NodeLabel;
+  explicitHeight?: number;
+}
+
+/**
+ * Estimate the height needed for a compartment based on its label text content.
+ * Counts explicit newlines so multi-line labels auto-size correctly.
+ */
+function estimateCompartmentHeight(c: PendingCompartment): number {
+  if (c.explicitHeight !== undefined) return c.explicitHeight;
+  if (!c.label) return DEFAULT_COMPARTMENT_HEIGHT;
+  const lineCount = (c.label.text.match(/\n/g)?.length ?? 0) + 1;
+  const fontSize =
+    typeof c.label.fontSize === 'number'
+      ? c.label.fontSize
+      : COMPARTMENT_LINE_HEIGHT;
+  return (
+    lineCount * fontSize * (c.label.lineHeight ?? 1.2) +
+    COMPARTMENT_PADDING_Y * 2
+  );
+}
+
+/**
+ * Resolve pending compartment definitions to finalized `VizNodeCompartment[]`,
+ * computing `y` offsets and auto-sized heights. Also adjusts the node's shape
+ * height to fit all compartments.
+ */
+export function resolveCompartments(
+  pending: PendingCompartment[],
+  nodeDef: Partial<VizNode>
+): VizNodeCompartment[] {
+  const nonEmpty = pending.filter(
+    (c) => c.label || c.explicitHeight !== undefined
+  );
+  if (nonEmpty.length === 0) return [];
+
+  let y = 0;
+  const result: VizNodeCompartment[] = nonEmpty.map((c) => {
+    const height = estimateCompartmentHeight(c);
+    const compartment: VizNodeCompartment = { id: c.id, y, height };
+    if (c.label) compartment.label = c.label;
+    y += height;
+    return compartment;
+  });
+
+  // Auto-size node height to fit compartments
+  const totalHeight = y;
+  if (nodeDef.shape && 'h' in nodeDef.shape) {
+    const shape = nodeDef.shape as { h: number };
+    if (shape.h === 0 || totalHeight > shape.h) {
+      shape.h = totalHeight;
+    }
+  }
+
+  return result;
+}
+
+class CompartmentBuilderImpl implements CompartmentBuilder {
+  _pending: PendingCompartment;
+
+  constructor(id: string) {
+    this._pending = { id };
+  }
+
+  label(text: string, opts?: Partial<NodeLabel>): CompartmentBuilder {
+    this._pending.label = {
+      text,
+      ...opts,
+      textAnchor: opts?.textAnchor ?? 'start',
+    };
+    return this;
+  }
+
+  height(h: number): CompartmentBuilder {
+    this._pending.explicitHeight = h;
+    return this;
+  }
 }
 
 export class NodeBuilderImpl implements NodeBuilder {
   private _builder: VizBuilder;
   private nodeDef: Partial<VizNode>;
+  private _pendingCompartments: PendingCompartment[] = [];
 
   constructor(parent: VizBuilder, nodeDef: Partial<VizNode>) {
     this._builder = parent;
@@ -607,6 +715,16 @@ export class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  compartment(
+    id: string,
+    cb?: (c: CompartmentBuilder) => unknown
+  ): NodeBuilder {
+    const builder = new CompartmentBuilderImpl(id);
+    if (cb) cb(builder);
+    this._pendingCompartments.push(builder._pending);
+    return this;
+  }
+
   port(
     id: string,
     offset: { x: number; y: number },
@@ -624,7 +742,17 @@ export class NodeBuilderImpl implements NodeBuilder {
     return this;
   }
 
+  /** Resolve pending compartments into finalized VizNodeCompartment[]. */
+  private _resolveCompartments(): void {
+    if (this._pendingCompartments.length === 0) return;
+    this.nodeDef.compartments = resolveCompartments(
+      this._pendingCompartments,
+      this.nodeDef
+    );
+  }
+
   done(): VizBuilder {
+    this._resolveCompartments();
     return this._builder;
   }
 
@@ -632,6 +760,7 @@ export class NodeBuilderImpl implements NodeBuilder {
   node(id: string): NodeBuilder;
   node(id: string, opts: NodeOptions): VizBuilder;
   node(id: string, opts?: NodeOptions): NodeBuilder | VizBuilder {
+    this._resolveCompartments();
     return this._builder.node(id, opts as NodeOptions);
   }
   edge(from: string, to: string, id?: string): EdgeBuilder;
@@ -641,11 +770,13 @@ export class NodeBuilderImpl implements NodeBuilder {
     to: string,
     idOrOpts?: string | EdgeOptions
   ): EdgeBuilder | VizBuilder {
+    this._resolveCompartments();
     return this._builder.edge(from, to, idOrOpts as string);
   }
   danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder;
   danglingEdge(id: string, opts: EdgeOptions): VizBuilder;
   danglingEdge(id: string, opts?: EdgeOptions): EdgeBuilder | VizBuilder {
+    this._resolveCompartments();
     return this._builder.danglingEdge(id, opts as EdgeOptions);
   }
   overlay<K extends OverlayId>(
@@ -660,6 +791,7 @@ export class NodeBuilderImpl implements NodeBuilder {
     arg2?: unknown,
     arg3?: string
   ): VizBuilder {
+    this._resolveCompartments();
     if (typeof arg1 === 'function') return this._builder.overlay(arg1);
     return this._builder.overlay(
       arg1 as string,
@@ -668,9 +800,11 @@ export class NodeBuilderImpl implements NodeBuilder {
     );
   }
   build(): VizScene {
+    this._resolveCompartments();
     return this._builder.build();
   }
   svg(opts?: SvgExportOptions): string {
+    this._resolveCompartments();
     return this._builder.svg(opts);
   }
 }
