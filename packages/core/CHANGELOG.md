@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.10.1
+
+### Patch Changes
+
+- [#120](https://github.com/ChipiKaf/vizcraft/pull/120) [`df0fc64`](https://github.com/ChipiKaf/vizcraft/commit/df0fc644dbe07e4d6b8a0aae04c554f69efcc993) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Fix entry height calculation to account for text wrapping when `maxWidth` is set on compartment entries. Entries that wrap to multiple lines now correctly compute their height and y-offsets, preventing overlap with subsequent entries.
+
 ## 1.10.0
 
 ### Minor Changes
