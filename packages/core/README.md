@@ -22,6 +22,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 - **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
+- **Text Badges**: Pin 1–2 character indicators (class kind, status, etc.) to any corner of a node.
 
 ## 📦 Installation
 

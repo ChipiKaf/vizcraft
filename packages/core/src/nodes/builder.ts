@@ -11,6 +11,7 @@ import type {
   VizScene,
   SvgExportOptions,
   TooltipContent,
+  BadgePosition,
 } from '../types';
 import type {
   VizBuilder,
@@ -141,6 +142,18 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   if (opts.data !== undefined) nb.data(opts.data);
   if (opts.onClick) nb.onClick(opts.onClick);
   if (opts.tooltip !== undefined) nb.tooltip(opts.tooltip);
+
+  // Badges
+  if (opts.badges) {
+    for (const b of opts.badges) {
+      nb.badge(b.text, {
+        position: b.position,
+        fill: b.fill,
+        background: b.background,
+        fontSize: b.fontSize,
+      });
+    }
+  }
 
   // Ports
   if (opts.ports) {
@@ -746,6 +759,28 @@ export class NodeBuilderImpl implements NodeBuilder {
 
   tooltip(content: TooltipContent): NodeBuilder {
     this.nodeDef.tooltip = content;
+    return this;
+  }
+
+  badge(
+    text: string,
+    opts?: {
+      position?: BadgePosition;
+      fill?: string;
+      background?: string;
+      fontSize?: number;
+    }
+  ): NodeBuilder {
+    if (!this.nodeDef.badges) {
+      this.nodeDef.badges = [];
+    }
+    this.nodeDef.badges.push({
+      text,
+      position: opts?.position ?? 'top-left',
+      fill: opts?.fill,
+      background: opts?.background,
+      fontSize: opts?.fontSize,
+    });
     return this;
   }
 

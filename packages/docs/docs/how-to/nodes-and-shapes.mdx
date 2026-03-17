@@ -328,6 +328,26 @@ export const richTextLabelScene = viz()
   )
   .done();
 
+export const badgeScene = viz()
+  .view(400, 120)
+  .node('cls')
+  .at(100, 60)
+  .rect(120, 50, 6)
+  .label('UserService')
+  .fill('#2d2d3d')
+  .stroke('#555')
+  .badge('C', { position: 'top-left', fill: '#fff', background: '#4a9eff', fontSize: 10 })
+  .done()
+  .node('iface')
+  .at(300, 60)
+  .rect(120, 50, 6)
+  .label('IRepository')
+  .fill('#2d2d3d')
+  .stroke('#555')
+  .badge('I', { position: 'top-left', fill: '#fff', background: '#e5c07b', fontSize: 10 })
+  .badge('\u0192', { position: 'top-right', fill: '#98c379' })
+  .done();
+
 # Nodes & Shapes
 
 This guide covers creating nodes, choosing shapes, styling them, and embedding media.
@@ -570,6 +590,47 @@ Two ways to position nodes:
 
 - **`.at(x, y)`** — absolute coordinates in the viewBox.
 - **`.cell(col, row)`** — grid-based positioning (requires `.grid()` on the builder).
+
+## Text badges
+
+Attach 1–2 character indicators (class kind, status icon, etc.) pinned to each corner of a node.
+
+<CodePreview code={`viz()
+  .node('cls').at(100, 60).rect(120, 50, 6)
+    .label('UserService').fill('#2d2d3d').stroke('#555')
+    .badge('C', { position: 'top-left', fill: '#fff', background: '#4a9eff', fontSize: 10 })
+  .done()
+  .node('iface').at(300, 60).rect(120, 50, 6)
+    .label('IRepository').fill('#2d2d3d').stroke('#555')
+    .badge('I', { position: 'top-left', fill: '#fff', background: '#e5c07b', fontSize: 10 })
+    .badge('ƒ', { position: 'top-right', fill: '#98c379' })
+  .done();
+`}>
+
+  <VizMount builder={badgeScene} style={{ height: '140px', width: '100%' }} />
+</CodePreview>
+
+### Options
+
+| Option       | Type            | Default      | Description                           |
+| ------------ | --------------- | ------------ | ------------------------------------- |
+| `position`   | `BadgePosition` | `'top-left'` | Corner to pin the badge to            |
+| `fill`       | `string`        | —            | Text colour                           |
+| `background` | `string`        | —            | Pill background colour (omit for none)|
+| `fontSize`   | `number`        | `10`         | Font size in px                       |
+
+`BadgePosition` is one of `'top-left'` · `'top-right'` · `'bottom-left'` · `'bottom-right'`.
+
+### Declarative form
+
+```ts
+viz().node('n', {
+  badges: [
+    { text: 'C', position: 'top-left', fill: '#fff', background: '#4a9eff' },
+    { text: '⚡', position: 'top-right', fill: '#e64553' },
+  ],
+});
+```
 
 ## Compartmented nodes (UML-style sections)
 

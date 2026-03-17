@@ -95,6 +95,31 @@ export type TooltipContent =
       sections: TooltipSection[];
     };
 
+// ---------------------------------------------------------------------------
+// Badge types
+// ---------------------------------------------------------------------------
+
+/** Corner position for a text badge on a node. */
+export type BadgePosition =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right';
+
+/** A small text badge indicator pinned to a corner of a node. */
+export interface VizNodeBadge {
+  /** 1–2 character text (icon / letter). */
+  text: string;
+  /** Corner to pin the badge to. */
+  position: BadgePosition;
+  /** Text color. */
+  fill?: string;
+  /** Optional pill background color. */
+  background?: string;
+  /** Font size in px (default 10). */
+  fontSize?: number;
+}
+
 export type NodeMediaPosition = 'center' | 'above' | 'below' | 'left' | 'right';
 
 export interface VizNodeImage {
@@ -388,6 +413,12 @@ export interface VizNode {
    * Pass a plain string for simple text or a structured object with sections.
    */
   tooltip?: TooltipContent;
+
+  /**
+   * Small text badges pinned to corners of the node.
+   * Each badge is a 1–2 character indicator with optional pill background.
+   */
+  badges?: VizNodeBadge[];
 }
 
 export interface EdgeLabel {
@@ -632,6 +663,16 @@ export interface NodeOptions {
   // --- Tooltip ---
   /** Tooltip shown on hover/focus. Plain string or structured `{ title?, sections }`. */
   tooltip?: TooltipContent;
+
+  // --- Badges ---
+  /** Text badges pinned to corners of the node. */
+  badges?: Array<{
+    text: string;
+    position: BadgePosition;
+    fill?: string;
+    background?: string;
+    fontSize?: number;
+  }>;
 
   // --- Ports ---
   ports?: Array<{

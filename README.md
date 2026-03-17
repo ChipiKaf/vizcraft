@@ -22,6 +22,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 - **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
+- **Text Badges**: Pin 1–2 character indicators (class kind, status, etc.) to any corner of a node.
 
 ## 📦 Installation
 
@@ -545,6 +546,7 @@ b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8)
 For deeper guides and API references, see [docs here](https://vizcraft-docs.vercel.app/docs/advanced).
 
 - **Interactivity**: attach `onClick` handlers and `.tooltip()` hover info to nodes/edges.
+- **Text badges**: pin corner indicators to nodes with `.badge(text, opts?)`.
 - **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.
 - **React integration**: see the workspace package [packages/react-vizcraft](packages/react-vizcraft) (monorepo).
 
