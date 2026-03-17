@@ -10,6 +10,7 @@ import type {
   OverlayParams,
   VizScene,
   SvgExportOptions,
+  TooltipContent,
 } from '../types';
 import type {
   VizBuilder,
@@ -139,6 +140,7 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   // Extras
   if (opts.data !== undefined) nb.data(opts.data);
   if (opts.onClick) nb.onClick(opts.onClick);
+  if (opts.tooltip !== undefined) nb.tooltip(opts.tooltip);
 
   // Ports
   if (opts.ports) {
@@ -739,6 +741,11 @@ export class NodeBuilderImpl implements NodeBuilder {
 
   parent(parentId: string): NodeBuilder {
     this.nodeDef.parentId = parentId;
+    return this;
+  }
+
+  tooltip(content: TooltipContent): NodeBuilder {
+    this.nodeDef.tooltip = content;
     return this;
   }
 

@@ -29,9 +29,11 @@ import type {
   LayoutGraph,
   LayoutResult,
   SvgExportOptions,
+  TooltipContent,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './interaction/panZoom';
+import { setupTooltip, type TooltipController } from './interaction/tooltip';
 import { DEFAULT_VIZ_CSS } from './rendering/styles';
 import { defaultCoreAnimationRegistry } from './rendering/animations';
 import { defaultCoreOverlayRegistry } from './overlays/registry';
@@ -675,6 +677,8 @@ export interface NodeBuilder {
    * @param cb   Callback to configure the compartment's label
    */
   compartment(id: string, cb?: (c: CompartmentBuilder) => unknown): NodeBuilder;
+  /** Set tooltip content shown on hover/focus. */
+  tooltip(content: TooltipContent): NodeBuilder;
   done(): VizBuilder;
 
   // Seamless chaining extensions
@@ -780,6 +784,9 @@ export interface EdgeBuilder {
    * @default 30
    */
   loopSize(size: number): EdgeBuilder;
+
+  /** Set tooltip content shown on hover/focus. */
+  tooltip(content: TooltipContent): EdgeBuilder;
 
   done(): VizBuilder;
 
@@ -907,6 +914,7 @@ class VizBuilderImpl implements VizBuilder {
   private _animationSpecs: AnimationSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
   private _panZoomController?: PanZoomController;
+  private _tooltipController?: TooltipController;
   private _edgePathResolver: EdgePathResolver | null = null;
 
   // Scene Mutation State
@@ -1083,6 +1091,14 @@ class VizBuilderImpl implements VizBuilder {
     // The reconciliation correctly re-uses existing SVG elements, inserts new ones, and deletes missing ones.
     const scene = this.build();
     this._renderSceneToDOM(scene, container);
+
+    // Update tooltip data after re-render
+    if (this._tooltipController) {
+      const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
+      const edgesById = new Map(scene.edges.map((e) => [e.id, e]));
+      this._tooltipController.updateData(nodesById, edgesById);
+      this._addTooltipA11y(svg, scene);
+    }
 
     // Apply runtime overrides (if any).
     // Always recreate the context after _renderSceneToDOM so patchRuntime
@@ -1446,6 +1462,26 @@ class VizBuilderImpl implements VizBuilder {
 
     if (svg && opts?.autoplay) this.play(container, scene.animationSpecs ?? []);
 
+    // Set up tooltip interaction if any node/edge has tooltip data
+    if (svg) {
+      const hasTooltips =
+        scene.nodes.some((n) => n.tooltip != null) ||
+        scene.edges.some((e) => e.tooltip != null);
+      if (hasTooltips) {
+        // Destroy any prior tooltip controller
+        if (this._tooltipController) this._tooltipController.destroy();
+        const nodesById = new Map(scene.nodes.map((n) => [n.id, n]));
+        const edgesById = new Map(scene.edges.map((e) => [e.id, e]));
+        this._tooltipController = setupTooltip(
+          container,
+          svg,
+          nodesById,
+          edgesById
+        );
+        this._addTooltipA11y(svg, scene);
+      }
+    }
+
     let controller: PanZoomController | undefined;
     if (svg && opts?.panZoom) {
       const viewport = svg.querySelector('.viz-viewport') as SVGGElement | null;
@@ -1471,7 +1507,13 @@ class VizBuilderImpl implements VizBuilder {
       this._panZoomController = undefined;
     }
 
-    // 2. Clear out mounted container and animations
+    // 2. Destroy tooltip controller
+    if (this._tooltipController) {
+      this._tooltipController.destroy();
+      this._tooltipController = undefined;
+    }
+
+    // 3. Clear out mounted container and animations
     if (this._mountedContainer) {
       // Stop any pending animations
       const playback = autoplayControllerByContainer.get(
@@ -1492,6 +1534,37 @@ class VizBuilderImpl implements VizBuilder {
 
       this._mountedContainer = null;
     }
+  }
+
+  /**
+   * Add `tabindex="0"` to node/edge groups that have tooltips for keyboard accessibility.
+   */
+  private _addTooltipA11y(svg: SVGSVGElement, scene: VizScene): void {
+    const nodeGroups = svg.querySelectorAll<SVGGElement>(
+      'g[data-viz-role="node-group"]'
+    );
+    const nodeTooltipIds = new Set(
+      scene.nodes.filter((n) => n.tooltip != null).map((n) => n.id)
+    );
+    nodeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id && nodeTooltipIds.has(id) && !el.hasAttribute('tabindex')) {
+        el.setAttribute('tabindex', '0');
+      }
+    });
+
+    const edgeGroups = svg.querySelectorAll<SVGGElement>(
+      'g[data-viz-role="edge-group"]'
+    );
+    const edgeTooltipIds = new Set(
+      scene.edges.filter((e) => e.tooltip != null).map((e) => e.id)
+    );
+    edgeGroups.forEach((el) => {
+      const id = el.getAttribute('data-id');
+      if (id && edgeTooltipIds.has(id) && !el.hasAttribute('tabindex')) {
+        el.setAttribute('tabindex', '0');
+      }
+    });
   }
 
   private _injectCssIntoMountedSvg(svg: SVGSVGElement, css: string | string[]) {

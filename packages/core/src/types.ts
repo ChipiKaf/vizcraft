@@ -72,6 +72,29 @@ export type NodeShape =
       h: number;
     };
 
+// ---------------------------------------------------------------------------
+// Tooltip types
+// ---------------------------------------------------------------------------
+
+/** A single key/value section inside a structured tooltip. */
+export interface TooltipSection {
+  label: string;
+  value: string;
+}
+
+/**
+ * Tooltip content attached to a node or edge.
+ *
+ * - **string** — plain text tooltip.
+ * - **object** — structured tooltip with optional title and labelled sections.
+ */
+export type TooltipContent =
+  | string
+  | {
+      title?: string;
+      sections: TooltipSection[];
+    };
+
 export type NodeMediaPosition = 'center' | 'above' | 'below' | 'left' | 'right';
 
 export interface VizNodeImage {
@@ -359,6 +382,12 @@ export interface VizNode {
    * label. Empty compartments (no label) are omitted from rendering.
    */
   compartments?: VizNodeCompartment[];
+
+  /**
+   * Tooltip content shown on hover / focus.
+   * Pass a plain string for simple text or a structured object with sections.
+   */
+  tooltip?: TooltipContent;
 }
 
 export interface EdgeLabel {
@@ -471,6 +500,12 @@ export interface VizEdge {
   routing?: EdgeRouting;
   /** User-defined intermediate waypoints the edge must pass through. */
   waypoints?: Vec2[];
+
+  /**
+   * Tooltip content shown on hover / focus.
+   * Pass a plain string for simple text or a structured object with sections.
+   */
+  tooltip?: TooltipContent;
 }
 
 // ---------------------------------------------------------------------------
@@ -594,6 +629,10 @@ export interface NodeOptions {
   data?: unknown;
   onClick?: (id: string, node: VizNode) => void;
 
+  // --- Tooltip ---
+  /** Tooltip shown on hover/focus. Plain string or structured `{ title?, sections }`. */
+  tooltip?: TooltipContent;
+
   // --- Ports ---
   ports?: Array<{
     id: string;
@@ -698,6 +737,10 @@ export interface EdgeOptions {
   meta?: Record<string, unknown>;
   data?: unknown;
   onClick?: (id: string, edge: VizEdge) => void;
+
+  // --- Tooltip ---
+  /** Tooltip shown on hover/focus. Plain string or structured `{ title?, sections }`. */
+  tooltip?: TooltipContent;
 }
 
 /**

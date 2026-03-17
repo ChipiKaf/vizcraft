@@ -1,9 +1,9 @@
 ---
 sidebar_position: 6
 title: Interactivity
-description: Handle click events, hit testing, port snapping, rubber-band selection, and pan/zoom.
+description: Handle click events, hit testing, port snapping, rubber-band selection, tooltips, and pan/zoom.
 slug: /how-to/interactivity
-tags: [how-to, interactivity, hit-testing, pan-zoom]
+tags: [how-to, interactivity, hit-testing, pan-zoom, tooltips]
 ---
 
 import CodePreview from '@site/src/components/CodePreview';
@@ -77,6 +77,42 @@ export const panZoomScene = viz()
     arrow: true,
     dash: 'dotted',
   });
+
+export const tooltipPlain = viz()
+  .view(400, 160)
+  .node('server')
+  .at(200, 80)
+  .rect(140, 50, 10)
+  .label('API Server')
+  .fill('#f6c177')
+  .tooltip('Handles REST requests')
+  .done();
+
+export const tooltipStructured = viz()
+  .view(400, 160)
+  .node('db')
+  .at(200, 80)
+  .cylinder(100, 60)
+  .label('PostgreSQL')
+  .fill('#9ccfd8')
+  .tooltip({
+    title: 'Database',
+    sections: [
+      { label: 'Engine', value: 'PostgreSQL 16' },
+      { label: 'Connections', value: '42 / 100' },
+    ],
+  })
+  .done();
+
+export const tooltipEdge = viz()
+  .view(400, 160)
+  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
+  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
+  .edge('a', 'b')
+    .tooltip('Latency: 12 ms')
+    .stroke('#666', 2)
+    .arrow()
+  .done();
 
 # Interactivity
 
@@ -248,6 +284,113 @@ const unsubscribe = controller.onChange(({ zoom, pan }) => {
   console.log('Scale:', zoom, 'Translation:', pan);
 });
 ```
+
+## Tooltips
+
+Add hover tooltips to nodes and edges. Tooltips appear after a short delay
+(300 ms by default), follow the cursor, and are keyboard-accessible.
+
+### Plain text tooltip
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 160)
+  .node('server')
+  .at(200, 80)
+  .rect(140, 50, 10)
+  .label('API Server')
+  .fill('#f6c177')
+  .tooltip('Handles REST requests')
+  .done();
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipPlain} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
+
+:::tip
+Hover over the node to see the tooltip.
+:::
+
+### Structured tooltip
+
+Pass an object with an optional `title` and an array of `sections` (label/value
+pairs) for richer content:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 160)
+  .node('db')
+  .at(200, 80)
+  .cylinder(100, 60)
+  .label('PostgreSQL')
+  .fill('#9ccfd8')
+  .tooltip({
+    title: 'Database',
+    sections: [
+      { label: 'Engine', value: 'PostgreSQL 16' },
+      { label: 'Connections', value: '42 / 100' },
+    ],
+  })
+  .done();
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipStructured} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
+
+### Edge tooltips
+
+Edges support the same API:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz()
+  .view(400, 160)
+  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
+  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
+  .edge('a', 'b')
+    .tooltip('Latency: 12 ms')
+    .stroke('#666', 2)
+    .arrow()
+  .done();
+
+builder.mount(document.getElementById('container'));
+`}>
+  <VizMount builder={tooltipEdge} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
+
+### Declarative form
+
+Tooltips can also be set through the options object:
+
+```typescript
+const scene = viz()
+  .node('n', { tooltip: 'Quick info' })
+  .edge('a', 'b', { tooltip: { title: 'Link', sections: [{ label: 'Weight', value: '3' }] } })
+  .done();
+```
+
+### Theming
+
+The tooltip element uses CSS custom properties so you can match your
+application's palette:
+
+```css
+.viz-container {
+  --viz-tooltip-bg: #1e1e2e;
+  --viz-tooltip-fg: #cdd6f4;
+  --viz-tooltip-label: #a6adc8;
+}
+```
+
+### Keyboard accessibility
+
+Nodes and edges that have tooltips receive `tabindex="0"` automatically, so
+users can tab to them and trigger the tooltip via focus. Pressing **Escape**
+dismisses any visible tooltip.
 
 ---
 

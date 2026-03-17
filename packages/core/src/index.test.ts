@@ -4920,4 +4920,245 @@ describe('vizcraft core', () => {
       expect((scene.nodes[0]!.shape as { h: number }).h).toBe(130);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Tooltip / Hover Info API (#109)
+  // -----------------------------------------------------------------------
+  describe('Tooltip / Hover Info API', () => {
+    it('stores plain string tooltip on a node via fluent API', () => {
+      const scene = viz()
+        .node('n1')
+        .at(100, 100)
+        .circle(30)
+        .tooltip('src/services/UserService.ts:42')
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.tooltip).toBe('src/services/UserService.ts:42');
+    });
+
+    it('stores structured tooltip on a node via fluent API', () => {
+      const scene = viz()
+        .node('n1')
+        .at(100, 100)
+        .rect(120, 60)
+        .tooltip({
+          title: 'UserService',
+          sections: [
+            { label: 'File', value: 'src/services/UserService.ts' },
+            { label: 'Line', value: '42–128' },
+            { label: 'Kind', value: 'class' },
+          ],
+        })
+        .done()
+        .build();
+
+      const tt = scene.nodes[0]!.tooltip;
+      expect(tt).toBeDefined();
+      expect(typeof tt).toBe('object');
+      if (typeof tt === 'object') {
+        expect(tt.title).toBe('UserService');
+        expect(tt.sections).toHaveLength(3);
+        expect(tt.sections[0]).toEqual({
+          label: 'File',
+          value: 'src/services/UserService.ts',
+        });
+      }
+    });
+
+    it('stores plain string tooltip on an edge via fluent API', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .done()
+        .node('b')
+        .at(100, 0)
+        .circle(10)
+        .done()
+        .edge('a', 'b')
+        .tooltip('Latency: 12 ms')
+        .done()
+        .build();
+
+      expect(scene.edges[0]!.tooltip).toBe('Latency: 12 ms');
+    });
+
+    it('stores tooltip via declarative node options', () => {
+      const scene = viz()
+        .node('n1', {
+          at: { x: 50, y: 50 },
+          circle: { r: 20 },
+          tooltip: 'A node tooltip',
+        })
+        .build();
+
+      expect(scene.nodes[0]!.tooltip).toBe('A node tooltip');
+    });
+
+    it('stores tooltip via declarative edge options', () => {
+      const scene = viz()
+        .node('a', { at: { x: 0, y: 0 }, circle: { r: 10 } })
+        .node('b', { at: { x: 100, y: 0 }, circle: { r: 10 } })
+        .edge('a', 'b', { tooltip: 'edge tooltip' })
+        .build();
+
+      expect(scene.edges[0]!.tooltip).toBe('edge tooltip');
+    });
+
+    it('nodes without tooltip have tooltip undefined', () => {
+      const scene = viz().node('n1').at(100, 100).circle(30).done().build();
+
+      expect(scene.nodes[0]!.tooltip).toBeUndefined();
+    });
+
+    it('mounts tooltip elements when nodes have tooltips', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('n1')
+        .at(100, 100)
+        .circle(30)
+        .tooltip('hello')
+        .done();
+
+      builder.mount(container);
+
+      // Tooltip div should be created
+      const tooltipEl = container.querySelector('.viz-tooltip');
+      expect(tooltipEl).toBeDefined();
+      expect(tooltipEl).not.toBeNull();
+      expect(tooltipEl!.getAttribute('role')).toBe('tooltip');
+      expect(tooltipEl!.getAttribute('aria-hidden')).toBe('true');
+
+      // Tooltip CSS should be injected
+      const styleEl = container.querySelector('style[data-viz-tooltip-css]');
+      expect(styleEl).not.toBeNull();
+
+      builder.destroy();
+    });
+
+    it('does not create tooltip elements when no tooltips are present', () => {
+      const container = document.createElement('div');
+      const builder = viz().node('n1').at(100, 100).circle(30).done();
+
+      builder.mount(container);
+
+      const tooltipEl = container.querySelector('.viz-tooltip');
+      expect(tooltipEl).toBeNull();
+
+      builder.destroy();
+    });
+
+    it('adds tabindex to node groups with tooltips for keyboard accessibility', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('n1')
+        .at(100, 100)
+        .circle(30)
+        .tooltip('accessible')
+        .done()
+        .node('n2')
+        .at(200, 100)
+        .circle(30)
+        .done();
+
+      builder.mount(container);
+
+      const svg = container.querySelector('svg')!;
+      const n1Group = svg.querySelector(
+        'g[data-viz-role="node-group"][data-id="n1"]'
+      );
+      const n2Group = svg.querySelector(
+        'g[data-viz-role="node-group"][data-id="n2"]'
+      );
+
+      expect(n1Group!.getAttribute('tabindex')).toBe('0');
+      // n2 has no tooltip, should not have tabindex
+      expect(n2Group!.hasAttribute('tabindex')).toBe(false);
+
+      builder.destroy();
+    });
+
+    it('cleans up tooltip on destroy', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('n1')
+        .at(100, 100)
+        .circle(30)
+        .tooltip('hello')
+        .done();
+
+      builder.mount(container);
+      expect(container.querySelector('.viz-tooltip')).not.toBeNull();
+
+      builder.destroy();
+      expect(container.querySelector('.viz-tooltip')).toBeNull();
+      expect(container.querySelector('style[data-viz-tooltip-css]')).toBeNull();
+    });
+
+    it('preserves tooltip through seamless chaining', () => {
+      const scene = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(20)
+        .tooltip('node A info')
+        .node('b')
+        .at(100, 0)
+        .circle(20)
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.tooltip).toBe('node A info');
+      expect(scene.nodes[1]!.tooltip).toBeUndefined();
+    });
+
+    it('supports structured tooltip with sections only (no title)', () => {
+      const scene = viz()
+        .node('n1')
+        .at(0, 0)
+        .circle(20)
+        .tooltip({
+          sections: [
+            { label: 'Type', value: 'function' },
+            { label: 'Params', value: '(x: number)' },
+          ],
+        })
+        .done()
+        .build();
+
+      const tt = scene.nodes[0]!.tooltip;
+      expect(typeof tt).toBe('object');
+      if (typeof tt === 'object') {
+        expect(tt.title).toBeUndefined();
+        expect(tt.sections).toHaveLength(2);
+      }
+    });
+
+    it('adds tabindex to edge groups with tooltips', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('a')
+        .at(0, 0)
+        .circle(10)
+        .done()
+        .node('b')
+        .at(100, 0)
+        .circle(10)
+        .done()
+        .edge('a', 'b')
+        .tooltip('edge info')
+        .done();
+
+      builder.mount(container);
+
+      const svg = container.querySelector('svg')!;
+      const edgeGroup = svg.querySelector(
+        'g[data-viz-role="edge-group"][data-id="a->b"]'
+      );
+      expect(edgeGroup).not.toBeNull();
+      expect(edgeGroup!.getAttribute('tabindex')).toBe('0');
+
+      builder.destroy();
+    });
+  });
 });

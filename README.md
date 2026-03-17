@@ -544,7 +544,7 @@ b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8)
 
 For deeper guides and API references, see [docs here](https://vizcraft-docs.vercel.app/docs/advanced).
 
-- **Interactivity**: attach `onClick` handlers to nodes/edges.
+- **Interactivity**: attach `onClick` handlers and `.tooltip()` hover info to nodes/edges.
 - **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.
 - **React integration**: see the workspace package [packages/react-vizcraft](packages/react-vizcraft) (monorepo).
 

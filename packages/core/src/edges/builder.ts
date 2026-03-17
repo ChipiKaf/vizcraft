@@ -11,6 +11,7 @@ import type {
   OverlayParams,
   VizScene,
   SvgExportOptions,
+  TooltipContent,
 } from '../types';
 import type {
   VizBuilder,
@@ -92,6 +93,7 @@ export function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.meta !== undefined) eb.meta(opts.meta);
   if (opts.data !== undefined) eb.data(opts.data);
   if (opts.onClick) eb.onClick(opts.onClick);
+  if (opts.tooltip !== undefined) eb.tooltip(opts.tooltip);
 }
 
 export class EdgeBuilderImpl implements EdgeBuilder {
@@ -369,6 +371,11 @@ export class EdgeBuilderImpl implements EdgeBuilder {
 
   loopSize(size: number): EdgeBuilder {
     this.edgeDef.loopSize = size;
+    return this;
+  }
+
+  tooltip(content: TooltipContent): EdgeBuilder {
+    this.edgeDef.tooltip = content;
     return this;
   }
 
