@@ -586,7 +586,10 @@ export const compartmentScene = viz()
   .stroke('#333')
   .compartment('name', (c) => c.label('User').height(36))
   .compartment('attrs', (c) =>
-    c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' })
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
   )
   .compartment('methods', (c) =>
     c.label('+ getName()\n+ setName()', { fontSize: 12, textAnchor: 'start' })
@@ -598,19 +601,19 @@ export const compartmentScene = viz()
 const builder = viz().view(500, 220);
 
 builder
-  .node('user')
-  .at(250, 110)
-  .rect(200, 0, 6)
-  .fill('#f5f5f5')
-  .stroke('#333')
-  .compartment('name', (c) => c.label('User').height(36))
-  .compartment('attrs', (c) =>
-    c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' })
-  )
-  .compartment('methods', (c) =>
-    c.label('+ getName()\\n+ setName()', { fontSize: 12, textAnchor: 'start' })
-  )
-  .done();
+.node('user')
+.at(250, 110)
+.rect(200, 0, 6)
+.fill('#f5f5f5')
+.stroke('#333')
+.compartment('name', (c) => c.label('User').height(36))
+.compartment('attrs', (c) =>
+c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' })
+)
+.compartment('methods', (c) =>
+c.label('+ getName()\\n+ setName()', { fontSize: 12, textAnchor: 'start' })
+)
+.done();
 
 builder.mount(document.getElementById('container'));
 `}>

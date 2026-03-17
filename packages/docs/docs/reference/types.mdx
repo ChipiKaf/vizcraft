@@ -36,7 +36,7 @@ Complete, serializable description of what to render.
 A node in the scene graph.
 
 | Field         | Type                       | Description                                                                                     |
-| ------------- | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| ------------- | -------------------------- | ----------------------------------------------------------------------------------------------- | --- | --------------- | ---------------------- | ------------------------------------------------------------------------------ |
 | `id`          | `string`                   | Unique identifier                                                                               |
 | `pos`         | `{ x: number; y: number }` | Base position                                                                                   |
 | `shape`       | `NodeShape`                | Geometry (see [NodeShape](#nodeshape))                                                          |
@@ -48,7 +48,8 @@ A node in the scene graph.
 | `data?`       | `unknown`                  | Custom payload                                                                                  |
 | `parentId?`   | `string`                   | Parent container node id                                                                        |
 | `container?`  | `ContainerConfig`          | Container configuration                                                                         |
-| `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       || `compartments?` | `VizNodeCompartment[]`   | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment)  |
+| `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       |     | `compartments?` | `VizNodeCompartment[]` | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment) |
+
 ---
 
 ## VizEdge
@@ -248,12 +249,12 @@ type RichTextToken =
 
 A horizontal section inside a compartmented node (e.g. UML class box name/attributes/methods).
 
-| Field     | Type        | Description                                            |
-| --------- | ----------- | ------------------------------------------------------ |
-| `id`      | `string`    | Unique id within the node (e.g. `'name'`, `'methods'`) |
-| `y`       | `number`    | Y offset from the node's top edge (computed at build)  |
-| `height`  | `number`    | Height in pixels                                       |
-| `label?`  | `NodeLabel` | Optional label rendered inside the compartment         |
+| Field    | Type        | Description                                            |
+| -------- | ----------- | ------------------------------------------------------ |
+| `id`     | `string`    | Unique id within the node (e.g. `'name'`, `'methods'`) |
+| `y`      | `number`    | Y offset from the node's top edge (computed at build)  |
+| `height` | `number`    | Height in pixels                                       |
+| `label?` | `NodeLabel` | Optional label rendered inside the compartment         |
 
 Compartments are auto-sized when no explicit height is given — the builder estimates height from the label's line count and font size.
 
