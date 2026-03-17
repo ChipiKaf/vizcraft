@@ -1,9 +1,9 @@
 ---
 sidebar_position: 6
 title: Interactivity
-description: Handle click events, hit testing, port snapping, rubber-band selection, and pan/zoom.
+description: Handle click events, hit testing, port snapping, rubber-band selection, tooltips, and pan/zoom.
 slug: /how-to/interactivity
-tags: [how-to, interactivity, hit-testing, pan-zoom]
+tags: [how-to, interactivity, hit-testing, pan-zoom, tooltips]
 ---
 
 import CodePreview from '@site/src/components/CodePreview';
@@ -248,6 +248,85 @@ const unsubscribe = controller.onChange(({ zoom, pan }) => {
   console.log('Scale:', zoom, 'Translation:', pan);
 });
 ```
+
+## Tooltips
+
+Add hover tooltips to nodes and edges. Tooltips appear after a short delay
+(300 ms by default), follow the cursor, and are keyboard-accessible.
+
+### Plain text tooltip
+
+```typescript
+import { viz } from 'vizcraft';
+
+const scene = viz()
+  .node('server')
+  .label('API Server')
+  .tooltip('Handles REST requests')
+  .done();
+```
+
+### Structured tooltip
+
+Pass an object with an optional `title` and an array of `sections` (label/value
+pairs) for richer content:
+
+```typescript
+const scene = viz()
+  .node('db')
+  .label('PostgreSQL')
+  .tooltip({
+    title: 'Database',
+    sections: [
+      { label: 'Engine', value: 'PostgreSQL 16' },
+      { label: 'Connections', value: '42 / 100' },
+    ],
+  })
+  .done();
+```
+
+### Edge tooltips
+
+Edges support the same API:
+
+```typescript
+const scene = viz()
+  .node('a').label('A').done()
+  .node('b').label('B').done()
+  .edge('a', 'b')
+    .tooltip('Latency: 12 ms')
+  .done();
+```
+
+### Declarative form
+
+Tooltips can also be set through the options object:
+
+```typescript
+const scene = viz()
+  .node('n', { tooltip: 'Quick info' })
+  .edge('a', 'b', { tooltip: { title: 'Link', sections: [{ label: 'Weight', value: '3' }] } })
+  .done();
+```
+
+### Theming
+
+The tooltip element uses CSS custom properties so you can match your
+application's palette:
+
+```css
+.viz-container {
+  --viz-tooltip-bg: #1e1e2e;
+  --viz-tooltip-fg: #cdd6f4;
+  --viz-tooltip-label: #a6adc8;
+}
+```
+
+### Keyboard accessibility
+
+Nodes and edges that have tooltips receive `tabindex="0"` automatically, so
+users can tab to them and trigger the tooltip via focus. Pressing **Escape**
+dismisses any visible tooltip.
 
 ---
 
