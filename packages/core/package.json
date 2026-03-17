@@ -24,9 +24,42 @@
     "type": "git",
     "url": "https://github.com/ChipiKaf/vizcraft.git"
   },
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./animation": {
+      "types": "./dist/animation.d.ts",
+      "import": "./dist/animation.mjs",
+      "require": "./dist/animation.js"
+    },
+    "./interaction": {
+      "types": "./dist/interaction.d.ts",
+      "import": "./dist/interaction.mjs",
+      "require": "./dist/interaction.js"
+    },
+    "./layout": {
+      "types": "./dist/layout.d.ts",
+      "import": "./dist/layout.mjs",
+      "require": "./dist/layout.js"
+    },
+    "./serialization": {
+      "types": "./dist/serialization.d.ts",
+      "import": "./dist/serialization.mjs",
+      "require": "./dist/serialization.js"
+    },
+    "./ports": {
+      "types": "./dist/ports.d.ts",
+      "import": "./dist/ports.mjs",
+      "require": "./dist/ports.js"
+    }
+  },
   "license": "MIT",
   "files": [
     "dist",
@@ -34,11 +67,12 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "vitest run"
   },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }
 }
