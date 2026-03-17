@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.10.0
+
+### Minor Changes
+
+- [`9715342`](https://github.com/ChipiKaf/vizcraft/commit/9715342cc6956aa34437959daa523430c8d0787e) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add compartment entry-level interactivity (#116): per-entry `.entry(id, text, opts?)` API on CompartmentBuilder with click handlers, tooltips, hover highlighting (`viz-entry-hover`), per-entry styling, and `entryId` in `hitTest()` results.
+
 ## 1.9.0
 
 ### Minor Changes
