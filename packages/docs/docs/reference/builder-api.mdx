@@ -258,17 +258,22 @@ Each method sets the node's geometry:
 
 Returned inside the `.compartment(id, cb)` callback. All methods return `this` for chaining.
 
-| Method                | Description                                                |
-| --------------------- | ---------------------------------------------------------- |
-| `.label(text, opts?)` | Set the compartment label (defaults `textAnchor: 'start'`) |
-| `.height(px)`         | Set explicit height (auto-sized from label when omitted)   |
+| Method                    | Description                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `.label(text, opts?)`     | Set the compartment label (defaults `textAnchor: 'start'`). Mutually exclusive with `.entry()`.                            |
+| `.entry(id, text, opts?)` | Add an interactive entry line. See [EntryOptions](/docs/reference/types#entryoptions). Mutually exclusive with `.label()`. |
+| `.height(px)`             | Set explicit height (auto-sized from label/entries when omitted)                                                           |
+
+:::tip
+`.label()` and `.entry()` are mutually exclusive within a single compartment. Calling one after the other replaces the previous content and logs a console warning.
+:::
 
 ### Interaction
 
-| Method              | Description                                                         |
-| ------------------- | ------------------------------------------------------------------- |
-| `.onClick(handler)` | Attach click handler `(id, node) => void`                           |
-| `.tooltip(content)` | Hover tooltip — `string` or `{ title?, sections: {label,value}[] }` |
+| Method                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `.onClick(handler)`   | Attach click handler `(id, node) => void`                                              |
+| `.tooltip(content)`   | Hover tooltip — `string` or `{ title?, sections: {label,value}[] }`                    |
 | `.badge(text, opts?)` | Text badge pinned to a corner — see [VizNodeBadge](/docs/reference/types#viznodebadge) |
 
 ### Animation

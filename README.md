@@ -233,6 +233,28 @@ b.node('user')
 
 The node height auto-sizes to fit all compartments. Each section is separated by a divider line in the rendered SVG. Set `height: 0` on the shape and let compartments compute the total.
 
+#### Per-entry interactivity
+
+Use `.entry(id, text, opts?)` inside a compartment callback to make each line independently clickable, hoverable, and styled:
+
+```typescript
+b.node('service')
+  .at(250, 125)
+  .rect(220, 0, 6)
+  .compartment('name', (c) => c.label('UserService').height(36))
+  .compartment('methods', (c) => {
+    c.entry('create', '+ createUser()', {
+      onClick: () => console.log('create clicked'),
+      tooltip: 'Creates a new user record',
+      style: { fontWeight: 'bold' },
+    });
+    c.entry('find', '+ findById(id)');
+  })
+  .done();
+```
+
+Entries and labels are mutually exclusive within a compartment. Hovered entries receive the CSS class `viz-entry-hover`. `hitTest()` returns `entryId` alongside `compartmentId` for entry-based compartments.
+
 ### Container / Group Nodes
 
 Group related nodes into visual containers (swimlanes, sub-processes, etc.).

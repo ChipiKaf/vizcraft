@@ -1,6 +1,7 @@
 import type {
   VizNode,
   VizNodeCompartment,
+  CompartmentEntry,
   NodeLabel,
   AnimationConfig,
   ContainerConfig,
@@ -12,6 +13,7 @@ import type {
   SvgExportOptions,
   TooltipContent,
   BadgePosition,
+  EntryOptions,
 } from '../types';
 import type {
   VizBuilder,
@@ -175,6 +177,17 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
             cb.label(text, rest);
           }
         }
+        if (c.entries) {
+          for (const e of c.entries) {
+            cb.entry(e.id, e.text, {
+              onClick: e.onClick,
+              style: e.style,
+              tooltip: e.tooltip,
+              maxWidth: e.maxWidth,
+              overflow: e.overflow,
+            });
+          }
+        }
         if (c.height !== undefined) cb.height(c.height);
       });
     }
@@ -193,6 +206,16 @@ interface PendingCompartment {
   id: string;
   label?: NodeLabel;
   explicitHeight?: number;
+  entries?: PendingEntry[];
+}
+
+/** Pending entry definition before y/height are computed. */
+interface PendingEntry {
+  id: string;
+  text: string;
+  label?: NodeLabel;
+  onClick?: () => void;
+  tooltip?: TooltipContent;
 }
 
 /**
@@ -201,6 +224,20 @@ interface PendingCompartment {
  */
 function estimateCompartmentHeight(c: PendingCompartment): number {
   if (c.explicitHeight !== undefined) return c.explicitHeight;
+
+  // Entry-based compartments: sum entry line heights
+  if (c.entries && c.entries.length > 0) {
+    let total = COMPARTMENT_PADDING_Y * 2;
+    for (const e of c.entries) {
+      const fontSize =
+        e.label && typeof e.label.fontSize === 'number'
+          ? e.label.fontSize
+          : COMPARTMENT_LINE_HEIGHT;
+      total += fontSize * (e.label?.lineHeight ?? 1.2);
+    }
+    return total;
+  }
+
   if (!c.label) return DEFAULT_COMPARTMENT_HEIGHT;
   const lineCount = (c.label.text.match(/\n/g)?.length ?? 0) + 1;
   const fontSize =
@@ -223,7 +260,10 @@ export function resolveCompartments(
   nodeDef: Partial<VizNode>
 ): VizNodeCompartment[] {
   const nonEmpty = pending.filter(
-    (c) => c.label || c.explicitHeight !== undefined
+    (c) =>
+      c.label ||
+      c.explicitHeight !== undefined ||
+      (c.entries && c.entries.length > 0)
   );
   if (nonEmpty.length === 0) return [];
 
@@ -232,6 +272,30 @@ export function resolveCompartments(
     const height = estimateCompartmentHeight(c);
     const compartment: VizNodeCompartment = { id: c.id, y, height };
     if (c.label) compartment.label = c.label;
+
+    // Resolve entries with computed y offsets within the compartment
+    if (c.entries && c.entries.length > 0) {
+      let entryY = COMPARTMENT_PADDING_Y;
+      compartment.entries = c.entries.map((e) => {
+        const fontSize =
+          e.label && typeof e.label.fontSize === 'number'
+            ? e.label.fontSize
+            : COMPARTMENT_LINE_HEIGHT;
+        const lineH = fontSize * (e.label?.lineHeight ?? 1.2);
+        const entry: CompartmentEntry = {
+          id: e.id,
+          y: entryY,
+          height: lineH,
+          text: e.text,
+        };
+        if (e.label) entry.label = e.label;
+        if (e.onClick) entry.onClick = e.onClick;
+        if (e.tooltip) entry.tooltip = e.tooltip;
+        entryY += lineH;
+        return entry;
+      });
+    }
+
     y += height;
     return compartment;
   });
@@ -256,6 +320,12 @@ class CompartmentBuilderImpl implements CompartmentBuilder {
   }
 
   label(text: string, opts?: Partial<NodeLabel>): CompartmentBuilder {
+    if (this._pending.entries && this._pending.entries.length > 0) {
+      console.warn(
+        `[vizcraft] Compartment "${this._pending.id}": label() replaces existing entries. Use entry() or label(), not both.`
+      );
+      this._pending.entries = undefined;
+    }
     this._pending.label = {
       text,
       ...opts,
@@ -266,6 +336,36 @@ class CompartmentBuilderImpl implements CompartmentBuilder {
 
   height(h: number): CompartmentBuilder {
     this._pending.explicitHeight = h;
+    return this;
+  }
+
+  entry(id: string, text: string, opts?: EntryOptions): CompartmentBuilder {
+    if (this._pending.label) {
+      console.warn(
+        `[vizcraft] Compartment "${this._pending.id}": entry() replaces existing label. Use entry() or label(), not both.`
+      );
+      this._pending.label = undefined;
+    }
+    if (!this._pending.entries) this._pending.entries = [];
+    const entryLabel: NodeLabel = {
+      text,
+      textAnchor: 'start',
+      ...(opts?.style && {
+        fill: opts.style.fill,
+        fontSize: opts.style.fontSize,
+        fontWeight: opts.style.fontWeight ?? opts.style.fontStyle,
+        fontFamily: opts.style.fontFamily,
+      }),
+      ...(opts?.maxWidth !== undefined && { maxWidth: opts.maxWidth }),
+      ...(opts?.overflow !== undefined && { overflow: opts.overflow }),
+    };
+    this._pending.entries.push({
+      id,
+      text,
+      label: entryLabel,
+      onClick: opts?.onClick,
+      tooltip: opts?.tooltip,
+    });
     return this;
   }
 }
