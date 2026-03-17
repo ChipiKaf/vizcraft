@@ -50,6 +50,7 @@ A node in the scene graph.
 | `container?`  | `ContainerConfig`          | Container configuration                                                                         |
 | `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       |     | `compartments?` | `VizNodeCompartment[]` | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment) |
 | `tooltip?`    | `TooltipContent`           | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)                             |
+| `badges?`     | `VizNodeBadge[]`           | Text badges pinned to corners. See [VizNodeBadge](#viznodebadge)                                |
 
 ---
 
@@ -278,6 +279,26 @@ type TooltipContent = string | { title?: string; sections: TooltipSection[] };
 | ------- | -------- | ----------------- |
 | `label` | `string` | Key / label text  |
 | `value` | `string` | Value / info text |
+
+---
+
+## VizNodeBadge {#viznodebadge}
+
+A small text indicator pinned to a corner of a node shape.
+
+| Field         | Type            | Description                                  |
+| ------------- | --------------- | -------------------------------------------- |
+| `text`        | `string`        | 1–2 character badge text                      |
+| `position`    | `BadgePosition` | Corner: `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` |
+| `fill?`       | `string`        | Text color                                   |
+| `background?` | `string`        | Optional pill background color               |
+| `fontSize?`   | `number`        | Font size in px (default 10)                 |
+
+### BadgePosition {#badgeposition}
+
+```typescript
+type BadgePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+```
 
 ---
 

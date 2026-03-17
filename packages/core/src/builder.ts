@@ -30,6 +30,7 @@ import type {
   LayoutResult,
   SvgExportOptions,
   TooltipContent,
+  BadgePosition,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './interaction/panZoom';
@@ -70,6 +71,7 @@ import {
   effectiveShape,
   getShapeBehavior,
   shapeSvgMarkup,
+  getNodeBoundingBox,
 } from './shapes/geometry';
 import { getEffectiveNodeBounds } from './interaction/hitTest';
 import { defaultCoreIconRegistry } from './shapes/icons';
@@ -679,6 +681,21 @@ export interface NodeBuilder {
   compartment(id: string, cb?: (c: CompartmentBuilder) => unknown): NodeBuilder;
   /** Set tooltip content shown on hover/focus. */
   tooltip(content: TooltipContent): NodeBuilder;
+  /**
+   * Add a text badge pinned to a corner of the node.
+   *
+   * @param text       1–2 character badge text
+   * @param opts       Badge options (position, colors, fontSize)
+   */
+  badge(
+    text: string,
+    opts?: {
+      position?: BadgePosition;
+      fill?: string;
+      background?: string;
+      fontSize?: number;
+    }
+  ): NodeBuilder;
   done(): VizBuilder;
 
   // Seamless chaining extensions
@@ -2654,6 +2671,66 @@ class VizBuilderImpl implements VizBuilder {
         ) as SVGTextElement | null;
       }
 
+      // Badges — small text indicators pinned to node corners
+      const oldBadges = group.querySelectorAll('[data-viz-role="badge"]');
+      oldBadges.forEach((el) => el.remove());
+
+      if (node.badges && node.badges.length > 0) {
+        const bbox = getNodeBoundingBox(node.shape);
+        const hw = bbox.width / 2;
+        const hh = bbox.height / 2;
+
+        for (const badge of node.badges) {
+          const fs = badge.fontSize ?? 10;
+          const pad = 3;
+          const pillH = fs + pad * 2;
+          const pillW = Math.max(fs * badge.text.length * 0.7 + pad * 2, pillH);
+
+          let bx: number;
+          let by: number;
+          if (badge.position === 'top-left') {
+            bx = x - hw - pillW / 4;
+            by = y - hh - pillH / 4;
+          } else if (badge.position === 'top-right') {
+            bx = x + hw - (pillW * 3) / 4;
+            by = y - hh - pillH / 4;
+          } else if (badge.position === 'bottom-left') {
+            bx = x - hw - pillW / 4;
+            by = y + hh - (pillH * 3) / 4;
+          } else {
+            bx = x + hw - (pillW * 3) / 4;
+            by = y + hh - (pillH * 3) / 4;
+          }
+
+          const badgeG = document.createElementNS(svgNS, 'g');
+          badgeG.setAttribute('class', 'viz-badge');
+          badgeG.setAttribute('data-viz-role', 'badge');
+
+          if (badge.background) {
+            const pill = document.createElementNS(svgNS, 'rect');
+            pill.setAttribute('x', String(bx));
+            pill.setAttribute('y', String(by));
+            pill.setAttribute('width', String(pillW));
+            pill.setAttribute('height', String(pillH));
+            pill.setAttribute('rx', String(pillH / 2));
+            pill.setAttribute('fill', badge.background);
+            badgeG.appendChild(pill);
+          }
+
+          const txt = document.createElementNS(svgNS, 'text');
+          txt.setAttribute('x', String(bx + pillW / 2));
+          txt.setAttribute('y', String(by + pillH / 2));
+          txt.setAttribute('text-anchor', 'middle');
+          txt.setAttribute('dominant-baseline', 'central');
+          txt.setAttribute('font-size', String(fs));
+          if (badge.fill) txt.setAttribute('fill', badge.fill);
+          txt.textContent = badge.text;
+          badgeG.appendChild(txt);
+
+          group.appendChild(badgeG);
+        }
+      }
+
       // Ports — render small circles at each explicit port position.
       // Remove stale ports first, then recreate from current spec.
       const oldPorts = group.querySelectorAll('[data-viz-role="port"]');
@@ -3332,6 +3409,51 @@ class VizBuilderImpl implements VizBuilder {
           '<text data-viz-role="node-label" '
         );
         content += augmentedSvg;
+      }
+
+      // Badges — small text indicators pinned to node corners
+      if (node.badges && node.badges.length > 0) {
+        const bbox = getNodeBoundingBox(shape);
+        const hw = bbox.width / 2;
+        const hh = bbox.height / 2;
+
+        for (const badge of node.badges) {
+          const fs = badge.fontSize ?? 10;
+          const pad = 3;
+          const pillH = fs + pad * 2;
+          const pillW = Math.max(fs * badge.text.length * 0.7 + pad * 2, pillH);
+
+          let bx: number;
+          let by: number;
+          if (badge.position === 'top-left') {
+            bx = x - hw - pillW / 4;
+            by = y - hh - pillH / 4;
+          } else if (badge.position === 'top-right') {
+            bx = x + hw - (pillW * 3) / 4;
+            by = y - hh - pillH / 4;
+          } else if (badge.position === 'bottom-left') {
+            bx = x - hw - pillW / 4;
+            by = y + hh - (pillH * 3) / 4;
+          } else {
+            bx = x + hw - (pillW * 3) / 4;
+            by = y + hh - (pillH * 3) / 4;
+          }
+
+          content += '<g class="viz-badge" data-viz-role="badge">';
+          if (badge.background) {
+            const safeBg = escapeXmlAttr(badge.background);
+            content += `<rect x="${bx}" y="${by}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="${safeBg}" />`;
+          }
+          const safeFill = badge.fill
+            ? ` fill="${escapeXmlAttr(badge.fill)}"`
+            : '';
+          const safeText = badge.text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          content += `<text x="${bx + pillW / 2}" y="${by + pillH / 2}" text-anchor="middle" dominant-baseline="central" font-size="${fs}"${safeFill}>${safeText}</text>`;
+          content += '</g>';
+        }
       }
 
       // Ports (small circles on the shape boundary, hidden by default, shown on hover via CSS)

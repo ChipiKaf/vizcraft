@@ -5162,3 +5162,181 @@ describe('vizcraft core', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Text Badge API (#108)
+// ---------------------------------------------------------------------------
+describe('Text Badge API', () => {
+  it('stores a single badge on a node via fluent API', () => {
+    const scene = viz()
+      .node('n')
+      .at(0, 0)
+      .rect(100, 60)
+      .badge('C', {
+        position: 'top-left',
+        fill: '#4a9eff',
+        background: '#1a2c42',
+      })
+      .done()
+      .build();
+
+    expect(scene.nodes[0]!.badges).toHaveLength(1);
+    expect(scene.nodes[0]!.badges![0]).toEqual({
+      text: 'C',
+      position: 'top-left',
+      fill: '#4a9eff',
+      background: '#1a2c42',
+      fontSize: undefined,
+    });
+  });
+
+  it('supports multiple badges on a node', () => {
+    const scene = viz()
+      .node('n')
+      .at(0, 0)
+      .rect(100, 60)
+      .badge('C', { position: 'top-left' })
+      .badge('\u26A1', { position: 'top-right' })
+      .done()
+      .build();
+
+    expect(scene.nodes[0]!.badges).toHaveLength(2);
+    expect(scene.nodes[0]!.badges![0]!.position).toBe('top-left');
+    expect(scene.nodes[0]!.badges![1]!.position).toBe('top-right');
+  });
+
+  it('defaults position to top-left when omitted', () => {
+    const scene = viz().node('n').at(0, 0).circle(30).badge('I').done().build();
+
+    expect(scene.nodes[0]!.badges![0]!.position).toBe('top-left');
+  });
+
+  it('sets badge via declarative NodeOptions', () => {
+    const scene = viz()
+      .node('n', {
+        at: { x: 0, y: 0 },
+        rect: { w: 100, h: 60 },
+        badges: [{ text: 'T', position: 'top-right', fill: '#ccc' }],
+      })
+      .build();
+
+    expect(scene.nodes[0]!.badges).toHaveLength(1);
+    expect(scene.nodes[0]!.badges![0]!.text).toBe('T');
+    expect(scene.nodes[0]!.badges![0]!.position).toBe('top-right');
+  });
+
+  it('renders badge SVG elements when mounted', () => {
+    const container = document.createElement('div');
+    const builder = viz()
+      .node('n')
+      .at(50, 50)
+      .rect(100, 60)
+      .badge('C', { position: 'top-left', fill: '#fff', background: '#333' })
+      .done();
+
+    builder.mount(container);
+
+    const svg = container.querySelector('svg')!;
+    const badgeGroups = svg.querySelectorAll('[data-viz-role="badge"]');
+    expect(badgeGroups).toHaveLength(1);
+
+    const pill = badgeGroups[0]!.querySelector('rect');
+    expect(pill).not.toBeNull();
+    expect(pill!.getAttribute('fill')).toBe('#333');
+
+    const text = badgeGroups[0]!.querySelector('text');
+    expect(text).not.toBeNull();
+    expect(text!.textContent).toBe('C');
+    expect(text!.getAttribute('fill')).toBe('#fff');
+
+    builder.destroy();
+  });
+
+  it('renders badge without background (no pill rect)', () => {
+    const container = document.createElement('div');
+    const builder = viz()
+      .node('n')
+      .at(50, 50)
+      .rect(100, 60)
+      .badge('I', { position: 'top-left', fill: '#4a9eff' })
+      .done();
+
+    builder.mount(container);
+
+    const svg = container.querySelector('svg')!;
+    const badgeGroup = svg.querySelector('[data-viz-role="badge"]')!;
+    expect(badgeGroup.querySelector('rect')).toBeNull();
+    expect(badgeGroup.querySelector('text')!.textContent).toBe('I');
+
+    builder.destroy();
+  });
+
+  it('includes badges in SVG export', () => {
+    const svgStr = viz()
+      .node('n')
+      .at(50, 50)
+      .rect(100, 60)
+      .badge('C', { position: 'top-left', fill: '#fff', background: '#333' })
+      .done()
+      .svg();
+
+    expect(svgStr).toContain('data-viz-role="badge"');
+    expect(svgStr).toContain('>C</text>');
+    expect(svgStr).toContain('fill="#333"');
+  });
+
+  it('supports custom fontSize', () => {
+    const scene = viz()
+      .node('n')
+      .at(0, 0)
+      .rect(100, 60)
+      .badge('x', { fontSize: 14 })
+      .done()
+      .build();
+
+    expect(scene.nodes[0]!.badges![0]!.fontSize).toBe(14);
+  });
+
+  it('preserves chaining after badge()', () => {
+    const scene = viz()
+      .node('n')
+      .at(0, 0)
+      .rect(100, 60)
+      .badge('C', { position: 'top-left' })
+      .label('MyClass')
+      .fill('#eee')
+      .done()
+      .build();
+
+    expect(scene.nodes[0]!.badges).toHaveLength(1);
+    expect(scene.nodes[0]!.label!.text).toBe('MyClass');
+    expect(scene.nodes[0]!.style!.fill).toBe('#eee');
+  });
+
+  it('nodes without badges have undefined badges', () => {
+    const scene = viz().node('n').at(0, 0).rect(100, 60).done().build();
+
+    expect(scene.nodes[0]!.badges).toBeUndefined();
+  });
+
+  it('renders badges at all four corners', () => {
+    const container = document.createElement('div');
+    const builder = viz()
+      .node('n')
+      .at(100, 100)
+      .rect(100, 60)
+      .badge('1', { position: 'top-left' })
+      .badge('2', { position: 'top-right' })
+      .badge('3', { position: 'bottom-left' })
+      .badge('4', { position: 'bottom-right' })
+      .done();
+
+    builder.mount(container);
+
+    const svg = container.querySelector('svg')!;
+    const badges = svg.querySelectorAll('[data-viz-role="badge"]');
+    expect(badges).toHaveLength(4);
+
+    builder.destroy();
+  });
+});
