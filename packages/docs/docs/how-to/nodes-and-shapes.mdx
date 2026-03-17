@@ -336,7 +336,12 @@ export const badgeScene = viz()
   .label('UserService')
   .fill('#2d2d3d')
   .stroke('#555')
-  .badge('C', { position: 'top-left', fill: '#fff', background: '#4a9eff', fontSize: 10 })
+  .badge('C', {
+    position: 'top-left',
+    fill: '#fff',
+    background: '#4a9eff',
+    fontSize: 10,
+  })
   .done()
   .node('iface')
   .at(300, 60)
@@ -344,7 +349,12 @@ export const badgeScene = viz()
   .label('IRepository')
   .fill('#2d2d3d')
   .stroke('#555')
-  .badge('I', { position: 'top-left', fill: '#fff', background: '#e5c07b', fontSize: 10 })
+  .badge('I', {
+    position: 'top-left',
+    fill: '#fff',
+    background: '#e5c07b',
+    fontSize: 10,
+  })
   .badge('\u0192', { position: 'top-right', fill: '#98c379' })
   .done();
 
@@ -612,12 +622,12 @@ Attach 1–2 character indicators (class kind, status icon, etc.) pinned to each
 
 ### Options
 
-| Option       | Type            | Default      | Description                           |
-| ------------ | --------------- | ------------ | ------------------------------------- |
-| `position`   | `BadgePosition` | `'top-left'` | Corner to pin the badge to            |
-| `fill`       | `string`        | —            | Text colour                           |
-| `background` | `string`        | —            | Pill background colour (omit for none)|
-| `fontSize`   | `number`        | `10`         | Font size in px                       |
+| Option       | Type            | Default      | Description                            |
+| ------------ | --------------- | ------------ | -------------------------------------- |
+| `position`   | `BadgePosition` | `'top-left'` | Corner to pin the badge to             |
+| `fill`       | `string`        | —            | Text colour                            |
+| `background` | `string`        | —            | Pill background colour (omit for none) |
+| `fontSize`   | `number`        | `10`         | Font size in px                        |
 
 `BadgePosition` is one of `'top-left'` · `'top-right'` · `'bottom-left'` · `'bottom-right'`.
 
@@ -738,16 +748,16 @@ builder
 .stroke('#333')
 .compartment('name', (c) => c.label('UserService').height(36))
 .compartment('methods', (c) => {
-  c.entry('create', '+ createUser()', {
-    style: { fontWeight: 'bold' },
-    tooltip: 'Creates a new user record',
-  });
-  c.entry('find', '+ findById(id)', {
-    tooltip: 'Looks up user by primary key',
-  });
-  c.entry('delete', '- deleteUser()', {
-    style: { fill: '#c00', fontStyle: 'italic' },
-  });
+c.entry('create', '+ createUser()', {
+style: { fontWeight: 'bold' },
+tooltip: 'Creates a new user record',
+});
+c.entry('find', '+ findById(id)', {
+tooltip: 'Looks up user by primary key',
+});
+c.entry('delete', '- deleteUser()', {
+style: { fill: '#c00', fontStyle: 'italic' },
+});
 })
 .done();
 

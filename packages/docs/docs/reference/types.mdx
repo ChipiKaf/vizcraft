@@ -252,13 +252,13 @@ type RichTextToken =
 
 A horizontal section inside a compartmented node (e.g. UML class box name/attributes/methods).
 
-| Field      | Type                                             | Description                                                                     |
-| ---------- | ------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `id`       | `string`                                         | Unique id within the node (e.g. `'name'`, `'methods'`)                          |
-| `y`        | `number`                                         | Y offset from the node's top edge (computed at build)                           |
-| `height`   | `number`                                         | Height in pixels                                                                |
-| `label?`   | `NodeLabel`                                      | Optional label rendered inside the compartment                                  |
-| `entries?` | [`CompartmentEntry[]`](#compartmententry)         | Per-line interactive entries (mutually exclusive with `label`)                   |
+| Field      | Type                                      | Description                                                    |
+| ---------- | ----------------------------------------- | -------------------------------------------------------------- |
+| `id`       | `string`                                  | Unique id within the node (e.g. `'name'`, `'methods'`)         |
+| `y`        | `number`                                  | Y offset from the node's top edge (computed at build)          |
+| `height`   | `number`                                  | Height in pixels                                               |
+| `label?`   | `NodeLabel`                               | Optional label rendered inside the compartment                 |
+| `entries?` | [`CompartmentEntry[]`](#compartmententry) | Per-line interactive entries (mutually exclusive with `label`) |
 
 Compartments are auto-sized when no explicit height is given — the builder estimates height from the label's line count and font size, or from the number of entries.
 
@@ -266,39 +266,39 @@ Compartments are auto-sized when no explicit height is given — the builder est
 
 A single interactive line inside a compartment. Each entry has its own hit region, optional click handler, tooltip, and styling.
 
-| Field      | Type                                   | Description                                   |
-| ---------- | -------------------------------------- | --------------------------------------------- |
-| `id`       | `string`                               | Unique id within the compartment              |
-| `y`        | `number`                               | Y offset within the compartment (computed)    |
-| `height`   | `number`                               | Height in pixels (computed)                   |
-| `text`     | `string`                               | Display text                                  |
-| `label?`   | `NodeLabel`                            | Resolved label with styles                    |
-| `onClick?` | `() => void`                           | Click handler for this entry                  |
-| `tooltip?` | [`TooltipContent`](#tooltipcontent)    | Tooltip shown on hover                        |
+| Field      | Type                                | Description                                |
+| ---------- | ----------------------------------- | ------------------------------------------ |
+| `id`       | `string`                            | Unique id within the compartment           |
+| `y`        | `number`                            | Y offset within the compartment (computed) |
+| `height`   | `number`                            | Height in pixels (computed)                |
+| `text`     | `string`                            | Display text                               |
+| `label?`   | `NodeLabel`                         | Resolved label with styles                 |
+| `onClick?` | `() => void`                        | Click handler for this entry               |
+| `tooltip?` | [`TooltipContent`](#tooltipcontent) | Tooltip shown on hover                     |
 
 ### EntryStyle {#entrystyle}
 
 Per-entry text styling options.
 
-| Field         | Type               | Description |
-| ------------- | ------------------ | ----------- |
-| `fill?`       | `string`           | Text color  |
-| `fontSize?`   | `number \| string` | Font size   |
-| `fontWeight?` | `number \| string` | Font weight |
+| Field         | Type               | Description                  |
+| ------------- | ------------------ | ---------------------------- |
+| `fill?`       | `string`           | Text color                   |
+| `fontSize?`   | `number \| string` | Font size                    |
+| `fontWeight?` | `number \| string` | Font weight                  |
 | `fontStyle?`  | `string`           | Font style (e.g. `'italic'`) |
-| `fontFamily?` | `string`           | Font family |
+| `fontFamily?` | `string`           | Font family                  |
 
 ### EntryOptions {#entryoptions}
 
 Options passed to `.entry(id, text, opts?)` on the `CompartmentBuilder`.
 
-| Field       | Type                                            | Description                             |
-| ----------- | ----------------------------------------------- | --------------------------------------- |
-| `onClick?`  | `() => void`                                    | Click handler                           |
-| `style?`    | [`EntryStyle`](#entrystyle)                     | Per-entry text styling                  |
-| `tooltip?`  | [`TooltipContent`](#tooltipcontent)              | Tooltip shown on hover                  |
-| `maxWidth?` | `number`                                        | Max text width in pixels                |
-| `overflow?` | `'clip' \| 'ellipsis'`                          | Text overflow behavior                  |
+| Field       | Type                                | Description              |
+| ----------- | ----------------------------------- | ------------------------ |
+| `onClick?`  | `() => void`                        | Click handler            |
+| `style?`    | [`EntryStyle`](#entrystyle)         | Per-entry text styling   |
+| `tooltip?`  | [`TooltipContent`](#tooltipcontent) | Tooltip shown on hover   |
+| `maxWidth?` | `number`                            | Max text width in pixels |
+| `overflow?` | `'clip' \| 'ellipsis'`              | Text overflow behavior   |
 
 ---
 
@@ -325,13 +325,13 @@ type TooltipContent = string | { title?: string; sections: TooltipSection[] };
 
 A small text indicator pinned to a corner of a node shape.
 
-| Field         | Type            | Description                                  |
-| ------------- | --------------- | -------------------------------------------- |
-| `text`        | `string`        | 1–2 character badge text                      |
+| Field         | Type            | Description                                                                  |
+| ------------- | --------------- | ---------------------------------------------------------------------------- |
+| `text`        | `string`        | 1–2 character badge text                                                     |
 | `position`    | `BadgePosition` | Corner: `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` |
-| `fill?`       | `string`        | Text color                                   |
-| `background?` | `string`        | Optional pill background color               |
-| `fontSize?`   | `number`        | Font size in px (default 10)                 |
+| `fill?`       | `string`        | Text color                                                                   |
+| `background?` | `string`        | Optional pill background color                                               |
+| `fontSize?`   | `number`        | Font size in px (default 10)                                                 |
 
 ### BadgePosition {#badgeposition}
 
