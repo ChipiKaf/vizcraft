@@ -629,6 +629,16 @@ export interface RichLabelBuilder {
   build(): RichText;
 }
 
+/**
+ * Builder for configuring a single compartment inside a compartmented node.
+ */
+export interface CompartmentBuilder {
+  /** Set the compartment's label text. */
+  label(text: string, opts?: Partial<NodeLabel>): CompartmentBuilder;
+  /** Set an explicit height for this compartment (overrides auto-sizing). */
+  height(h: number): CompartmentBuilder;
+}
+
 export interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
   cell(
@@ -794,6 +804,13 @@ export interface NodeBuilder {
   ): NodeBuilder;
   container(config?: ContainerConfig): NodeBuilder;
   parent(parentId: string): NodeBuilder;
+  /**
+   * Add a compartment section to this node (UML-style class boxes).
+   *
+   * @param id   Unique compartment id (e.g. `'name'`, `'attributes'`, `'methods'`)
+   * @param cb   Callback to configure the compartment's label
+   */
+  compartment(id: string, cb?: (c: CompartmentBuilder) => unknown): NodeBuilder;
   done(): VizBuilder;
 
   // Seamless chaining extensions
@@ -1391,6 +1408,7 @@ class VizBuilderImpl implements VizBuilder {
     const nb = new NodeBuilderImpl(this, this._nodes.get(id)!);
     if (!opts) return nb;
     applyNodeOptions(nb, opts);
+    nb.done(); // Resolve compartments (if any) before returning
     return this;
   }
 
@@ -2573,10 +2591,81 @@ class VizBuilderImpl implements VizBuilder {
         if (staleHeader) staleHeader.remove();
       }
 
+      // Compartment divider lines and labels
+      const hasCompartments = node.compartments && node.compartments.length > 0;
+
+      // Remove stale compartment elements before re-creating
+      group
+        .querySelectorAll(
+          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"]'
+        )
+        .forEach((el) => el.remove());
+
+      if (hasCompartments && 'w' in node.shape) {
+        const sw = (node.shape as { w: number }).w;
+        const sh = (node.shape as { h: number }).h;
+        const nodeTop = y - sh / 2;
+        const compartmentPadding = 8;
+
+        for (let ci = 0; ci < node.compartments!.length; ci++) {
+          const c = node.compartments![ci]!;
+
+          // Draw divider line between compartments (skip the first one)
+          if (ci > 0) {
+            const dividerY = nodeTop + c.y;
+            const divider = document.createElementNS(svgNS, 'line');
+            divider.setAttribute('class', 'viz-compartment-divider');
+            divider.setAttribute('data-viz-role', 'compartment-divider');
+            divider.setAttribute('data-compartment', c.id);
+            divider.setAttribute('x1', String(x - sw / 2));
+            divider.setAttribute('y1', String(dividerY));
+            divider.setAttribute('x2', String(x + sw / 2));
+            divider.setAttribute('y2', String(dividerY));
+            divider.setAttribute('stroke', node.style?.stroke ?? '#111');
+            divider.setAttribute(
+              'stroke-width',
+              String(node.style?.strokeWidth ?? 2)
+            );
+            group.appendChild(divider);
+          }
+
+          // Render compartment label
+          if (c.label) {
+            const clx = x - sw / 2 + compartmentPadding + (c.label.dx || 0);
+            const cly = nodeTop + c.y + c.height / 2 + (c.label.dy || 0);
+            const cLabelClass = `viz-compartment-label ${c.label.className || ''}`;
+
+            const cLabelSvg = renderSvgText(
+              clx,
+              cly,
+              c.label.rich ?? c.label.text,
+              {
+                className: cLabelClass,
+                fill: c.label.fill,
+                fontSize: c.label.fontSize,
+                fontWeight: c.label.fontWeight,
+                fontFamily: c.label.fontFamily,
+                textAnchor: c.label.textAnchor || 'start',
+                dominantBaseline: c.label.dominantBaseline || 'middle',
+                maxWidth: c.label.maxWidth ?? sw - compartmentPadding * 2,
+                lineHeight: c.label.lineHeight,
+                verticalAlign: c.label.verticalAlign,
+                overflow: c.label.overflow,
+              }
+            ).replace(
+              '<text ',
+              `<text data-viz-role="compartment-label" data-compartment="${c.id}" `
+            );
+
+            group.insertAdjacentHTML('beforeend', cLabelSvg);
+          }
+        }
+      }
+
       // Label coordinate computation
       let lx = x + (node.label?.dx || 0);
       let ly = y + (node.label?.dy || 0);
-      let showLabel = !!node.label;
+      let showLabel = !!node.label && !hasCompartments;
 
       if (
         node.label &&
@@ -3212,8 +3301,59 @@ class VizBuilderImpl implements VizBuilder {
         content += `<line x1="${x - sw / 2}" y1="${headerY}" x2="${x + sw / 2}" y2="${headerY}" stroke="${node.style?.stroke ?? '#111'}" stroke-width="${node.style?.strokeWidth ?? 2}" class="viz-container-header" data-viz-role="container-header" />`;
       }
 
-      // Label
-      if (node.label) {
+      // Compartment divider lines and labels
+      const hasCompartments = node.compartments && node.compartments.length > 0;
+
+      if (hasCompartments && 'w' in shape) {
+        const sw = (shape as { w: number }).w;
+        const sh = (shape as { h: number }).h;
+        const nodeTop = y - sh / 2;
+        const compartmentPadding = 8;
+
+        for (let ci = 0; ci < node.compartments!.length; ci++) {
+          const c = node.compartments![ci]!;
+
+          // Draw divider line between compartments (skip the first one)
+          if (ci > 0) {
+            const dividerY = nodeTop + c.y;
+            content += `<line x1="${x - sw / 2}" y1="${dividerY}" x2="${x + sw / 2}" y2="${dividerY}" stroke="${node.style?.stroke ?? '#111'}" stroke-width="${node.style?.strokeWidth ?? 2}" class="viz-compartment-divider" data-viz-role="compartment-divider" data-compartment="${c.id}" />`;
+          }
+
+          // Render compartment label
+          if (c.label) {
+            const clx = x - sw / 2 + compartmentPadding + (c.label.dx || 0);
+            const cly = nodeTop + c.y + c.height / 2 + (c.label.dy || 0);
+            const cLabelClass = `viz-compartment-label ${c.label.className || ''}`;
+
+            const cLabelSvg = renderSvgText(
+              clx,
+              cly,
+              c.label.rich ?? c.label.text,
+              {
+                className: cLabelClass,
+                fill: c.label.fill,
+                fontSize: c.label.fontSize,
+                fontWeight: c.label.fontWeight,
+                fontFamily: c.label.fontFamily,
+                textAnchor: c.label.textAnchor || 'start',
+                dominantBaseline: c.label.dominantBaseline || 'middle',
+                maxWidth: c.label.maxWidth ?? sw - compartmentPadding * 2,
+                lineHeight: c.label.lineHeight,
+                verticalAlign: c.label.verticalAlign,
+                overflow: c.label.overflow,
+              }
+            ).replace(
+              '<text ',
+              `<text data-viz-role="compartment-label" data-compartment="${c.id}" `
+            );
+
+            content += cLabelSvg;
+          }
+        }
+      }
+
+      // Label (suppressed when compartments are present)
+      if (node.label && !hasCompartments) {
         let lx = x + (node.label.dx || 0);
         let ly = y + (node.label.dy || 0);
 

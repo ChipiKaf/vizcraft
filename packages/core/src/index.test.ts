@@ -12,6 +12,7 @@ import {
   gridLayout,
   computeEdgeEndpoints,
   getNodeBoundingBox,
+  hitTest,
 } from './index';
 import type {
   VizNode,
@@ -4662,6 +4663,261 @@ describe('vizcraft core', () => {
         expect(endpoints.start.x).toBeCloseTo(130, 1);
         expect(endpoints.start.y).toBeCloseTo(100, 1);
       });
+    });
+  });
+
+  describe('Compartmented Nodes', () => {
+    it('adds compartments via fluent .compartment() API', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => {
+          c.label('«interface»\nIUserService');
+        })
+        .compartment('attributes', (c) => {
+          c.label('+ name: string\n+ email: string');
+        })
+        .compartment('methods', (c) => {
+          c.label('+ create(): void\n+ delete(id): void');
+        })
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.compartments).toBeDefined();
+      expect(node.compartments).toHaveLength(3);
+      expect(node.compartments![0]!.id).toBe('name');
+      expect(node.compartments![1]!.id).toBe('attributes');
+      expect(node.compartments![2]!.id).toBe('methods');
+    });
+
+    it('auto-sizes node height to fit compartments', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => {
+          c.label('ClassName');
+        })
+        .compartment('methods', (c) => {
+          c.label('+ foo(): void');
+        })
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.shape.kind).toBe('rect');
+      const shape = node.shape as { kind: 'rect'; w: number; h: number };
+      // Height should be > 0, fitted to compartment content
+      expect(shape.h).toBeGreaterThan(0);
+
+      // Total height should equal sum of compartment heights
+      const totalCompartmentHeight = node.compartments!.reduce(
+        (sum, c) => sum + c.height,
+        0
+      );
+      expect(shape.h).toBeCloseTo(totalCompartmentHeight, 1);
+    });
+
+    it('computes correct y offsets for compartments', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(120, 0)
+        .compartment('a', (c) => c.height(30))
+        .compartment('b', (c) => c.height(40))
+        .compartment('c', (c) => c.height(50))
+        .done()
+        .build();
+
+      const comps = scene.nodes[0]!.compartments!;
+      expect(comps[0]!.y).toBe(0);
+      expect(comps[0]!.height).toBe(30);
+      expect(comps[1]!.y).toBe(30);
+      expect(comps[1]!.height).toBe(40);
+      expect(comps[2]!.y).toBe(70);
+      expect(comps[2]!.height).toBe(50);
+    });
+
+    it('omits empty compartments (no label, no explicit height)', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(120, 0)
+        .compartment('name', (c) => c.label('Foo'))
+        .compartment('empty') // no label, no height
+        .compartment('methods', (c) => c.label('+ bar(): void'))
+        .done()
+        .build();
+
+      const comps = scene.nodes[0]!.compartments!;
+      expect(comps).toHaveLength(2);
+      expect(comps[0]!.id).toBe('name');
+      expect(comps[1]!.id).toBe('methods');
+    });
+
+    it('supports declarative compartments via NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName' },
+            { id: 'attrs', label: '+ x: number' },
+          ],
+        })
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.compartments).toHaveLength(2);
+      expect(node.compartments![0]!.id).toBe('name');
+      expect(node.compartments![1]!.id).toBe('attrs');
+    });
+
+    it('renders compartment divider lines in SVG export', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('Foo'))
+        .compartment('methods', (c) => c.label('+ bar(): void'))
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="compartment-divider"');
+      expect(svgStr).toContain('data-compartment="methods"');
+      expect(svgStr).toContain('class="viz-compartment-divider"');
+    });
+
+    it('renders compartment labels in SVG export', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="compartment-label"');
+      expect(svgStr).toContain('MyClass');
+      expect(svgStr).toContain('+ run(): void');
+    });
+
+    it('suppresses main label when compartments are present', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .label('Should not appear')
+        .compartment('name', (c) => c.label('MyClass'))
+        .done()
+        .svg();
+
+      // Main label should be suppressed
+      expect(svgStr).not.toContain('Should not appear');
+      // Compartment label should appear
+      expect(svgStr).toContain('MyClass');
+    });
+
+    it('renders compartment dividers and labels in DOM mount', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('Foo'))
+        .compartment('methods', (c) => c.label('+ bar(): void'))
+        .done()
+        .mount(container);
+
+      const dividers = container.querySelectorAll(
+        '[data-viz-role="compartment-divider"]'
+      );
+      // Only one divider between two compartments
+      expect(dividers.length).toBe(1);
+
+      const labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(2);
+    });
+
+    it('hit test reports which compartment was hit', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('Foo'))
+        .compartment('methods', (c) => c.height(40).label('+ bar(): void'))
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const nodeTop = node.pos.y - (node.shape as { h: number }).h / 2;
+
+      // Hit inside the first compartment (name)
+      const result1 = hitTest(scene, { x: 200, y: nodeTop + 15 });
+      expect(result1).not.toBeNull();
+      expect(result1!.type).toBe('node');
+      if (result1!.type === 'node') {
+        expect(result1!.compartmentId).toBe('name');
+      }
+
+      // Hit inside the second compartment (methods)
+      const result2 = hitTest(scene, { x: 200, y: nodeTop + 50 });
+      expect(result2).not.toBeNull();
+      expect(result2!.type).toBe('node');
+      if (result2!.type === 'node') {
+        expect(result2!.compartmentId).toBe('methods');
+      }
+    });
+
+    it('resolves compartments when chaining to .node() from a compartmented node', () => {
+      const scene = viz()
+        .node('cls1')
+        .at(100, 100)
+        .rect(120, 0)
+        .compartment('name', (c) => c.label('A'))
+        .node('cls2')
+        .at(300, 100)
+        .rect(120, 0)
+        .compartment('name', (c) => c.label('B'))
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.compartments).toHaveLength(1);
+      expect(scene.nodes[1]!.compartments).toHaveLength(1);
+    });
+
+    it('sets labels to left-aligned (textAnchor: start) by default', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(120, 0)
+        .compartment('name', (c) => c.label('Foo'))
+        .done()
+        .build();
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      expect(comp.label!.textAnchor).toBe('start');
+    });
+
+    it('supports explicit height per compartment', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(120, 0)
+        .compartment('name', (c) => c.height(50).label('Foo'))
+        .compartment('methods', (c) => c.height(80).label('+ bar()'))
+        .done()
+        .build();
+
+      const comps = scene.nodes[0]!.compartments!;
+      expect(comps[0]!.height).toBe(50);
+      expect(comps[1]!.height).toBe(80);
+      expect((scene.nodes[0]!.shape as { h: number }).h).toBe(130);
     });
   });
 });

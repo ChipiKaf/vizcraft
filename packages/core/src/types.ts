@@ -213,6 +213,23 @@ export interface ContainerConfig {
 }
 
 /**
+ * A single compartment (section) inside a compartmented node.
+ *
+ * Used in UML-style class diagrams where a node is divided into
+ * horizontal sections separated by divider lines (name, attributes, methods).
+ */
+export interface VizNodeCompartment {
+  /** Unique compartment id within the node (e.g. `'name'`, `'attributes'`, `'methods'`). */
+  id: string;
+  /** Y offset from the node's top edge. Computed during build. */
+  y: number;
+  /** Height of this compartment in pixels. */
+  height: number;
+  /** Optional label rendered inside the compartment. */
+  label?: NodeLabel;
+}
+
+/**
  * A named connection port (anchor point) on a node.
  *
  * Ports let edges connect to specific positions on a shape rather than
@@ -334,6 +351,14 @@ export interface VizNode {
   parentId?: string;
   /** Container-specific configuration (only on parent nodes). */
   container?: ContainerConfig;
+  /**
+   * Compartments divide the node into horizontal sections separated by
+   * divider lines (UML-style class boxes).
+   *
+   * Each compartment has a computed `y` offset and `height`, and an optional
+   * label. Empty compartments (no label) are omitted from rendering.
+   */
+  compartments?: VizNodeCompartment[];
 }
 
 export interface EdgeLabel {
@@ -579,6 +604,20 @@ export interface NodeOptions {
   // --- Containment ---
   container?: ContainerConfig;
   parent?: string;
+
+  // --- Compartments ---
+  /**
+   * Compartmented node sections (UML-style class boxes).
+   *
+   * Each entry defines a compartment with an `id` and optional `label`.
+   * Heights are auto-computed based on label content at build time.
+   */
+  compartments?: Array<{
+    id: string;
+    label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
+    /** Explicit height override for this compartment. */
+    height?: number;
+  }>;
 }
 
 /**

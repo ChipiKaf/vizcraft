@@ -213,7 +213,33 @@ b.node('n1')
  .port('out', { x: 50, y: 0 }) // Named connection port
  .container(config?)     // Mark as container / group node
  .parent('containerId')  // Make child of a container
+ .compartment(id, cb?)   // Add a UML-style compartment section
 ```
+
+### Compartmented Nodes
+
+Divide a node into horizontal sections — ideal for UML class diagrams:
+
+```typescript
+b.node('user')
+  .at(250, 110)
+  .rect(200, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) => c.label('User').height(36))
+  .compartment('attrs', (c) =>
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
+  )
+  .compartment('methods', (c) =>
+    c.label('+ getName()\n+ setName()', { fontSize: 12, textAnchor: 'start' })
+  )
+  .done();
+```
+
+The node height auto-sizes to fit all compartments. Each section is separated by a divider line in the rendered SVG.
 
 ### Container / Group Nodes
 
