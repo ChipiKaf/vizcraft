@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.9.0
+
+### Minor Changes
+
+- [#110](https://github.com/ChipiKaf/vizcraft/pull/110) [`3ebfa5b`](https://github.com/ChipiKaf/vizcraft/commit/3ebfa5b082a8a6d37fc1bdfce95c0c9ecbedfd6c) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add compartmented node layout (UML-style multi-section nodes). Nodes can be divided into horizontal compartments separated by divider lines using the new `.compartment(id, cb?)` fluent API or the declarative `compartments` array in `NodeOptions`. Compartment heights are auto-sized from label content. Hit-testing returns `compartmentId` when clicking inside a specific section.
+
 ## 1.8.0
 
 ### Minor Changes
