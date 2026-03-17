@@ -1,5 +1,16 @@
 # vizcraft
 
+## 1.9.0
+
+### Minor Changes
+
+- [#110](https://github.com/ChipiKaf/vizcraft/pull/110) [`3ebfa5b`](https://github.com/ChipiKaf/vizcraft/commit/3ebfa5b082a8a6d37fc1bdfce95c0c9ecbedfd6c) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add compartmented node layout (UML-style multi-section nodes). Nodes can be divided into horizontal compartments separated by divider lines using the new `.compartment(id, cb?)` fluent API or the declarative `compartments` array in `NodeOptions`. Compartment heights are auto-sized from label content. Hit-testing returns `compartmentId` when clicking inside a specific section.
+
+- [`5d29b3e`](https://github.com/ChipiKaf/vizcraft/commit/5d29b3e04862ef7d99a4196f568d3e44101a4f9e) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add tooltip/hover info API and text badge API; reduce bundle size.
+  - **Tooltip API (#109)**: Attach hover info to nodes and edges via `.tooltip(content, opts?)` (fluent) or `tooltip` option (declarative). Supports plain text and structured title/body content, configurable placement and delay.
+  - **Text Badge API (#108)**: Pin 1–2 character indicators to node corners via `.badge(text, opts?)` (fluent) or `badges` array (declarative). Four corner positions, customisable fill/background/fontSize.
+  - **Bundle size reduction (#106)**: Tree-shaking improvements via `sideEffects: false`, refined `exports` map, dead code removal, and module extraction.
+
 ## 1.8.0
 
 ### Minor Changes
