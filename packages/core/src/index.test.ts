@@ -4922,6 +4922,330 @@ describe('vizcraft core', () => {
   });
 
   // -----------------------------------------------------------------------
+  // Compartment Entry Interactivity (#116)
+  // -----------------------------------------------------------------------
+  describe('Compartment Entry Interactivity', () => {
+    it('adds entries via fluent .entry() API', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser(): User');
+          c.entry('find', 'findById(id): User');
+        })
+        .done()
+        .build();
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      expect(comp.entries).toBeDefined();
+      expect(comp.entries).toHaveLength(2);
+      expect(comp.entries![0]!.id).toBe('create');
+      expect(comp.entries![0]!.text).toBe('createUser(): User');
+      expect(comp.entries![1]!.id).toBe('find');
+      expect(comp.entries![1]!.text).toBe('findById(id): User');
+    });
+
+    it('computes entry y offsets within compartment', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('a', 'methodA()');
+          c.entry('b', 'methodB()');
+          c.entry('c', 'methodC()');
+        })
+        .done()
+        .build();
+
+      const entries = scene.nodes[0]!.compartments![0]!.entries!;
+      expect(entries[0]!.y).toBeGreaterThanOrEqual(0);
+      expect(entries[1]!.y).toBeGreaterThan(entries[0]!.y);
+      expect(entries[2]!.y).toBeGreaterThan(entries[1]!.y);
+    });
+
+    it('auto-sizes compartment height to fit entries', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('name', (c) => c.label('ClassName'))
+        .compartment('methods', (c) => {
+          c.entry('a', 'foo()');
+          c.entry('b', 'bar()');
+          c.entry('c', 'baz()');
+        })
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const comps = node.compartments!;
+      expect(comps).toHaveLength(2);
+      // Methods compartment should be tall enough for 3 entries
+      expect(comps[1]!.height).toBeGreaterThan(0);
+      // Node height should fit all compartments
+      const totalH = comps.reduce((s, c) => s + c.height, 0);
+      expect((node.shape as { h: number }).h).toBeCloseTo(totalH, 1);
+    });
+
+    it('stores entry onClick handlers', () => {
+      const handler = vi.fn();
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()', { onClick: handler });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.onClick).toBe(handler);
+    });
+
+    it('stores entry-level tooltips', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()', {
+            tooltip: 'Creates a new user',
+          });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.tooltip).toBe('Creates a new user');
+    });
+
+    it('applies per-entry styles', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()', {
+            style: { fontWeight: 'bold', fill: '#fff' },
+          });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.label).toBeDefined();
+      expect(entry.label!.fontWeight).toBe('bold');
+      expect(entry.label!.fill).toBe('#fff');
+    });
+
+    it('supports declarative entries via NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 200, h: 0 },
+          compartments: [
+            {
+              id: 'methods',
+              entries: [
+                { id: 'a', text: 'methodA()' },
+                { id: 'b', text: 'methodB()', style: { fontWeight: 'bold' } },
+              ],
+            },
+          ],
+        })
+        .build();
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      expect(comp.entries).toHaveLength(2);
+      expect(comp.entries![0]!.text).toBe('methodA()');
+      expect(comp.entries![1]!.text).toBe('methodB()');
+    });
+
+    it('renders entry text elements in SVG export', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()');
+          c.entry('find', 'findById()');
+        })
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="compartment-entry"');
+      expect(svgStr).toContain('data-entry="create"');
+      expect(svgStr).toContain('data-entry="find"');
+      expect(svgStr).toContain('createUser()');
+      expect(svgStr).toContain('findById()');
+    });
+
+    it('renders entry text elements in DOM mount', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()');
+          c.entry('find', 'findById()');
+        })
+        .done()
+        .mount(container);
+
+      const entries = container.querySelectorAll(
+        '[data-viz-role="compartment-entry"]'
+      );
+      expect(entries.length).toBe(2);
+      expect(entries[0]!.getAttribute('data-entry')).toBe('create');
+      expect(entries[1]!.getAttribute('data-entry')).toBe('find');
+    });
+
+    it('hit test reports entryId within compartment', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('create', 'createUser()');
+          c.entry('find', 'findById()');
+        })
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const comp = node.compartments![0]!;
+      const nodeTop = node.pos.y - (node.shape as { h: number }).h / 2;
+
+      // Hit inside the first entry
+      const entry0 = comp.entries![0]!;
+      const result1 = hitTest(scene, {
+        x: 200,
+        y: nodeTop + comp.y + entry0.y + entry0.height / 2,
+      });
+      expect(result1).not.toBeNull();
+      expect(result1!.type).toBe('node');
+      if (result1!.type === 'node') {
+        expect(result1!.compartmentId).toBe('methods');
+        expect(result1!.entryId).toBe('create');
+      }
+
+      // Hit inside the second entry
+      const entry1 = comp.entries![1]!;
+      const result2 = hitTest(scene, {
+        x: 200,
+        y: nodeTop + comp.y + entry1.y + entry1.height / 2,
+      });
+      expect(result2).not.toBeNull();
+      if (result2!.type === 'node') {
+        expect(result2!.entryId).toBe('find');
+      }
+    });
+
+    it('hit test returns undefined entryId for label-based compartments', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('name', (c) => c.height(30).label('ClassName'))
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const nodeTop = node.pos.y - (node.shape as { h: number }).h / 2;
+
+      const result = hitTest(scene, { x: 200, y: nodeTop + 15 });
+      expect(result).not.toBeNull();
+      if (result!.type === 'node') {
+        expect(result!.compartmentId).toBe('name');
+        expect(result!.entryId).toBeUndefined();
+      }
+    });
+
+    it('entry() and label() are mutually exclusive (entry after label)', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('comp', (c) => {
+          c.label('initial text');
+          c.entry('a', 'entryA()');
+        })
+        .done()
+        .build();
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      // entry() should replace label
+      expect(comp.entries).toHaveLength(1);
+      expect(comp.label).toBeUndefined();
+
+      warnSpy.mockRestore();
+    });
+
+    it('entry() and label() are mutually exclusive (label after entry)', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('comp', (c) => {
+          c.entry('a', 'entryA()');
+          c.label('override text');
+        })
+        .done()
+        .build();
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      // label() should replace entries
+      expect(comp.entries).toBeUndefined();
+      expect(comp.label).toBeDefined();
+      expect(comp.label!.text).toBe('override text');
+
+      warnSpy.mockRestore();
+    });
+
+    it('preserves chaining after entry()', () => {
+      const b = viz().node('cls').at(100, 100).rect(200, 0);
+
+      const result = b.compartment('comp', (c) => {
+        const r = c.entry('a', 'foo()').entry('b', 'bar()');
+        expect(r).toBe(c);
+      });
+
+      expect(result).toBe(b);
+    });
+
+    it('entry with maxWidth and overflow', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('long', 'veryLongMethodSignature()', {
+            maxWidth: 100,
+            overflow: 'ellipsis',
+          });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.label!.maxWidth).toBe(100);
+      expect(entry.label!.overflow).toBe('ellipsis');
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Tooltip / Hover Info API (#109)
   // -----------------------------------------------------------------------
   describe('Tooltip / Hover Info API', () => {

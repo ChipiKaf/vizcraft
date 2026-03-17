@@ -3,7 +3,7 @@ import { computeEdgePath, computeEdgeEndpoints } from '../edges/paths';
 
 /** Result of a point hit test. */
 export type HitResult =
-  | { type: 'node'; id: string; compartmentId?: string }
+  | { type: 'node'; id: string; compartmentId?: string; entryId?: string }
   | { type: 'edge'; id: string }
   | { type: 'port'; nodeId: string; portId: string; position: Vec2 }
   | null;
@@ -260,6 +260,36 @@ function hitTestCompartment(node: VizNode, point: Vec2): string | undefined {
   return undefined;
 }
 
+/**
+ * Determine which entry (if any) was hit inside a compartment.
+ * Returns the entry id, or `undefined` if the compartment has no entries.
+ */
+function hitTestEntry(
+  node: VizNode,
+  compartmentId: string,
+  point: Vec2
+): string | undefined {
+  if (!node.compartments) return undefined;
+  const comp = node.compartments.find((c) => c.id === compartmentId);
+  if (!comp?.entries || comp.entries.length === 0) return undefined;
+
+  const pos = {
+    x: node.runtime?.x ?? node.pos.x,
+    y: node.runtime?.y ?? node.pos.y,
+  };
+  const bounds = getEffectiveNodeBounds(node);
+  const nodeTop = pos.y - bounds.h / 2;
+  const localY = point.y - nodeTop - comp.y;
+
+  for (const entry of comp.entries) {
+    if (localY >= entry.y && localY < entry.y + entry.height) {
+      return entry.id;
+    }
+  }
+
+  return undefined;
+}
+
 // ----------------------------------------------------------------------------
 // Core Hit Testing API
 // ----------------------------------------------------------------------------
@@ -301,7 +331,11 @@ export function hitTest(
     const node = scene.nodes[i]!;
     if (hitTestNode(node, point)) {
       const compartmentId = hitTestCompartment(node, point);
-      return { type: 'node', id: node.id, compartmentId };
+      const entryId =
+        compartmentId !== undefined
+          ? hitTestEntry(node, compartmentId, point)
+          : undefined;
+      return { type: 'node', id: node.id, compartmentId, entryId };
     }
   }
 

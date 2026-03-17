@@ -170,6 +170,12 @@ const result = hitTest(scene, { x: 250, y: 150 });
 
 if (result?.type === 'node') {
   console.log('Hit node:', result.id);
+  if (result.compartmentId) {
+    console.log('Compartment:', result.compartmentId);
+  }
+  if (result.entryId) {
+    console.log('Entry:', result.entryId);
+  }
 } else if (result?.type === 'port') {
   console.log('Hit port:', result.portId, 'on node:', result.nodeId);
 } else if (result?.type === 'edge') {

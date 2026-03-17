@@ -700,9 +700,89 @@ builder.node('cls', {
 });
 ```
 
+### Per-entry interactivity
+
+Use `.entry(id, text, opts?)` inside a compartment callback to make each line independently interactive — with its own click handler, tooltip, hover highlight, and text styling.
+
+export const entryScene = viz()
+  .view(500, 250)
+  .node('service')
+  .at(250, 125)
+  .rect(220, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) => c.label('UserService').height(36))
+  .compartment('methods', (c) => {
+    c.entry('create', '+ createUser()', {
+      style: { fontWeight: 'bold' },
+      tooltip: 'Creates a new user record',
+    });
+    c.entry('find', '+ findById(id)', {
+      tooltip: 'Looks up user by primary key',
+    });
+    c.entry('delete', '- deleteUser()', {
+      style: { fill: '#c00', fontStyle: 'italic' },
+    });
+  })
+  .done();
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 250);
+
+builder
+.node('service')
+.at(250, 125)
+.rect(220, 0, 6)
+.fill('#f5f5f5')
+.stroke('#333')
+.compartment('name', (c) => c.label('UserService').height(36))
+.compartment('methods', (c) => {
+  c.entry('create', '+ createUser()', {
+    style: { fontWeight: 'bold' },
+    tooltip: 'Creates a new user record',
+  });
+  c.entry('find', '+ findById(id)', {
+    tooltip: 'Looks up user by primary key',
+  });
+  c.entry('delete', '- deleteUser()', {
+    style: { fill: '#c00', fontStyle: 'italic' },
+  });
+})
+.done();
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={entryScene} style={{ height: '250px', width: '100%' }} />
+</CodePreview>
+
+Entries are rendered as individual SVG `<text>` elements with `data-viz-role="compartment-entry"` and `data-entry` attributes. Hovered entries receive the CSS class `viz-entry-hover`.
+
+#### Declarative entries
+
+```typescript
+builder.node('cls', {
+  at: { x: 250, y: 110 },
+  rect: { w: 200, h: 0, rx: 6 },
+  compartments: [
+    { id: 'name', label: 'MyClass', height: 36 },
+    {
+      id: 'methods',
+      entries: [
+        { id: 'get', text: '+ getUser()' },
+        { id: 'set', text: '+ setUser()', style: { fontWeight: 'bold' } },
+      ],
+    },
+  ],
+});
+```
+
 ### Compartment hit-testing
 
 `hitTest()` returns a `compartmentId` when the pointer lands inside a specific compartment, so you can build context menus or selection per-section.
+
+When the compartment uses entries, `hitTest()` also returns an `entryId` identifying the specific entry that was hit.
 
 ## CSS classes
 

@@ -31,6 +31,7 @@ import type {
   SvgExportOptions,
   TooltipContent,
   BadgePosition,
+  EntryOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './interaction/panZoom';
@@ -505,6 +506,14 @@ export interface CompartmentBuilder {
   label(text: string, opts?: Partial<NodeLabel>): CompartmentBuilder;
   /** Set an explicit height for this compartment (overrides auto-sizing). */
   height(h: number): CompartmentBuilder;
+  /**
+   * Add an individually interactive entry (line) to this compartment.
+   *
+   * Entries and `label()` are **mutually exclusive** on a compartment.
+   * Using `entry()` after `label()` (or vice versa) replaces the previous
+   * content and emits a dev console warning.
+   */
+  entry(id: string, text: string, opts?: EntryOptions): CompartmentBuilder;
 }
 
 export interface NodeBuilder {
@@ -2551,7 +2560,7 @@ class VizBuilderImpl implements VizBuilder {
       // Remove stale compartment elements before re-creating
       group
         .querySelectorAll(
-          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"]'
+          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"],[data-viz-role="compartment-entry"]'
         )
         .forEach((el) => el.remove());
 
@@ -2583,8 +2592,46 @@ class VizBuilderImpl implements VizBuilder {
             group.appendChild(divider);
           }
 
-          // Render compartment label
-          if (c.label) {
+          // Render per-entry text lines (takes precedence over label)
+          if (c.entries && c.entries.length > 0) {
+            for (const entry of c.entries) {
+              const elx =
+                x - sw / 2 + compartmentPadding + (entry.label?.dx || 0);
+              const ely =
+                nodeTop +
+                c.y +
+                entry.y +
+                entry.height / 2 +
+                (entry.label?.dy || 0);
+              const entryClass = `viz-compartment-entry ${entry.label?.className || ''}`;
+
+              const entryLabelSvg = renderSvgText(
+                elx,
+                ely,
+                entry.label?.rich ?? entry.text,
+                {
+                  className: entryClass,
+                  fill: entry.label?.fill,
+                  fontSize: entry.label?.fontSize,
+                  fontWeight: entry.label?.fontWeight,
+                  fontFamily: entry.label?.fontFamily,
+                  textAnchor: entry.label?.textAnchor || 'start',
+                  dominantBaseline: entry.label?.dominantBaseline || 'middle',
+                  maxWidth:
+                    entry.label?.maxWidth ?? sw - compartmentPadding * 2,
+                  lineHeight: entry.label?.lineHeight,
+                  verticalAlign: entry.label?.verticalAlign,
+                  overflow: entry.label?.overflow,
+                }
+              ).replace(
+                '<text ',
+                `<text data-viz-role="compartment-entry" data-compartment="${c.id}" data-entry="${entry.id}" `
+              );
+
+              group.insertAdjacentHTML('beforeend', entryLabelSvg);
+            }
+          } else if (c.label) {
+            // Render compartment label (single text block)
             const clx = x - sw / 2 + compartmentPadding + (c.label.dx || 0);
             const cly = nodeTop + c.y + c.height / 2 + (c.label.dy || 0);
             const cLabelClass = `viz-compartment-label ${c.label.className || ''}`;
@@ -2612,6 +2659,24 @@ class VizBuilderImpl implements VizBuilder {
             );
 
             group.insertAdjacentHTML('beforeend', cLabelSvg);
+          }
+        }
+
+        // Wire up per-entry click handlers
+        for (const c of node.compartments!) {
+          if (!c.entries) continue;
+          for (const entry of c.entries) {
+            if (!entry.onClick) continue;
+            const entryEl = group.querySelector(
+              `[data-viz-role="compartment-entry"][data-compartment="${c.id}"][data-entry="${entry.id}"]`
+            );
+            if (entryEl) {
+              entryEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                entry.onClick!();
+              });
+              (entryEl as SVGElement).style.cursor = 'pointer';
+            }
           }
         }
       }
@@ -3333,8 +3398,46 @@ class VizBuilderImpl implements VizBuilder {
             content += `<line x1="${x - sw / 2}" y1="${dividerY}" x2="${x + sw / 2}" y2="${dividerY}" stroke="${node.style?.stroke ?? '#111'}" stroke-width="${node.style?.strokeWidth ?? 2}" class="viz-compartment-divider" data-viz-role="compartment-divider" data-compartment="${c.id}" />`;
           }
 
-          // Render compartment label
-          if (c.label) {
+          // Render per-entry text lines (takes precedence over label)
+          if (c.entries && c.entries.length > 0) {
+            for (const entry of c.entries) {
+              const elx =
+                x - sw / 2 + compartmentPadding + (entry.label?.dx || 0);
+              const ely =
+                nodeTop +
+                c.y +
+                entry.y +
+                entry.height / 2 +
+                (entry.label?.dy || 0);
+              const entryClass = `viz-compartment-entry ${entry.label?.className || ''}`;
+
+              const entryLabelSvg = renderSvgText(
+                elx,
+                ely,
+                entry.label?.rich ?? entry.text,
+                {
+                  className: entryClass,
+                  fill: entry.label?.fill,
+                  fontSize: entry.label?.fontSize,
+                  fontWeight: entry.label?.fontWeight,
+                  fontFamily: entry.label?.fontFamily,
+                  textAnchor: entry.label?.textAnchor || 'start',
+                  dominantBaseline: entry.label?.dominantBaseline || 'middle',
+                  maxWidth:
+                    entry.label?.maxWidth ?? sw - compartmentPadding * 2,
+                  lineHeight: entry.label?.lineHeight,
+                  verticalAlign: entry.label?.verticalAlign,
+                  overflow: entry.label?.overflow,
+                }
+              ).replace(
+                '<text ',
+                `<text data-viz-role="compartment-entry" data-compartment="${escapeXmlAttr(c.id)}" data-entry="${escapeXmlAttr(entry.id)}" `
+              );
+
+              content += entryLabelSvg;
+            }
+          } else if (c.label) {
+            // Render compartment label (single text block)
             const clx = x - sw / 2 + compartmentPadding + (c.label.dx || 0);
             const cly = nodeTop + c.y + c.height / 2 + (c.label.dy || 0);
             const cLabelClass = `viz-compartment-label ${c.label.className || ''}`;

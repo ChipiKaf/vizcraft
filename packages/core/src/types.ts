@@ -275,6 +275,48 @@ export interface VizNodeCompartment {
   height: number;
   /** Optional label rendered inside the compartment. */
   label?: NodeLabel;
+  /**
+   * Individual entries within this compartment.
+   * When present, the compartment renders per-entry text lines
+   * instead of a single label block.
+   */
+  entries?: CompartmentEntry[];
+}
+
+/** A single entry (line) inside a compartment. */
+export interface CompartmentEntry {
+  /** Unique entry id within the compartment. */
+  id: string;
+  /** Y offset from the compartment's top edge. */
+  y: number;
+  /** Height of this entry's line region. */
+  height: number;
+  /** Display text for this entry. */
+  text: string;
+  /** Resolved label used for rendering. */
+  label?: NodeLabel;
+  /** Click handler for this entry. */
+  onClick?: () => void;
+  /** Tooltip shown when hovering this entry. */
+  tooltip?: TooltipContent;
+}
+
+/** Per-entry styling options. */
+export interface EntryStyle {
+  fill?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontStyle?: string;
+  fontFamily?: string;
+}
+
+/** Options for `CompartmentBuilder.entry()`. */
+export interface EntryOptions {
+  onClick?: () => void;
+  style?: Partial<EntryStyle>;
+  tooltip?: TooltipContent;
+  maxWidth?: number;
+  overflow?: 'visible' | 'ellipsis' | 'clip';
 }
 
 /**
@@ -697,6 +739,16 @@ export interface NodeOptions {
     label?: string | ({ text: string } & Partial<Omit<NodeLabel, 'text'>>);
     /** Explicit height override for this compartment. */
     height?: number;
+    /** Individual entries within this compartment. */
+    entries?: Array<{
+      id: string;
+      text: string;
+      onClick?: () => void;
+      style?: Partial<EntryStyle>;
+      tooltip?: TooltipContent;
+      maxWidth?: number;
+      overflow?: 'visible' | 'ellipsis' | 'clip';
+    }>;
   }>;
 }
 

@@ -198,7 +198,7 @@ export function setupTooltip(
     currentTarget = null;
   }
 
-  /** Find the tooltip content for a target element (walks up to node/edge group). */
+  /** Find the tooltip content for a target element (walks up to entry/node/edge group). */
   function findTooltip(target: EventTarget | null): {
     content: TooltipContent;
     group: Element;
@@ -206,6 +206,33 @@ export function setupTooltip(
     let el = target instanceof Element ? target : null;
     while (el && el !== svg) {
       const role = el.getAttribute('data-viz-role');
+
+      // Check for entry-level tooltip first
+      if (role === 'compartment-entry') {
+        const entryId = el.getAttribute('data-entry');
+        // Walk up to find the node group
+        let nodeEl = el.parentElement as SVGElement | null;
+        while (nodeEl && nodeEl !== svg) {
+          if (
+            nodeEl.getAttribute('data-viz-role') === 'node-group' &&
+            nodeEl.getAttribute('data-id')
+          ) {
+            break;
+          }
+          nodeEl = nodeEl.parentElement as SVGElement | null;
+        }
+        if (nodeEl && entryId) {
+          const nodeId = nodeEl.getAttribute('data-id');
+          const compId = el.getAttribute('data-compartment');
+          if (nodeId && compId) {
+            const node = currentNodesById.get(nodeId);
+            const comp = node?.compartments?.find((c) => c.id === compId);
+            const entry = comp?.entries?.find((e) => e.id === entryId);
+            if (entry?.tooltip) return { content: entry.tooltip, group: el };
+          }
+        }
+      }
+
       const id = el.getAttribute('data-id');
       if (role === 'node-group' && id) {
         const node = currentNodesById.get(id);
@@ -222,7 +249,31 @@ export function setupTooltip(
     return null;
   }
 
+  // --- Per-entry hover highlighting ---
+  let hoveredEntryEl: Element | null = null;
+
+  function updateEntryHover(target: EventTarget | null): void {
+    let el = target instanceof Element ? target : null;
+    let entryEl: Element | null = null;
+    while (el && el !== svg) {
+      if (el.getAttribute('data-viz-role') === 'compartment-entry') {
+        entryEl = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+    if (entryEl === hoveredEntryEl) return;
+    if (hoveredEntryEl) {
+      hoveredEntryEl.classList.remove('viz-entry-hover');
+    }
+    hoveredEntryEl = entryEl;
+    if (hoveredEntryEl) {
+      hoveredEntryEl.classList.add('viz-entry-hover');
+    }
+  }
+
   function onPointerEnter(e: PointerEvent): void {
+    updateEntryHover(e.target);
     const result = findTooltip(e.target);
     if (!result) return;
     const { content, group } = result;
@@ -236,6 +287,7 @@ export function setupTooltip(
   }
 
   function onPointerLeave(e: PointerEvent): void {
+    updateEntryHover(null);
     const result = findTooltip(e.target);
     if (result && result.group === currentTarget) {
       hide();
@@ -243,6 +295,7 @@ export function setupTooltip(
   }
 
   function onPointerMove(e: PointerEvent): void {
+    updateEntryHover(e.target);
     const result = findTooltip(e.target);
     if (!result || result.group !== currentTarget) {
       hide();
