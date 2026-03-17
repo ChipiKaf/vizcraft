@@ -79,7 +79,7 @@ An edge connecting two nodes (or a dangling edge with free endpoints).
 | `animations?`  | `VizAnimSpec[]`           | Registry/CSS animation requests                                         |
 | `meta?`        | `Record<string, unknown>` | User metadata                                                           |
 | `data?`        | `unknown`                 | Custom payload                                                          |
-| `tooltip?`     | `TooltipContent`          | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)      |
+| `tooltip?`     | `TooltipContent`          | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)     |
 
 ### EdgeRouting
 
@@ -269,9 +269,7 @@ Tooltip content attached to a node or edge. Shown on hover or keyboard focus.
 Can be a **plain string** or a **structured object** with optional title and labelled sections.
 
 ```typescript
-type TooltipContent =
-  | string
-  | { title?: string; sections: TooltipSection[] };
+type TooltipContent = string | { title?: string; sections: TooltipSection[] };
 ```
 
 ### TooltipSection {#tooltipsection}

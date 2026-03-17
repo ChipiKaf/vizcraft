@@ -106,12 +106,22 @@ export const tooltipStructured = viz()
 
 export const tooltipEdge = viz()
   .view(400, 160)
-  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
-  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
+  .node('a')
+  .at(100, 80)
+  .circle(30)
+  .label('A')
+  .fill('#cba6f7')
+  .done()
+  .node('b')
+  .at(300, 80)
+  .circle(30)
+  .label('B')
+  .fill('#eb6f92')
+  .done()
   .edge('a', 'b')
-    .tooltip('Latency: 12 ms')
-    .stroke('#666', 2)
-    .arrow()
+  .tooltip('Latency: 12 ms')
+  .stroke('#666', 2)
+  .arrow()
   .done();
 
 # Interactivity
@@ -295,17 +305,18 @@ Add hover tooltips to nodes and edges. Tooltips appear after a short delay
 <CodePreview code={`import { viz } from 'vizcraft';
 
 const builder = viz()
-  .view(400, 160)
-  .node('server')
-  .at(200, 80)
-  .rect(140, 50, 10)
-  .label('API Server')
-  .fill('#f6c177')
-  .tooltip('Handles REST requests')
-  .done();
+.view(400, 160)
+.node('server')
+.at(200, 80)
+.rect(140, 50, 10)
+.label('API Server')
+.fill('#f6c177')
+.tooltip('Handles REST requests')
+.done();
 
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={tooltipPlain} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
@@ -321,23 +332,24 @@ pairs) for richer content:
 <CodePreview code={`import { viz } from 'vizcraft';
 
 const builder = viz()
-  .view(400, 160)
-  .node('db')
-  .at(200, 80)
-  .cylinder(100, 60)
-  .label('PostgreSQL')
-  .fill('#9ccfd8')
-  .tooltip({
-    title: 'Database',
-    sections: [
-      { label: 'Engine', value: 'PostgreSQL 16' },
-      { label: 'Connections', value: '42 / 100' },
-    ],
-  })
-  .done();
+.view(400, 160)
+.node('db')
+.at(200, 80)
+.cylinder(100, 60)
+.label('PostgreSQL')
+.fill('#9ccfd8')
+.tooltip({
+title: 'Database',
+sections: [
+{ label: 'Engine', value: 'PostgreSQL 16' },
+{ label: 'Connections', value: '42 / 100' },
+],
+})
+.done();
 
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={tooltipStructured} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
@@ -348,17 +360,18 @@ Edges support the same API:
 <CodePreview code={`import { viz } from 'vizcraft';
 
 const builder = viz()
-  .view(400, 160)
-  .node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
-  .node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
-  .edge('a', 'b')
-    .tooltip('Latency: 12 ms')
-    .stroke('#666', 2)
-    .arrow()
-  .done();
+.view(400, 160)
+.node('a').at(100, 80).circle(30).label('A').fill('#cba6f7').done()
+.node('b').at(300, 80).circle(30).label('B').fill('#eb6f92').done()
+.edge('a', 'b')
+.tooltip('Latency: 12 ms')
+.stroke('#666', 2)
+.arrow()
+.done();
 
 builder.mount(document.getElementById('container'));
 `}>
+
   <VizMount builder={tooltipEdge} style={{ height: '160px', width: '100%' }} />
 </CodePreview>
 
@@ -369,7 +382,9 @@ Tooltips can also be set through the options object:
 ```typescript
 const scene = viz()
   .node('n', { tooltip: 'Quick info' })
-  .edge('a', 'b', { tooltip: { title: 'Link', sections: [{ label: 'Weight', value: '3' }] } })
+  .edge('a', 'b', {
+    tooltip: { title: 'Link', sections: [{ label: 'Weight', value: '3' }] },
+  })
   .done();
 ```
 
