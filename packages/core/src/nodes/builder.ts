@@ -29,6 +29,7 @@ import type {
   AnimationBuilder,
 } from '../animation/builder';
 import type { OverlayBuilder } from '../overlays/builder';
+import { wrapText } from '../utils/text';
 
 /** Apply a `NodeOptions` object to a `NodeBuilder` (sugar over chaining). */
 export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
@@ -219,6 +220,20 @@ interface PendingEntry {
 }
 
 /**
+ * Estimate the pixel height of a single entry, accounting for text wrapping
+ * when `maxWidth` is set on the entry label.
+ */
+function estimateEntryHeight(e: PendingEntry): number {
+  const fontSize =
+    e.label && typeof e.label.fontSize === 'number'
+      ? e.label.fontSize
+      : COMPARTMENT_LINE_HEIGHT;
+  const lineH = fontSize * (e.label?.lineHeight ?? 1.2);
+  const lines = wrapText(e.text, e.label?.maxWidth, fontSize);
+  return lineH * lines.length;
+}
+
+/**
  * Estimate the height needed for a compartment based on its label text content.
  * Counts explicit newlines so multi-line labels auto-size correctly.
  */
@@ -229,11 +244,7 @@ function estimateCompartmentHeight(c: PendingCompartment): number {
   if (c.entries && c.entries.length > 0) {
     let total = COMPARTMENT_PADDING_Y * 2;
     for (const e of c.entries) {
-      const fontSize =
-        e.label && typeof e.label.fontSize === 'number'
-          ? e.label.fontSize
-          : COMPARTMENT_LINE_HEIGHT;
-      total += fontSize * (e.label?.lineHeight ?? 1.2);
+      total += estimateEntryHeight(e);
     }
     return total;
   }
@@ -277,21 +288,17 @@ export function resolveCompartments(
     if (c.entries && c.entries.length > 0) {
       let entryY = COMPARTMENT_PADDING_Y;
       compartment.entries = c.entries.map((e) => {
-        const fontSize =
-          e.label && typeof e.label.fontSize === 'number'
-            ? e.label.fontSize
-            : COMPARTMENT_LINE_HEIGHT;
-        const lineH = fontSize * (e.label?.lineHeight ?? 1.2);
+        const entryH = estimateEntryHeight(e);
         const entry: CompartmentEntry = {
           id: e.id,
           y: entryY,
-          height: lineH,
+          height: entryH,
           text: e.text,
         };
         if (e.label) entry.label = e.label;
         if (e.onClick) entry.onClick = e.onClick;
         if (e.tooltip) entry.tooltip = e.tooltip;
-        entryY += lineH;
+        entryY += entryH;
         return entry;
       });
     }

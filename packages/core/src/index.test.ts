@@ -5243,6 +5243,88 @@ describe('vizcraft core', () => {
       expect(entry.label!.maxWidth).toBe(100);
       expect(entry.label!.overflow).toBe('ellipsis');
     });
+
+    it('entry height accounts for text wrapping from maxWidth', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(260, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('e1', 'createUser(name: string, email: string): User', {
+            maxWidth: 200,
+            style: { fontSize: 12 },
+          });
+          c.entry('e2', 'findById(id: string): User | undefined', {
+            maxWidth: 200,
+            style: { fontSize: 12 },
+          });
+        })
+        .done()
+        .build();
+
+      const comp = scene.nodes[0]!.compartments![0]!;
+      const e1 = comp.entries![0]!;
+      const e2 = comp.entries![1]!;
+
+      // e1 text is long enough to wrap at maxWidth 200 with fontSize 12,
+      // so its height should be greater than a single line (12 * 1.2 = 14.4)
+      const singleLineH = 12 * 1.2;
+      expect(e1.height).toBeGreaterThan(singleLineH);
+
+      // e2 should start after e1 ends (no overlap)
+      expect(e2.y).toBeGreaterThanOrEqual(e1.y + e1.height);
+    });
+
+    it('single-line entry with maxWidth stays one line tall', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(300, 0, 6)
+        .compartment('methods', (c) => {
+          c.entry('short', 'foo()', {
+            maxWidth: 200,
+            style: { fontSize: 12 },
+          });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      // "foo()" fits in 200px at fontSize 12, so height = single line
+      const singleLineH = 12 * 1.2;
+      expect(entry.height).toBeCloseTo(singleLineH, 5);
+    });
+
+    it('compartment height grows to fit wrapped entries', () => {
+      // Build with a short entry (no wrap)
+      const sceneShort = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('e1', 'short()', { style: { fontSize: 12 } });
+        })
+        .done()
+        .build();
+
+      // Build with a long wrapping entry
+      const sceneLong = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('e1', 'createUser(name: string, email: string): User', {
+            maxWidth: 100,
+            style: { fontSize: 12 },
+          });
+        })
+        .done()
+        .build();
+
+      const shortH = sceneShort.nodes[0]!.compartments![0]!.height;
+      const longH = sceneLong.nodes[0]!.compartments![0]!.height;
+      expect(longH).toBeGreaterThan(shortH);
+    });
   });
 
   // -----------------------------------------------------------------------
