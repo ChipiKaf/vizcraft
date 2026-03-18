@@ -58,30 +58,30 @@ A node in the scene graph.
 
 An edge connecting two nodes (or a dangling edge with free endpoints).
 
-| Field          | Type                      | Description                                                             |
-| -------------- | ------------------------- | ----------------------------------------------------------------------- |
-| `id`           | `string`                  | Unique id (commonly `"a->b"`)                                           |
-| `from?`        | `string`                  | Source node id                                                          |
-| `to?`          | `string`                  | Target node id                                                          |
-| `fromAt?`      | `Vec2`                    | Free-endpoint for source (dangling)                                     |
-| `toAt?`        | `Vec2`                    | Free-endpoint for target (dangling)                                     |
-| `fromPort?`    | `string`                  | Source port id                                                          |
-| `toPort?`      | `string`                  | Target port id                                                          |
-| `fromAngle?`   | `number`                  | Fixed perimeter angle at source (degrees)                               |
-| `toAngle?`     | `number`                  | Fixed perimeter angle at target (degrees)                               |
-| `straightLine?`| `boolean \| 'from' \| 'to'` | Auto-compute perimeter angles for a straight line between nodes       |
-| `routing?`     | `EdgeRouting`             | Path algorithm                                                          |
-| `waypoints?`   | `Vec2[]`                  | Intermediate points                                                     |
-| `markerEnd?`   | `EdgeMarkerType`          | Target marker                                                           |
-| `markerStart?` | `EdgeMarkerType`          | Source marker                                                           |
-| `anchor?`      | `'center' \| 'boundary'`  | Connection behavior                                                     |
-| `labels?`      | `EdgeLabel[]`             | Labels at various positions                                             |
-| `style?`       | `object`                  | `stroke`, `strokeWidth`, `fill`, `opacity`, `strokeDasharray`, `sketch` |
-| `runtime?`     | `VizRuntimeEdgeProps`     | Runtime-only overrides                                                  |
-| `animations?`  | `VizAnimSpec[]`           | Registry/CSS animation requests                                         |
-| `meta?`        | `Record<string, unknown>` | User metadata                                                           |
-| `data?`        | `unknown`                 | Custom payload                                                          |
-| `tooltip?`     | `TooltipContent`          | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)     |
+| Field           | Type                        | Description                                                             |
+| --------------- | --------------------------- | ----------------------------------------------------------------------- |
+| `id`            | `string`                    | Unique id (commonly `"a->b"`)                                           |
+| `from?`         | `string`                    | Source node id                                                          |
+| `to?`           | `string`                    | Target node id                                                          |
+| `fromAt?`       | `Vec2`                      | Free-endpoint for source (dangling)                                     |
+| `toAt?`         | `Vec2`                      | Free-endpoint for target (dangling)                                     |
+| `fromPort?`     | `string`                    | Source port id                                                          |
+| `toPort?`       | `string`                    | Target port id                                                          |
+| `fromAngle?`    | `number`                    | Fixed perimeter angle at source (degrees)                               |
+| `toAngle?`      | `number`                    | Fixed perimeter angle at target (degrees)                               |
+| `straightLine?` | `boolean \| 'from' \| 'to'` | Auto-compute perimeter angles for a straight line between nodes         |
+| `routing?`      | `EdgeRouting`               | Path algorithm                                                          |
+| `waypoints?`    | `Vec2[]`                    | Intermediate points                                                     |
+| `markerEnd?`    | `EdgeMarkerType`            | Target marker                                                           |
+| `markerStart?`  | `EdgeMarkerType`            | Source marker                                                           |
+| `anchor?`       | `'center' \| 'boundary'`    | Connection behavior                                                     |
+| `labels?`       | `EdgeLabel[]`               | Labels at various positions                                             |
+| `style?`        | `object`                    | `stroke`, `strokeWidth`, `fill`, `opacity`, `strokeDasharray`, `sketch` |
+| `runtime?`      | `VizRuntimeEdgeProps`       | Runtime-only overrides                                                  |
+| `animations?`   | `VizAnimSpec[]`             | Registry/CSS animation requests                                         |
+| `meta?`         | `Record<string, unknown>`   | User metadata                                                           |
+| `data?`         | `unknown`                   | Custom payload                                                          |
+| `tooltip?`      | `TooltipContent`            | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)     |
 
 ### EdgeRouting
 

@@ -13,6 +13,7 @@ import {
   computeNodeAnchorAtAngle,
   effectivePos,
   effectiveShape,
+  getNodeBoundingBox,
   resolvePortPosition,
 } from '../shapes/geometry';
 
@@ -77,22 +78,89 @@ export function computeEdgeEndpoints(
     ? effectivePos(start)
     : (freeStart ?? { x: 0, y: 0 });
 
-  // Auto-compute straight-line angles when requested
+  // Auto-compute straight-line angles when requested.
+  // Strategy: find horizontal or vertical overlap between the two node
+  // bounding boxes and route the edge through the overlap midpoint so it
+  // drops perfectly vertically (or runs perfectly horizontally).  When the
+  // boxes don't overlap on either axis, fall back to the center-to-center
+  // diagonal.
   let effectiveFromAngle = edge.fromAngle;
   let effectiveToAngle = edge.toAngle;
   if (edge.straightLine && start && end) {
-    const angle = angleBetween(effectivePos(start), effectivePos(end));
-    if (
-      (edge.straightLine === true || edge.straightLine === 'from') &&
-      effectiveFromAngle === undefined
-    ) {
-      effectiveFromAngle = angle;
-    }
-    if (
-      (edge.straightLine === true || edge.straightLine === 'to') &&
-      effectiveToAngle === undefined
-    ) {
-      effectiveToAngle = angle + 180;
+    const startPos = effectivePos(start);
+    const endPos = effectivePos(end);
+    const startBB = getNodeBoundingBox(effectiveShape(start));
+    const endBB = getNodeBoundingBox(effectiveShape(end));
+    const sHW = startBB.width / 2;
+    const sHH = startBB.height / 2;
+    const eHW = endBB.width / 2;
+    const eHH = endBB.height / 2;
+
+    // Check horizontal overlap → vertical edge
+    const overlapLeft = Math.max(startPos.x - sHW, endPos.x - eHW);
+    const overlapRight = Math.min(startPos.x + sHW, endPos.x + eHW);
+    // Check vertical overlap → horizontal edge
+    const overlapTop = Math.max(startPos.y - sHH, endPos.y - eHH);
+    const overlapBottom = Math.min(startPos.y + sHH, endPos.y + eHH);
+
+    if (overlapLeft < overlapRight) {
+      // Horizontal overlap exists → route vertically through the midpoint
+      const midX = (overlapLeft + overlapRight) / 2;
+      const isStartAbove = startPos.y <= endPos.y;
+      const fromAngle =
+        (Math.atan2(isStartAbove ? sHH : -sHH, midX - startPos.x) * 180) /
+        Math.PI;
+      const toAngle =
+        (Math.atan2(isStartAbove ? -eHH : eHH, midX - endPos.x) * 180) /
+        Math.PI;
+      if (
+        (edge.straightLine === true || edge.straightLine === 'from') &&
+        effectiveFromAngle === undefined
+      ) {
+        effectiveFromAngle = fromAngle;
+      }
+      if (
+        (edge.straightLine === true || edge.straightLine === 'to') &&
+        effectiveToAngle === undefined
+      ) {
+        effectiveToAngle = toAngle;
+      }
+    } else if (overlapTop < overlapBottom) {
+      // Vertical overlap exists → route horizontally through the midpoint
+      const midY = (overlapTop + overlapBottom) / 2;
+      const isStartLeft = startPos.x <= endPos.x;
+      const fromAngle =
+        (Math.atan2(midY - startPos.y, isStartLeft ? sHW : -sHW) * 180) /
+        Math.PI;
+      const toAngle =
+        (Math.atan2(midY - endPos.y, isStartLeft ? -eHW : eHW) * 180) / Math.PI;
+      if (
+        (edge.straightLine === true || edge.straightLine === 'from') &&
+        effectiveFromAngle === undefined
+      ) {
+        effectiveFromAngle = fromAngle;
+      }
+      if (
+        (edge.straightLine === true || edge.straightLine === 'to') &&
+        effectiveToAngle === undefined
+      ) {
+        effectiveToAngle = toAngle;
+      }
+    } else {
+      // No overlap — fall back to center-to-center diagonal
+      const angle = angleBetween(startPos, endPos);
+      if (
+        (edge.straightLine === true || edge.straightLine === 'from') &&
+        effectiveFromAngle === undefined
+      ) {
+        effectiveFromAngle = angle;
+      }
+      if (
+        (edge.straightLine === true || edge.straightLine === 'to') &&
+        effectiveToAngle === undefined
+      ) {
+        effectiveToAngle = angle + 180;
+      }
     }
   }
 

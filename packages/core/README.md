@@ -348,7 +348,8 @@ b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow'); // Association
 // Self-loops (exits and enters the same node)
 b.edge('n1', 'n1').loopSide('right').loopSize(40).arrow();
 
-// Straight-line perimeter anchors (auto-computed angles)
+// Straight-line edges via bounding-box overlap (vertical when nodes overlap
+// horizontally, horizontal when they overlap vertically)
 b.edge('a', 'b').straightLine().arrow(); // both ends
 b.edge('a', 'b').straightLineFrom().arrow(); // source end only
 
