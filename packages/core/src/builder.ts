@@ -770,6 +770,16 @@ export interface EdgeBuilder {
   fromAngle(deg: number): EdgeBuilder;
   /** Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node. */
   toAngle(deg: number): EdgeBuilder;
+  /**
+   * Auto-compute perimeter angles so the edge forms a straight line between
+   * both node boundaries. Equivalent to computing `angleBetween` and setting
+   * `fromAngle` + `toAngle`.
+   */
+  straightLine(): EdgeBuilder;
+  /** Auto-compute only the source perimeter angle for a straight line to the target. */
+  straightLineFrom(): EdgeBuilder;
+  /** Auto-compute only the target perimeter angle for a straight line from the source. */
+  straightLineTo(): EdgeBuilder;
   connect(anchor: 'center' | 'boundary'): EdgeBuilder;
   /** Sets the fill color of the edge path. */
   fill(color: string): EdgeBuilder;

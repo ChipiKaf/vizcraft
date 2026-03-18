@@ -28,6 +28,19 @@ export const selfLoopScene = selfLoopBuilder
   .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
+export const straightLineScene = (() => {
+  const b = viz().view(500, 280);
+  // Without straightLine — default boundary anchors (skewed on rects)
+  b.node('a1').at(60, 60).rect(70, 40, 6).fill('#fca5a5').stroke('#dc2626', 2).label('A');
+  b.node('b1').at(200, 200).rect(70, 40, 6).fill('#fca5a5').stroke('#dc2626', 2).label('B');
+  b.edge('a1', 'b1').arrow().stroke('#dc2626').label('default', { dy: -8 });
+  // With straightLine — edges are perfectly straight
+  b.node('a2').at(300, 60).rect(70, 40, 6).fill('#86efac').stroke('#16a34a', 2).label('C');
+  b.node('b2').at(440, 200).rect(70, 40, 6).fill('#86efac').stroke('#16a34a', 2).label('D');
+  b.edge('a2', 'b2').straightLine().arrow().stroke('#16a34a').label('.straightLine()', { dy: -8 });
+  return b;
+})();
+
 export const equidistantPortsScene = (() => {
   const shape = { kind: 'cylinder', w: 120, h: 80 };
   const ports = getEquidistantPorts(shape, 10);
@@ -125,6 +138,62 @@ For advanced use (custom renderers), resolve where an angle intersects a shape's
 import { computeNodeAnchorAtAngle } from 'vizcraft';
 const point = computeNodeAnchorAtAngle(node, 45); // { x, y }
 ```
+
+### `angleBetween`
+
+Return the angle (VizCraft degrees) from one point to another. Useful for computing
+`fromAngle` / `toAngle` manually:
+
+```typescript
+import { angleBetween } from 'vizcraft';
+
+const angle = angleBetween(sourceNode.pos, targetNode.pos);
+eb.fromAngle(angle).toAngle(angle + 180);
+```
+
+### Auto straight-line edges
+
+When two nodes are not axis-aligned, the default boundary anchor may produce a skewed
+connection. Use `.straightLine()` to auto-compute the correct perimeter angles so the
+edge forms a visually straight line.
+
+Compare the **red** default edges (skewed) with the **green** `.straightLine()` edges (perfectly straight):
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const b = viz().view(500, 280);
+
+// Default boundary anchors — may look skewed on rectangles
+b.node('a1').at(60, 60).rect(70, 40, 6).fill('#fca5a5').label('A');
+b.node('b1').at(200, 200).rect(70, 40, 6).fill('#fca5a5').label('B');
+b.edge('a1', 'b1').arrow().stroke('#dc2626');
+
+// .straightLine() — auto-computed perimeter angles
+b.node('a2').at(300, 60).rect(70, 40, 6).fill('#86efac').label('C');
+b.node('b2').at(440, 200).rect(70, 40, 6).fill('#86efac').label('D');
+b.edge('a2', 'b2').straightLine().arrow().stroke('#16a34a');
+
+b.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={straightLineScene} style={{ height: '280px', width: '100%' }} />
+</CodePreview>
+
+You can also apply it to just one end:
+
+```typescript
+.edge('a', 'b').straightLineFrom().arrow()  // source end only
+.edge('a', 'b').straightLineTo().arrow()    // target end only
+```
+
+The declarative form accepts `straightLine` in `EdgeOptions`:
+
+```typescript
+.edge('a', 'b', { straightLine: true, arrow: true })
+```
+
+If you also set an explicit `fromAngle` or `toAngle`, it takes precedence over the
+auto-computed value for that end.
 
 ## Equidistant port distribution
 

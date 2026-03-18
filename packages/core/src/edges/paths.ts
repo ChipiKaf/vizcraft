@@ -18,6 +18,25 @@ import {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
+/**
+ * Return the angle (VizCraft degrees: 0 = right, 90 = down) from `from` to `to`.
+ *
+ * Useful for computing `fromAngle` / `toAngle` so an edge exits a node's
+ * perimeter aimed straight at another point.
+ *
+ * @example
+ * ```ts
+ * import { angleBetween } from 'vizcraft';
+ * const angle = angleBetween(sourceNode.pos, targetNode.pos);
+ * eb.fromAngle(angle).toAngle(angle + 180);
+ * ```
+ */
+export function angleBetween(from: Vec2, to: Vec2): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
 export interface EdgePathResult {
   /** SVG path `d` attribute. */
   d: string;
@@ -58,11 +77,30 @@ export function computeEdgeEndpoints(
     ? effectivePos(start)
     : (freeStart ?? { x: 0, y: 0 });
 
+  // Auto-compute straight-line angles when requested
+  let effectiveFromAngle = edge.fromAngle;
+  let effectiveToAngle = edge.toAngle;
+  if (edge.straightLine && start && end) {
+    const angle = angleBetween(effectivePos(start), effectivePos(end));
+    if (
+      (edge.straightLine === true || edge.straightLine === 'from') &&
+      effectiveFromAngle === undefined
+    ) {
+      effectiveFromAngle = angle;
+    }
+    if (
+      (edge.straightLine === true || edge.straightLine === 'to') &&
+      effectiveToAngle === undefined
+    ) {
+      effectiveToAngle = angle + 180;
+    }
+  }
+
   // Source endpoint
   let startAnchor: Vec2;
   if (start) {
-    if (edge.fromAngle !== undefined) {
-      startAnchor = computeNodeAnchorAtAngle(start, edge.fromAngle);
+    if (effectiveFromAngle !== undefined) {
+      startAnchor = computeNodeAnchorAtAngle(start, effectiveFromAngle);
     } else {
       startAnchor = edge.fromPort
         ? (resolvePortPosition(start, edge.fromPort) ??
@@ -76,8 +114,8 @@ export function computeEdgeEndpoints(
   // Target endpoint
   let endAnchor: Vec2;
   if (end) {
-    if (edge.toAngle !== undefined) {
-      endAnchor = computeNodeAnchorAtAngle(end, edge.toAngle);
+    if (effectiveToAngle !== undefined) {
+      endAnchor = computeNodeAnchorAtAngle(end, effectiveToAngle);
     } else {
       endAnchor = edge.toPort
         ? (resolvePortPosition(end, edge.toPort) ??

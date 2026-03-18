@@ -538,6 +538,13 @@ export interface VizEdge {
   fromAngle?: number;
   /** Angle (degrees) for the target perimeter anchor. 0 = right, 90 = down. */
   toAngle?: number;
+  /**
+   * Auto-compute perimeter angles so the edge forms a straight line between nodes.
+   * - `true`  — both ends
+   * - `'from'` — source end only
+   * - `'to'`  — target end only
+   */
+  straightLine?: boolean | 'from' | 'to';
   /** Arbitrary consumer-defined metadata associated with the edge. */
   meta?: Record<string, unknown>;
   /** @deprecated Use `labels` for multi-position support. Kept for backwards compatibility. */
@@ -786,6 +793,13 @@ export interface EdgeOptions {
   fromAngle?: number;
   /** Angle (degrees) for the target perimeter anchor. 0 = right, 90 = down. */
   toAngle?: number;
+  /**
+   * Auto-compute perimeter angles so the edge forms a straight line between nodes.
+   * - `true`  — both ends
+   * - `'from'` — source end only
+   * - `'to'`  — target end only
+   */
+  straightLine?: boolean | 'from' | 'to';
 
   // --- Routing ---
   routing?: EdgeRouting;
