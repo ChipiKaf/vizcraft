@@ -266,15 +266,18 @@ Compartments are auto-sized when no explicit height is given — the builder est
 
 A single interactive line inside a compartment. Each entry has its own hit region, optional click handler, tooltip, and styling.
 
-| Field      | Type                                | Description                                |
-| ---------- | ----------------------------------- | ------------------------------------------ |
-| `id`       | `string`                            | Unique id within the compartment           |
-| `y`        | `number`                            | Y offset within the compartment (computed) |
-| `height`   | `number`                            | Height in pixels (computed)                |
-| `text`     | `string`                            | Display text                               |
-| `label?`   | `NodeLabel`                         | Resolved label with styles                 |
-| `onClick?` | `() => void`                        | Click handler for this entry               |
-| `tooltip?` | [`TooltipContent`](#tooltipcontent) | Tooltip shown on hover                     |
+| Field            | Type                                | Description                                   |
+| ---------------- | ----------------------------------- | --------------------------------------------- |
+| `id`             | `string`                            | Unique id within the compartment              |
+| `y`              | `number`                            | Y offset within the compartment (computed)    |
+| `height`         | `number`                            | Height in pixels (computed, includes padding) |
+| `text`           | `string`                            | Display text                                  |
+| `label?`         | `NodeLabel`                         | Resolved label with styles                    |
+| `onClick?`       | `() => void`                        | Click handler for this entry                  |
+| `tooltip?`       | [`TooltipContent`](#tooltipcontent) | Tooltip shown on hover                        |
+| `className?`     | `string`                            | Custom CSS class applied to the entry element |
+| `paddingTop?`    | `number`                            | Top padding in pixels (default `0`)           |
+| `paddingBottom?` | `number`                            | Bottom padding in pixels (default `0`)        |
 
 ### EntryStyle {#entrystyle}
 
@@ -292,13 +295,15 @@ Per-entry text styling options.
 
 Options passed to `.entry(id, text, opts?)` on the `CompartmentBuilder`.
 
-| Field       | Type                                | Description              |
-| ----------- | ----------------------------------- | ------------------------ |
-| `onClick?`  | `() => void`                        | Click handler            |
-| `style?`    | [`EntryStyle`](#entrystyle)         | Per-entry text styling   |
-| `tooltip?`  | [`TooltipContent`](#tooltipcontent) | Tooltip shown on hover   |
-| `maxWidth?` | `number`                            | Max text width in pixels |
-| `overflow?` | `'clip' \| 'ellipsis'`              | Text overflow behavior   |
+| Field        | Type                                          | Description                                                                            |
+| ------------ | --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `onClick?`   | `() => void`                                  | Click handler                                                                          |
+| `style?`     | [`EntryStyle`](#entrystyle)                   | Per-entry text styling                                                                 |
+| `tooltip?`   | [`TooltipContent`](#tooltipcontent)           | Tooltip shown on hover                                                                 |
+| `maxWidth?`  | `number`                                      | Max text width in pixels                                                               |
+| `overflow?`  | `'clip' \| 'ellipsis'`                        | Text overflow behavior                                                                 |
+| `padding?`   | `number \| { top?: number; bottom?: number }` | Vertical padding around entry text. A single number applies equally to top and bottom. |
+| `className?` | `string`                                      | Custom CSS class applied to the entry element                                          |
 
 ---
 

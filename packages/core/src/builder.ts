@@ -2597,13 +2597,18 @@ class VizBuilderImpl implements VizBuilder {
             for (const entry of c.entries) {
               const elx =
                 x - sw / 2 + compartmentPadding + (entry.label?.dx || 0);
+              const padT = entry.paddingTop ?? 0;
+              const padB = entry.paddingBottom ?? 0;
+              const contentH = entry.height - padT - padB;
               const ely =
                 nodeTop +
                 c.y +
                 entry.y +
-                entry.height / 2 +
+                padT +
+                contentH / 2 +
                 (entry.label?.dy || 0);
-              const entryClass = `viz-compartment-entry ${entry.label?.className || ''}`;
+              const entryClass =
+                `viz-compartment-entry ${entry.className || ''} ${entry.label?.className || ''}`.trim();
 
               const entryLabelSvg = renderSvgText(
                 elx,
@@ -3403,13 +3408,18 @@ class VizBuilderImpl implements VizBuilder {
             for (const entry of c.entries) {
               const elx =
                 x - sw / 2 + compartmentPadding + (entry.label?.dx || 0);
+              const padT = entry.paddingTop ?? 0;
+              const padB = entry.paddingBottom ?? 0;
+              const contentH = entry.height - padT - padB;
               const ely =
                 nodeTop +
                 c.y +
                 entry.y +
-                entry.height / 2 +
+                padT +
+                contentH / 2 +
                 (entry.label?.dy || 0);
-              const entryClass = `viz-compartment-entry ${entry.label?.className || ''}`;
+              const entryClass =
+                `viz-compartment-entry ${entry.className || ''} ${entry.label?.className || ''}`.trim();
 
               const entryLabelSvg = renderSvgText(
                 elx,
