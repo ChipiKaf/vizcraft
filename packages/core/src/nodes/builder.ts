@@ -186,6 +186,8 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
               tooltip: e.tooltip,
               maxWidth: e.maxWidth,
               overflow: e.overflow,
+              padding: e.padding,
+              className: e.className,
             });
           }
         }
@@ -217,6 +219,9 @@ interface PendingEntry {
   label?: NodeLabel;
   onClick?: () => void;
   tooltip?: TooltipContent;
+  className?: string;
+  paddingTop: number;
+  paddingBottom: number;
 }
 
 /**
@@ -230,7 +235,7 @@ function estimateEntryHeight(e: PendingEntry): number {
       : COMPARTMENT_LINE_HEIGHT;
   const lineH = fontSize * (e.label?.lineHeight ?? 1.2);
   const lines = wrapText(e.text, e.label?.maxWidth, fontSize);
-  return lineH * lines.length;
+  return lineH * lines.length + e.paddingTop + e.paddingBottom;
 }
 
 /**
@@ -298,6 +303,9 @@ export function resolveCompartments(
         if (e.label) entry.label = e.label;
         if (e.onClick) entry.onClick = e.onClick;
         if (e.tooltip) entry.tooltip = e.tooltip;
+        if (e.className) entry.className = e.className;
+        if (e.paddingTop) entry.paddingTop = e.paddingTop;
+        if (e.paddingBottom) entry.paddingBottom = e.paddingBottom;
         entryY += entryH;
         return entry;
       });
@@ -317,6 +325,15 @@ export function resolveCompartments(
   }
 
   return result;
+}
+
+/** Normalize the `padding` option into `{ top, bottom }` numbers. */
+function normalizePadding(
+  padding?: number | { top?: number; bottom?: number }
+): { top: number; bottom: number } {
+  if (padding === undefined) return { top: 0, bottom: 0 };
+  if (typeof padding === 'number') return { top: padding, bottom: padding };
+  return { top: padding.top ?? 0, bottom: padding.bottom ?? 0 };
 }
 
 class CompartmentBuilderImpl implements CompartmentBuilder {
@@ -366,12 +383,16 @@ class CompartmentBuilderImpl implements CompartmentBuilder {
       ...(opts?.maxWidth !== undefined && { maxWidth: opts.maxWidth }),
       ...(opts?.overflow !== undefined && { overflow: opts.overflow }),
     };
+    const { top: padTop, bottom: padBottom } = normalizePadding(opts?.padding);
     this._pending.entries.push({
       id,
       text,
       label: entryLabel,
       onClick: opts?.onClick,
       tooltip: opts?.tooltip,
+      className: opts?.className,
+      paddingTop: padTop,
+      paddingBottom: padBottom,
     });
     return this;
   }

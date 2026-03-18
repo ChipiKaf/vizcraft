@@ -253,6 +253,8 @@ b.node('service')
   .done();
 ```
 
+Each entry also accepts `padding` (uniform number or `{ top, bottom }`) for vertical spacing and `className` for custom CSS targeting.
+
 Entries and labels are mutually exclusive within a compartment. Hovered entries receive the CSS class `viz-entry-hover`. `hitTest()` returns `entryId` alongside `compartmentId` for entry-based compartments.
 
 ### Container / Group Nodes

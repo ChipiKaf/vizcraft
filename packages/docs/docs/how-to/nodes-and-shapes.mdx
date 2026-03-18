@@ -769,6 +769,79 @@ builder.mount(document.getElementById('container'));
 
 Entries are rendered as individual SVG `<text>` elements with `data-viz-role="compartment-entry"` and `data-entry` attributes. Hovered entries receive the CSS class `viz-entry-hover`.
 
+#### Entry padding and custom CSS class
+
+Control vertical spacing around each entry with `padding`, and attach a custom CSS class with `className` for targeted styling.
+
+export const entryPaddingScene = viz()
+  .view(500, 280)
+  .node('svc')
+  .at(250, 140)
+  .rect(240, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) => c.label('UserService').height(36))
+  .compartment('methods', (c) => {
+    c.entry('create', '+ createUser()', {
+      padding: 6,
+      className: 'entry-public',
+      style: { fontWeight: 'bold' },
+    });
+    c.entry('find', '+ findById(id)', {
+      padding: { top: 2, bottom: 8 },
+    });
+    c.entry('delete', '- deleteUser()', {
+      padding: 6,
+      className: 'entry-danger',
+      style: { fill: '#c00', fontStyle: 'italic' },
+    });
+  })
+  .done();
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 280);
+
+builder
+.node('svc')
+.at(250, 140)
+.rect(240, 0, 6)
+.fill('#f5f5f5')
+.stroke('#333')
+.compartment('name', (c) => c.label('UserService').height(36))
+.compartment('methods', (c) => {
+c.entry('create', '+ createUser()', {
+padding: 6,               // 6 px top + 6 px bottom
+className: 'entry-public',
+style: { fontWeight: 'bold' },
+});
+c.entry('find', '+ findById(id)', {
+padding: { top: 2, bottom: 8 }, // asymmetric padding
+});
+c.entry('delete', '- deleteUser()', {
+padding: 6,
+className: 'entry-danger',
+style: { fill: '#c00', fontStyle: 'italic' },
+});
+})
+.done();
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={entryPaddingScene} style={{ height: '280px', width: '100%' }} />
+</CodePreview>
+
+`padding` accepts a single `number` (uniform top & bottom) or an object `{ top?: number; bottom?: number }` for asymmetric spacing. The entry height grows to include the padding, and text remains vertically centered within the content area.
+
+The `className` value is appended to the entry's internal CSS class string, so you can target entries with standard CSS:
+
+```css
+.entry-danger text {
+  fill: #c00;
+}
+```
+
 #### Declarative entries
 
 ```typescript
@@ -782,6 +855,12 @@ builder.node('cls', {
       entries: [
         { id: 'get', text: '+ getUser()' },
         { id: 'set', text: '+ setUser()', style: { fontWeight: 'bold' } },
+        {
+          id: 'rm',
+          text: '- removeUser()',
+          padding: 4,
+          className: 'entry-danger',
+        },
       ],
     },
   ],

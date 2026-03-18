@@ -5325,6 +5325,158 @@ describe('vizcraft core', () => {
       const longH = sceneLong.nodes[0]!.compartments![0]!.height;
       expect(longH).toBeGreaterThan(shortH);
     });
+
+    it('entry uniform padding increases entry height', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', { padding: 6, style: { fontSize: 12 } });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      // base line = 12 * 1.2 = 14.4, plus 6 top + 6 bottom = 26.4
+      const expected = 12 * 1.2 + 6 + 6;
+      expect(entry.height).toBeCloseTo(expected, 5);
+      expect(entry.paddingTop).toBe(6);
+      expect(entry.paddingBottom).toBe(6);
+    });
+
+    it('entry asymmetric padding { top, bottom }', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', {
+            padding: { top: 4, bottom: 2 },
+            style: { fontSize: 12 },
+          });
+          c.entry('b', 'bar()', { style: { fontSize: 12 } });
+        })
+        .done()
+        .build();
+
+      const entries = scene.nodes[0]!.compartments![0]!.entries!;
+      const a = entries[0]!;
+      const b = entries[1]!;
+      expect(a.paddingTop).toBe(4);
+      expect(a.paddingBottom).toBe(2);
+      // b starts after a (including a's padding)
+      expect(b.y).toBeCloseTo(a.y + a.height, 5);
+    });
+
+    it('entry className is stored on the resolved entry', () => {
+      const scene = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', { className: 'method-entry public' });
+        })
+        .done()
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.className).toBe('method-entry public');
+    });
+
+    it('entry className appears in DOM mount', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', { className: 'method-entry' });
+        })
+        .done()
+        .mount(container);
+
+      const el = container.querySelector('[data-viz-role="compartment-entry"]');
+      expect(el).not.toBeNull();
+      expect(el!.classList.contains('method-entry')).toBe(true);
+      expect(el!.classList.contains('viz-compartment-entry')).toBe(true);
+    });
+
+    it('entry className appears in SVG export', () => {
+      const svg = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', { className: 'field-entry' });
+        })
+        .done()
+        .svg();
+
+      expect(svg).toContain('field-entry');
+      expect(svg).toContain('viz-compartment-entry');
+    });
+
+    it('declarative entries support padding and className', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 200, h: 0 },
+          compartments: [
+            {
+              id: 'm',
+              entries: [
+                {
+                  id: 'a',
+                  text: 'foo()',
+                  padding: 5,
+                  className: 'my-entry',
+                },
+              ],
+            },
+          ],
+        })
+        .build();
+
+      const entry = scene.nodes[0]!.compartments![0]!.entries![0]!;
+      expect(entry.paddingTop).toBe(5);
+      expect(entry.paddingBottom).toBe(5);
+      expect(entry.className).toBe('my-entry');
+    });
+
+    it('padding increases compartment height', () => {
+      const withoutPad = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', { style: { fontSize: 12 } });
+          c.entry('b', 'bar()', { style: { fontSize: 12 } });
+        })
+        .done()
+        .build();
+
+      const withPad = viz()
+        .node('cls')
+        .at(100, 100)
+        .rect(200, 0, 6)
+        .compartment('m', (c) => {
+          c.entry('a', 'foo()', {
+            padding: 8,
+            style: { fontSize: 12 },
+          });
+          c.entry('b', 'bar()', {
+            padding: 8,
+            style: { fontSize: 12 },
+          });
+        })
+        .done()
+        .build();
+
+      const hNoPad = withoutPad.nodes[0]!.compartments![0]!.height;
+      const hWithPad = withPad.nodes[0]!.compartments![0]!.height;
+      expect(hWithPad).toBeGreaterThan(hNoPad);
+    });
   });
 
   // -----------------------------------------------------------------------

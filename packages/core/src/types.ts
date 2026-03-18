@@ -289,7 +289,7 @@ export interface CompartmentEntry {
   id: string;
   /** Y offset from the compartment's top edge. */
   y: number;
-  /** Height of this entry's line region. */
+  /** Height of this entry's line region (includes padding). */
   height: number;
   /** Display text for this entry. */
   text: string;
@@ -299,6 +299,12 @@ export interface CompartmentEntry {
   onClick?: () => void;
   /** Tooltip shown when hovering this entry. */
   tooltip?: TooltipContent;
+  /** Custom CSS class(es) applied to the entry element. */
+  className?: string;
+  /** Vertical padding above this entry (px). */
+  paddingTop?: number;
+  /** Vertical padding below this entry (px). */
+  paddingBottom?: number;
 }
 
 /** Per-entry styling options. */
@@ -317,6 +323,10 @@ export interface EntryOptions {
   tooltip?: TooltipContent;
   maxWidth?: number;
   overflow?: 'visible' | 'ellipsis' | 'clip';
+  /** Vertical padding around the entry (px), or `{ top, bottom }`. */
+  padding?: number | { top?: number; bottom?: number };
+  /** Custom CSS class(es) applied to the entry element. */
+  className?: string;
 }
 
 /**
@@ -748,6 +758,8 @@ export interface NodeOptions {
       tooltip?: TooltipContent;
       maxWidth?: number;
       overflow?: 'visible' | 'ellipsis' | 'clip';
+      padding?: number | { top?: number; bottom?: number };
+      className?: string;
     }>;
   }>;
 }
