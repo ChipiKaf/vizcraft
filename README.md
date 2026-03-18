@@ -339,6 +339,16 @@ b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow')   // Association
 // Self-loops (exits and enters the same node)
 b.edge('n1', 'n1').loopSide('right').loopSize(40).arrow()
 
+// Straight-line edges via bounding-box overlap (vertical when nodes overlap
+// horizontally, horizontal when they overlap vertically)
+b.edge('a', 'b').straightLine().arrow()    // both ends
+b.edge('a', 'b').straightLineFrom().arrow() // source end only
+
+// Angle utility for manual perimeter anchoring
+import { angleBetween } from 'vizcraft'
+const angle = angleBetween(nodeA.pos, nodeB.pos)
+b.edge('a', 'b').fromAngle(angle).toAngle(angle + 180)
+
 b.edge('a', 'b').markerEnd('bar')                           // ER cardinality
 
 // Connection ports — edges attach to specific points on nodes

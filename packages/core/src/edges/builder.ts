@@ -65,6 +65,11 @@ export function applyEdgeOptions(eb: EdgeBuilder, opts: EdgeOptions): void {
   if (opts.toPort) eb.toPort(opts.toPort);
   if (opts.fromAngle !== undefined) eb.fromAngle(opts.fromAngle);
   if (opts.toAngle !== undefined) eb.toAngle(opts.toAngle);
+  if (opts.straightLine !== undefined) {
+    if (opts.straightLine === true) eb.straightLine();
+    else if (opts.straightLine === 'from') eb.straightLineFrom();
+    else if (opts.straightLine === 'to') eb.straightLineTo();
+  }
 
   // Labels
   if (opts.label) {
@@ -239,6 +244,21 @@ export class EdgeBuilderImpl implements EdgeBuilder {
 
   toAngle(deg: number): EdgeBuilder {
     this.edgeDef.toAngle = deg;
+    return this;
+  }
+
+  straightLine(): EdgeBuilder {
+    this.edgeDef.straightLine = true;
+    return this;
+  }
+
+  straightLineFrom(): EdgeBuilder {
+    this.edgeDef.straightLine = 'from';
+    return this;
+  }
+
+  straightLineTo(): EdgeBuilder {
+    this.edgeDef.straightLine = 'to';
     return this;
   }
 

@@ -28,6 +28,48 @@ export const selfLoopScene = selfLoopBuilder
   .label('Ping', { position: 'mid', dy: 0, dx: -32 })
   .done();
 
+export const straightLineScene = (() => {
+  const b = viz().view(520, 260);
+  // Fixed angles (90°→270° = bottom→top) — skewed when nodes aren't aligned
+  b.node('a1')
+    .at(80, 60)
+    .rect(70, 40, 6)
+    .fill('#fca5a5')
+    .stroke('#dc2626', 2)
+    .label('A');
+  b.node('b1')
+    .at(140, 190)
+    .rect(70, 40, 6)
+    .fill('#fca5a5')
+    .stroke('#dc2626', 2)
+    .label('B');
+  b.edge('a1', 'b1')
+    .fromAngle(90)
+    .toAngle(270)
+    .arrow()
+    .stroke('#dc2626')
+    .label('fromAngle(90)', { dy: -8 });
+  // .straightLine() — same layout, auto-computed angles
+  b.node('a2')
+    .at(330, 60)
+    .rect(70, 40, 6)
+    .fill('#86efac')
+    .stroke('#16a34a', 2)
+    .label('C');
+  b.node('b2')
+    .at(390, 190)
+    .rect(70, 40, 6)
+    .fill('#86efac')
+    .stroke('#16a34a', 2)
+    .label('D');
+  b.edge('a2', 'b2')
+    .straightLine()
+    .arrow()
+    .stroke('#16a34a')
+    .label('.straightLine()', { dy: -8 });
+  return b;
+})();
+
 export const equidistantPortsScene = (() => {
   const shape = { kind: 'cylinder', w: 120, h: 80 };
   const ports = getEquidistantPorts(shape, 10);
@@ -125,6 +167,58 @@ For advanced use (custom renderers), resolve where an angle intersects a shape's
 import { computeNodeAnchorAtAngle } from 'vizcraft';
 const point = computeNodeAnchorAtAngle(node, 45); // { x, y }
 ```
+
+### `angleBetween`
+
+Return the angle (VizCraft degrees) from one point to another. Useful for computing
+`fromAngle` / `toAngle` manually:
+
+```typescript
+import { angleBetween } from 'vizcraft';
+
+const angle = angleBetween(sourceNode.pos, targetNode.pos);
+eb.fromAngle(angle).toAngle(angle + 180);
+```
+
+### Auto straight-line edges
+
+When two nodes are not axis-aligned, using fixed angles like `fromAngle(90)` / `toAngle(270)` forces the edge to exit straight down and enter straight up — but the resulting path is diagonal and skewed. `.straightLine()` finds the **bounding-box overlap** between the two nodes and routes the edge through it — producing a perfectly **vertical** edge when nodes overlap horizontally, or a perfectly **horizontal** edge when they overlap vertically. When there is no overlap it falls back to a center-to-center diagonal:
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const b = viz().view(520, 260);
+
+// Fixed angles — edge exits bottom, enters top (skewed when offset)
+b.node('a1').at(80, 60).rect(70, 40, 6).fill('#fca5a5').label('A');
+b.node('b1').at(140, 190).rect(70, 40, 6).fill('#fca5a5').label('B');
+b.edge('a1', 'b1').fromAngle(90).toAngle(270).arrow().stroke('#dc2626');
+
+// .straightLine() — same layout, perfectly straight edge
+b.node('a2').at(330, 60).rect(70, 40, 6).fill('#86efac').label('C');
+b.node('b2').at(390, 190).rect(70, 40, 6).fill('#86efac').label('D');
+b.edge('a2', 'b2').straightLine().arrow().stroke('#16a34a');
+
+b.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={straightLineScene} style={{ height: '260px', width: '100%' }} />
+</CodePreview>
+
+You can also apply it to just one end:
+
+```typescript
+.edge('a', 'b').straightLineFrom().arrow()  // source end only
+.edge('a', 'b').straightLineTo().arrow()    // target end only
+```
+
+The declarative form accepts `straightLine` in `EdgeOptions`:
+
+```typescript
+.edge('a', 'b', { straightLine: true, arrow: true })
+```
+
+If you also set an explicit `fromAngle` or `toAngle`, it takes precedence over the
+auto-computed value for that end.
 
 ## Equidistant port distribution
 
