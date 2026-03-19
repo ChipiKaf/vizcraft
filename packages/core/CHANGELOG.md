@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.12.0
+
+### Minor Changes
+
+- [#128](https://github.com/ChipiKaf/vizcraft/pull/128) [`61da7de`](https://github.com/ChipiKaf/vizcraft/commit/61da7de14763e16d93cb4677e734bf70fd7f3133) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Waypoint-aware edge endpoint anchoring: when an edge has waypoints, the source boundary anchor now aims toward the first waypoint and the target anchor aims toward the last waypoint, instead of toward the other node's center. This enables clean edge bundling where multiple edges sharing the same convergence waypoint anchor at the exact same perimeter point on the target node.
+
 ## 1.11.0
 
 ### Minor Changes
