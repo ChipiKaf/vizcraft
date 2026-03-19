@@ -461,6 +461,15 @@ export interface VizNode {
   compartments?: VizNodeCompartment[];
 
   /**
+   * When `true`, a compartmented node renders only its first compartment
+   * (the header) and hides all others. All compartment data is preserved.
+   *
+   * A small collapse indicator is rendered so users can tell the node is
+   * collapsible. Has no effect on nodes without compartments.
+   */
+  collapsed?: boolean;
+
+  /**
    * Tooltip content shown on hover / focus.
    * Pass a plain string for simple text or a structured object with sections.
    */
@@ -769,6 +778,14 @@ export interface NodeOptions {
       className?: string;
     }>;
   }>;
+
+  // --- Collapsed Mode ---
+  /**
+   * When `true`, renders only the first compartment (header) and hides
+   * the rest. All compartment data is preserved for expand/collapse toggling.
+   * Has no effect on nodes without compartments.
+   */
+  collapsed?: boolean;
 }
 
 /**

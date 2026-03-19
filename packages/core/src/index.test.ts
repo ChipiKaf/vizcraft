@@ -5480,6 +5480,207 @@ describe('vizcraft core', () => {
   });
 
   // -----------------------------------------------------------------------
+  // Node Collapse / Compact Mode (#130)
+  // -----------------------------------------------------------------------
+  describe('Node Collapse / Compact Mode', () => {
+    it('sets collapsed flag via fluent .collapsed() API', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapsed).toBe(true);
+    });
+
+    it('collapsed(false) does not set collapsed flag', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .collapsed(false)
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapsed).toBe(false);
+    });
+
+    it('auto-sizes node height to first compartment when collapsed', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const shape = node.shape as { h: number };
+      // Should equal first compartment height only
+      expect(shape.h).toBe(30);
+    });
+
+    it('preserves all compartment data when collapsed', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      const comps = scene.nodes[0]!.compartments!;
+      // All three compartments are preserved in the data
+      expect(comps).toHaveLength(3);
+      expect(comps[0]!.id).toBe('name');
+      expect(comps[1]!.id).toBe('attrs');
+      expect(comps[2]!.id).toBe('methods');
+    });
+
+    it('renders only first compartment labels/entries in SVG when collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .svg();
+
+      // First compartment label should be visible
+      expect(svgStr).toContain('MyClass');
+      // Second compartment label should NOT be rendered
+      expect(svgStr).not.toContain('+ run(): void');
+      // No divider should be rendered (only one visible compartment)
+      expect(svgStr).not.toContain('data-viz-role="compartment-divider"');
+    });
+
+    it('renders collapse indicator in SVG when collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="collapse-indicator"');
+      expect(svgStr).toContain('viz-collapse-indicator');
+    });
+
+    it('does not render collapse indicator when not collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('data-viz-role="collapse-indicator"');
+    });
+
+    it('renders only first compartment in DOM mount when collapsed', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('attrs', (c) => c.label('+ x: number'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .mount(container);
+
+      const labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      // Only the first compartment label should be rendered
+      expect(labels.length).toBe(1);
+      expect(labels[0]!.textContent).toContain('MyClass');
+
+      // No dividers should be rendered
+      const dividers = container.querySelectorAll(
+        '[data-viz-role="compartment-divider"]'
+      );
+      expect(dividers.length).toBe(0);
+
+      // Collapse indicator should be present
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+    });
+
+    it('adds viz-node-collapsed class when collapsed', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .mount(container);
+
+      const group = container.querySelector('[data-id="cls"]');
+      expect(group).not.toBeNull();
+      expect(group!.classList.contains('viz-node-collapsed')).toBe(true);
+    });
+
+    it('supports collapsed via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          collapsed: true,
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30 },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+        })
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.collapsed).toBe(true);
+      expect((node.shape as { h: number }).h).toBe(30);
+      expect(node.compartments).toHaveLength(2);
+    });
+
+    it('non-compartmented node ignores collapsed flag', () => {
+      const scene = viz()
+        .node('plain')
+        .at(100, 100)
+        .rect(100, 60)
+        .collapsed()
+        .done()
+        .build();
+
+      // collapsed is set on the data, but rendering should not be affected
+      expect(scene.nodes[0]!.collapsed).toBe(true);
+      expect((scene.nodes[0]!.shape as { h: number }).h).toBe(60);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Tooltip / Hover Info API (#109)
   // -----------------------------------------------------------------------
   describe('Tooltip / Hover Info API', () => {

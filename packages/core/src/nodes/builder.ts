@@ -195,6 +195,9 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
       });
     }
   }
+
+  // Collapsed
+  if (opts.collapsed !== undefined) nb.collapsed(opts.collapsed);
 }
 
 /** Default height for a compartment when no explicit height is provided and no label is set. */
@@ -315,12 +318,14 @@ export function resolveCompartments(
     return compartment;
   });
 
-  // Auto-size node height to fit compartments
-  const totalHeight = y;
+  // Auto-size node height to fit compartments.
+  // When collapsed, only the first compartment determines the height.
+  const visibleHeight =
+    nodeDef.collapsed && result.length > 0 ? result[0]!.height : y;
   if (nodeDef.shape && 'h' in nodeDef.shape) {
     const shape = nodeDef.shape as { h: number };
-    if (shape.h === 0 || totalHeight > shape.h) {
-      shape.h = totalHeight;
+    if (shape.h === 0 || visibleHeight > shape.h || nodeDef.collapsed) {
+      shape.h = visibleHeight;
     }
   }
 
@@ -865,6 +870,11 @@ export class NodeBuilderImpl implements NodeBuilder {
     const builder = new CompartmentBuilderImpl(id);
     if (cb) cb(builder);
     this._pendingCompartments.push(builder._pending);
+    return this;
+  }
+
+  collapsed(state?: boolean): NodeBuilder {
+    this.nodeDef.collapsed = state !== false;
     return this;
   }
 

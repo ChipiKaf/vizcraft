@@ -873,6 +873,79 @@ builder.node('cls', {
 
 When the compartment uses entries, `hitTest()` also returns an `entryId` identifying the specific entry that was hit.
 
+### Collapsed / compact mode
+
+Use `.collapsed()` to render only the first compartment (the header) while preserving all compartment data. This is useful for compact UML views where you want to hide attributes and methods until the user expands.
+
+export const collapsedScene = viz()
+  .view(500, 200)
+  .node('expanded')
+  .at(130, 100)
+  .rect(200, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) => c.label('UserService').height(36))
+  .compartment('attrs', (c) => c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' }))
+  .compartment('methods', (c) => c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' }))
+  .node('collapsed')
+  .at(370, 100)
+  .rect(200, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) => c.label('UserService').height(36))
+  .compartment('attrs', (c) => c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' }))
+  .compartment('methods', (c) => c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' }))
+  .collapsed()
+  .done();
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 200);
+
+// Expanded (default)
+builder.node('expanded')
+.at(130, 100).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+.compartment('name', (c) => c.label('UserService').height(36))
+.compartment('attrs', (c) => c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' }))
+.compartment('methods', (c) => c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' }));
+
+// Collapsed — only header visible, triangle indicator shown
+builder.node('collapsed')
+.at(370, 100).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+.compartment('name', (c) => c.label('UserService').height(36))
+.compartment('attrs', (c) => c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' }))
+.compartment('methods', (c) => c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' }))
+.collapsed()
+.done();
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={collapsedScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+When collapsed:
+- Only the first compartment (header) is rendered; dividers and subsequent compartments are hidden.
+- A small triangle indicator appears in the header, signaling the collapsed state.
+- The node auto-sizes its height to the first compartment only.
+- All compartment data is preserved in the scene — toggling back to expanded restores the full view.
+- The node group receives the CSS class `viz-node-collapsed` for styling hooks.
+
+#### Declarative collapsed
+
+```typescript
+builder.node('cls', {
+  at: { x: 200, y: 200 },
+  rect: { w: 160, h: 0, rx: 6 },
+  collapsed: true,
+  compartments: [
+    { id: 'name', label: 'ClassName', height: 36 },
+    { id: 'attrs', label: '- field: string' },
+    { id: 'methods', label: '+ doWork()' },
+  ],
+});
+```
+
 ## CSS classes
 
 Apply a CSS class with `.class('my-class')` for theming:

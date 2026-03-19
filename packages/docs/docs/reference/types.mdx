@@ -49,6 +49,7 @@ A node in the scene graph.
 | `parentId?`   | `string`                   | Parent container node id                                                                        |
 | `container?`  | `ContainerConfig`          | Container configuration                                                                         |
 | `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       |     | `compartments?` | `VizNodeCompartment[]` | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment) |
+| `collapsed?`  | `boolean`                  | When `true`, only the first compartment is rendered (compact mode)                              |
 | `tooltip?`    | `TooltipContent`           | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)                             |
 | `badges?`     | `VizNodeBadge[]`           | Text badges pinned to corners. See [VizNodeBadge](#viznodebadge)                                |
 

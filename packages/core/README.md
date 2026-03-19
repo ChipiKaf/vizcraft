@@ -215,6 +215,7 @@ b.node('n1')
  .container(config?)     // Mark as container / group node
  .parent('containerId')  // Make child of a container
  .compartment(id, cb?)   // Add a UML-style compartment section
+ .collapsed(state?)      // Collapse to header-only (compact mode)
 ```
 
 ### Compartmented Nodes
@@ -265,6 +266,21 @@ b.node('service')
 Each entry also accepts `padding` (uniform number or `{ top, bottom }`) for vertical spacing and `className` for custom CSS targeting.
 
 Entries and labels are mutually exclusive within a compartment. Hovered entries receive the CSS class `viz-entry-hover`. `hitTest()` returns `entryId` alongside `compartmentId` for entry-based compartments.
+
+#### Collapsed / compact mode
+
+Use `.collapsed()` to show only the first compartment (header) while keeping all data intact — useful for compact UML overviews:
+
+```typescript
+b.node('cls')
+  .rect(160, 0, 6)
+  .compartment('name', (c) => c.label('MyClass').height(36))
+  .compartment('attrs', (c) => c.label('- field: string'))
+  .collapsed() // only header shown; triangle indicator rendered
+  .done();
+```
+
+The node auto-sizes to the first compartment height. A collapse indicator triangle is rendered. The group receives the CSS class `viz-node-collapsed`.
 
 ### Container / Group Nodes
 

@@ -688,6 +688,16 @@ export interface NodeBuilder {
    * @param cb   Callback to configure the compartment's label
    */
   compartment(id: string, cb?: (c: CompartmentBuilder) => unknown): NodeBuilder;
+  /**
+   * Mark this compartmented node as collapsed.
+   *
+   * When collapsed, only the first compartment (header) is rendered and the
+   * node height shrinks to fit. All compartment data is preserved.
+   * Has no effect on nodes without compartments.
+   *
+   * @param state  `true` to collapse (default), `false` to expand.
+   */
+  collapsed(state?: boolean): NodeBuilder;
   /** Set tooltip content shown on hover/focus. */
   tooltip(content: TooltipContent): NodeBuilder;
   /**
@@ -2566,13 +2576,17 @@ class VizBuilderImpl implements VizBuilder {
 
       // Compartment divider lines and labels
       const hasCompartments = node.compartments && node.compartments.length > 0;
+      const isCollapsed = !!(node.collapsed && hasCompartments);
 
       // Remove stale compartment elements before re-creating
       group
         .querySelectorAll(
-          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"],[data-viz-role="compartment-entry"]'
+          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"],[data-viz-role="compartment-entry"],[data-viz-role="collapse-indicator"]'
         )
         .forEach((el) => el.remove());
+
+      // Toggle collapsed class on the group
+      group.classList.toggle('viz-node-collapsed', isCollapsed);
 
       if (hasCompartments && 'w' in node.shape) {
         const sw = (node.shape as { w: number }).w;
@@ -2580,7 +2594,10 @@ class VizBuilderImpl implements VizBuilder {
         const nodeTop = y - sh / 2;
         const compartmentPadding = 8;
 
-        for (let ci = 0; ci < node.compartments!.length; ci++) {
+        // When collapsed, only render the first compartment (header)
+        const visibleCount = isCollapsed ? 1 : node.compartments!.length;
+
+        for (let ci = 0; ci < visibleCount; ci++) {
           const c = node.compartments![ci]!;
 
           // Draw divider line between compartments (skip the first one)
@@ -2677,8 +2694,11 @@ class VizBuilderImpl implements VizBuilder {
           }
         }
 
-        // Wire up per-entry click handlers
-        for (const c of node.compartments!) {
+        // Wire up per-entry click handlers (only for visible compartments)
+        const wireCompartments = isCollapsed
+          ? [node.compartments![0]!]
+          : node.compartments!;
+        for (const c of wireCompartments) {
           if (!c.entries) continue;
           for (const entry of c.entries) {
             if (!entry.onClick) continue;
@@ -2693,6 +2713,23 @@ class VizBuilderImpl implements VizBuilder {
               (entryEl as SVGElement).style.cursor = 'pointer';
             }
           }
+        }
+
+        // Collapse indicator (small triangle/chevron)
+        if (isCollapsed) {
+          const indicatorSize = 6;
+          const ix = x + sw / 2 - compartmentPadding - indicatorSize;
+          const iy = nodeTop + sh / 2;
+          const indicator = document.createElementNS(svgNS, 'polygon');
+          indicator.setAttribute('data-viz-role', 'collapse-indicator');
+          // Right-pointing triangle: collapsed state
+          indicator.setAttribute(
+            'points',
+            `${ix},${iy - indicatorSize} ${ix + indicatorSize},${iy} ${ix},${iy + indicatorSize}`
+          );
+          indicator.setAttribute('fill', node.style?.stroke ?? '#111');
+          indicator.setAttribute('class', 'viz-collapse-indicator');
+          group.appendChild(indicator);
         }
       }
 
@@ -3294,7 +3331,7 @@ class VizBuilderImpl implements VizBuilder {
 
       const isContainer = !!node.container;
       const nodeSketched = node.style?.sketch || globalSketchExport;
-      const className = `viz-node-group${isContainer ? ' viz-container' : ''}${nodeSketched ? ' viz-sketch' : ''} ${node.className || ''} ${animClasses}`;
+      const className = `viz-node-group${isContainer ? ' viz-container' : ''}${nodeSketched ? ' viz-sketch' : ''}${node.collapsed && node.compartments && node.compartments.length > 0 ? ' viz-node-collapsed' : ''} ${node.className || ''} ${animClasses}`;
 
       const scale = node.runtime?.scale;
       const rotation = node.runtime?.rotation;
@@ -3397,6 +3434,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Compartment divider lines and labels
       const hasCompartments = node.compartments && node.compartments.length > 0;
+      const isCollapsedSvg = !!(node.collapsed && hasCompartments);
 
       if (hasCompartments && 'w' in shape) {
         const sw = (shape as { w: number }).w;
@@ -3404,7 +3442,9 @@ class VizBuilderImpl implements VizBuilder {
         const nodeTop = y - sh / 2;
         const compartmentPadding = 8;
 
-        for (let ci = 0; ci < node.compartments!.length; ci++) {
+        const visibleCount = isCollapsedSvg ? 1 : node.compartments!.length;
+
+        for (let ci = 0; ci < visibleCount; ci++) {
           const c = node.compartments![ci]!;
 
           // Draw divider line between compartments (skip the first one)
@@ -3486,6 +3526,14 @@ class VizBuilderImpl implements VizBuilder {
 
             content += cLabelSvg;
           }
+        }
+
+        // Collapse indicator (small triangle/chevron)
+        if (isCollapsedSvg) {
+          const indicatorSize = 6;
+          const ix = x + sw / 2 - compartmentPadding - indicatorSize;
+          const iy = nodeTop + sh / 2;
+          content += `<polygon data-viz-role="collapse-indicator" class="viz-collapse-indicator" points="${ix},${iy - indicatorSize} ${ix + indicatorSize},${iy} ${ix},${iy + indicatorSize}" fill="${node.style?.stroke ?? '#111'}" />`;
         }
       }
 
