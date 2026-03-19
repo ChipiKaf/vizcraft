@@ -329,6 +329,42 @@ export const danglingEdgeScene = viz()
   .stroke('#6c7086')
   .done();
 
+export const edgeBundlingScene = viz()
+  .view(500, 260)
+  .node('src1')
+  .at(60, 40)
+  .circle(22)
+  .label('A')
+  .fill('#89b4fa')
+  .node('src2')
+  .at(60, 130)
+  .circle(22)
+  .label('B')
+  .fill('#89b4fa')
+  .node('src3')
+  .at(60, 220)
+  .circle(22)
+  .label('C')
+  .fill('#89b4fa')
+  .node('target')
+  .at(400, 130)
+  .rect(100, 60, 8)
+  .label('Target')
+  .fill('#a6e3a1')
+  .edge('src1', 'target')
+  .via(250, 100)
+  .curved()
+  .arrow()
+  .edge('src2', 'target')
+  .via(250, 100)
+  .curved()
+  .arrow()
+  .edge('src3', 'target')
+  .via(250, 100)
+  .curved()
+  .arrow()
+  .done();
+
 export const perimeterAnchorScene = viz()
   .view(500, 250)
   .node('server')
@@ -419,16 +455,25 @@ When an edge has waypoints, the boundary anchor on each node is computed toward 
 
 This is essential for **edge bundling**: multiple edges that share a convergence waypoint will anchor at the **exact same perimeter point** on the target node, producing a clean fan-in without crossing artifacts.
 
-```typescript
-// Three edges from different sources converge at a shared waypoint
-// above the target node — all three will anchor at the same point.
-const convergence = { x: 200, y: 80 };
+<CodePreview code={`import { viz } from 'vizcraft';
 
+const builder = viz().view(500, 260);
+// Three source nodes
 builder
-  .edge('src1', 'target').via(convergence.x, convergence.y).arrow()
-  .edge('src2', 'target').via(convergence.x, convergence.y).arrow()
-  .edge('src3', 'target').via(convergence.x, convergence.y).arrow();
-```
+.node('src1').at(60, 40).circle(22).label('A').fill('#89b4fa')
+.node('src2').at(60, 130).circle(22).label('B').fill('#89b4fa')
+.node('src3').at(60, 220).circle(22).label('C').fill('#89b4fa')
+.node('target').at(400, 130).rect(100, 60, 8).label('Target').fill('#a6e3a1')
+// All three edges converge at the same waypoint — anchoring
+// at the exact same perimeter point on the target node.
+.edge('src1', 'target').via(250, 100).curved().arrow()
+.edge('src2', 'target').via(250, 100).curved().arrow()
+.edge('src3', 'target').via(250, 100).curved().arrow();
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={edgeBundlingScene} style={{ height: '260px', width: '100%' }} />
+</CodePreview>
 
 When no waypoints are present, endpoint anchoring falls back to the default center-to-center boundary intersection.
 
