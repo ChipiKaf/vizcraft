@@ -412,32 +412,32 @@ if (geo.isSelfLoop) {
 } // self-loop flag
 ```
 
-| Method                   | Description                                                                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `.straight()`            | Direct line (default). With waypoints → polyline.                                                                                     |
-| `.curved()`              | Smooth bezier curve. With waypoints → Catmull-Rom spline.                                                                             |
-| `.orthogonal()`          | Right-angle elbows.                                                                                                                   |
-| `.routing(mode)`         | Set mode programmatically.                                                                                                            |
-| `.via(x, y)`             | Add an intermediate waypoint (chainable).                                                                                             |
-| `.label(text, opts?)`    | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`.    |
-| `.richLabel(cb, opts?)`  | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks.                     |
-| `.arrow([enabled])`      | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
-| `.markerEnd(type)`       | Set marker type at the target end. See `EdgeMarkerType`.                                                                              |
-| `.markerStart(type)`     | Set marker type at the source end. See `EdgeMarkerType`.                                                                              |
-| `.fromPort(portId)`      | Connect from a specific named port on the source node.                                                                                |
-| `.toPort(portId)`        | Connect to a specific named port on the target node.                                                                                  |
-| `.fromAngle(deg)`        | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node.                                                       |
-| `.toAngle(deg)`          | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node.                                                       |
-| `.from(nodeId)`          | Attach the source end to an existing node (useful with `danglingEdge()`).                                                             |
-| `.to(nodeId)`            | Attach the target end to an existing node (useful with `danglingEdge()`).                                                             |
-| `.fromAt(pos)`           | Set the free-endpoint coordinate for the source end (`{ x, y }`).                                                                     |
-| `.toAt(pos)`             | Set the free-endpoint coordinate for the target end (`{ x, y }`).                                                                     |
-| `.stroke(color, width?)` | Set stroke color and optional width.                                                                                                  |
-| `.fill(color)`           | Set fill color.                                                                                                                       |
-| `.opacity(value)`        | Set opacity (0–1).                                                                                                                    |
-| `.dashed()`              | Dashed stroke (`8, 4`).                                                                                                               |
-| `.dotted()`              | Dotted stroke (`2, 4`).                                                                                                               |
-| `.dash(pattern)`         | Custom SVG dasharray or preset (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`).                                                     |
+| Method                   | Description                                                                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.straight()`            | Direct line (default). With waypoints → polyline.                                                                                                                                                                           |
+| `.curved()`              | Smooth bezier curve. With waypoints → Catmull-Rom spline.                                                                                                                                                                   |
+| `.orthogonal()`          | Right-angle elbows.                                                                                                                                                                                                         |
+| `.routing(mode)`         | Set mode programmatically.                                                                                                                                                                                                  |
+| `.via(x, y)`             | Add an intermediate waypoint (chainable). Waypoints also influence endpoint anchoring — the source boundary anchor aims toward the first waypoint and the target anchor aims toward the last, enabling clean edge bundling. |
+| `.label(text, opts?)`    | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`.                                                                                          |
+| `.richLabel(cb, opts?)`  | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks.                                                                                                           |
+| `.arrow([enabled])`      | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none.                                                                                       |
+| `.markerEnd(type)`       | Set marker type at the target end. See `EdgeMarkerType`.                                                                                                                                                                    |
+| `.markerStart(type)`     | Set marker type at the source end. See `EdgeMarkerType`.                                                                                                                                                                    |
+| `.fromPort(portId)`      | Connect from a specific named port on the source node.                                                                                                                                                                      |
+| `.toPort(portId)`        | Connect to a specific named port on the target node.                                                                                                                                                                        |
+| `.fromAngle(deg)`        | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node.                                                                                                                                             |
+| `.toAngle(deg)`          | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node.                                                                                                                                             |
+| `.from(nodeId)`          | Attach the source end to an existing node (useful with `danglingEdge()`).                                                                                                                                                   |
+| `.to(nodeId)`            | Attach the target end to an existing node (useful with `danglingEdge()`).                                                                                                                                                   |
+| `.fromAt(pos)`           | Set the free-endpoint coordinate for the source end (`{ x, y }`).                                                                                                                                                           |
+| `.toAt(pos)`             | Set the free-endpoint coordinate for the target end (`{ x, y }`).                                                                                                                                                           |
+| `.stroke(color, width?)` | Set stroke color and optional width.                                                                                                                                                                                        |
+| `.fill(color)`           | Set fill color.                                                                                                                                                                                                             |
+| `.opacity(value)`        | Set opacity (0–1).                                                                                                                                                                                                          |
+| `.dashed()`              | Dashed stroke (`8, 4`).                                                                                                                                                                                                     |
+| `.dotted()`              | Dotted stroke (`2, 4`).                                                                                                                                                                                                     |
+| `.dash(pattern)`         | Custom SVG dasharray or preset (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`).                                                                                                                                           |
 
 **`EdgeMarkerType`** values: `'none'`, `'arrow'`, `'arrowOpen'`, `'diamond'`, `'diamondOpen'`, `'circle'`, `'circleOpen'`, `'square'`, `'bar'`, `'halfArrow'`.
 

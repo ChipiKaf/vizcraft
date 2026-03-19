@@ -409,7 +409,7 @@ if (geo.isSelfLoop) { /* ... */ }        // self-loop flag
 | `.curved()` | Smooth bezier curve. With waypoints → Catmull-Rom spline. |
 | `.orthogonal()` | Right-angle elbows. |
 | `.routing(mode)` | Set mode programmatically. |
-| `.via(x, y)` | Add an intermediate waypoint (chainable). |
+| `.via(x, y)` | Add an intermediate waypoint (chainable). Waypoints also influence endpoint anchoring — the source boundary anchor aims toward the first waypoint and the target anchor aims toward the last, enabling clean edge bundling. |
 | `.label(text, opts?)` | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`. |
 | `.richLabel(cb, opts?)` | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks. |
 | `.arrow([enabled])` | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
