@@ -187,6 +187,113 @@ describe('resolveEdgeGeometry', () => {
       { x: 100, y: 200 },
     ]);
   });
+
+  it('uses first waypoint as direction reference for source boundary anchor', () => {
+    // Node A at (0,100), waypoint at (100,100) — directly to the right.
+    // Without waypoints, boundary would aim toward node B at (200,0) (diagonal).
+    // With waypoints, boundary should aim toward first waypoint (100,100) — straight right.
+    const nodeA: VizNode = {
+      id: 'a',
+      pos: { x: 0, y: 100 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const nodeB: VizNode = {
+      id: 'b',
+      pos: { x: 200, y: 0 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const edge: VizEdge = {
+      id: 'e',
+      from: 'a',
+      to: 'b',
+      waypoints: [{ x: 100, y: 100 }],
+    };
+    const nodesById = new Map([
+      ['a', nodeA],
+      ['b', nodeB],
+    ]);
+
+    const geo = resolveEdgeGeometryFromData(edge, nodesById)!;
+    // Waypoint is at the same y as node A → source anchor should exit horizontally (right side)
+    expect(geo.startAnchor.x).toBeCloseTo(20, 0); // right edge of 40×40 box centered at x=0
+    expect(geo.startAnchor.y).toBeCloseTo(100, 0); // same y as node center
+  });
+
+  it('uses last waypoint as direction reference for target boundary anchor', () => {
+    // Node B at (200,0), last waypoint at (200,100) — directly above.
+    // Without waypoints, boundary would aim toward node A at (0,100) (diagonal).
+    // With waypoints, boundary should aim toward last waypoint (200,100) — straight down.
+    const nodeA: VizNode = {
+      id: 'a',
+      pos: { x: 0, y: 100 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const nodeB: VizNode = {
+      id: 'b',
+      pos: { x: 200, y: 0 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const edge: VizEdge = {
+      id: 'e',
+      from: 'a',
+      to: 'b',
+      waypoints: [{ x: 200, y: 100 }],
+    };
+    const nodesById = new Map([
+      ['a', nodeA],
+      ['b', nodeB],
+    ]);
+
+    const geo = resolveEdgeGeometryFromData(edge, nodesById)!;
+    // Last waypoint is directly below node B → target anchor should be at the bottom
+    expect(geo.endAnchor.x).toBeCloseTo(200, 0); // same x as node center
+    expect(geo.endAnchor.y).toBeCloseTo(20, 0); // bottom edge of 40×40 box centered at y=0
+  });
+
+  it('bundled edges sharing a convergence waypoint anchor at the same target point', () => {
+    // Simulate edge bundling: two edges from different sources converge at
+    // the same waypoint above the target node.
+    const target: VizNode = {
+      id: 'target',
+      pos: { x: 200, y: 200 },
+      shape: { kind: 'rect', w: 60, h: 60 },
+    };
+    const srcA: VizNode = {
+      id: 'srcA',
+      pos: { x: 50, y: 50 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const srcB: VizNode = {
+      id: 'srcB',
+      pos: { x: 350, y: 50 },
+      shape: { kind: 'rect', w: 40, h: 40 },
+    };
+    const convergencePoint = { x: 200, y: 140 };
+    const edgeA: VizEdge = {
+      id: 'eA',
+      from: 'srcA',
+      to: 'target',
+      waypoints: [convergencePoint],
+    };
+    const edgeB: VizEdge = {
+      id: 'eB',
+      from: 'srcB',
+      to: 'target',
+      waypoints: [convergencePoint],
+    };
+    const nodesById = new Map([
+      ['target', target],
+      ['srcA', srcA],
+      ['srcB', srcB],
+    ]);
+
+    const geoA = resolveEdgeGeometryFromData(edgeA, nodesById)!;
+    const geoB = resolveEdgeGeometryFromData(edgeB, nodesById)!;
+
+    // Both edges should anchor at the exact same point on the target node
+    expect(geoA.endAnchor.x).toBeCloseTo(geoB.endAnchor.x, 5);
+    expect(geoA.endAnchor.y).toBeCloseTo(geoB.endAnchor.y, 5);
+  });
 });
 
 describe('resolveEdgeGeometryFromData', () => {

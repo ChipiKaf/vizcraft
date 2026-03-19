@@ -73,10 +73,22 @@ export function computeEdgeEndpoints(
   const freeEnd: Vec2 | undefined = edge.toAt;
 
   // Determine the "other" position for anchor resolution.
-  const endTarget: Vec2 = end ? effectivePos(end) : (freeEnd ?? { x: 0, y: 0 });
-  const startTarget: Vec2 = start
-    ? effectivePos(start)
-    : (freeStart ?? { x: 0, y: 0 });
+  // When waypoints exist, use the nearest waypoint as the direction reference
+  // so that bundled edges sharing the same convergence waypoint resolve to
+  // the same perimeter anchor point on the node.
+  const wps = edge.waypoints;
+  const endTarget: Vec2 =
+    wps && wps.length > 0
+      ? wps[0]!
+      : end
+        ? effectivePos(end)
+        : (freeEnd ?? { x: 0, y: 0 });
+  const startTarget: Vec2 =
+    wps && wps.length > 0
+      ? wps[wps.length - 1]!
+      : start
+        ? effectivePos(start)
+        : (freeStart ?? { x: 0, y: 0 });
 
   // Auto-compute straight-line angles when requested.
   // Strategy: find horizontal or vertical overlap between the two node

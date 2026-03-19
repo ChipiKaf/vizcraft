@@ -410,6 +410,32 @@ builder.mount(document.getElementById('container'));
 | `.routing(mode)` | Programmatic: `'straight'`, `'curved'`, or `'orthogonal'` |
 | `.via(x, y)`     | Add a waypoint (chainable)                                |
 
+### Waypoint-aware endpoint anchoring
+
+When an edge has waypoints, the boundary anchor on each node is computed toward the **nearest waypoint** rather than toward the other node's center. Specifically:
+
+- The **source** anchor aims toward the **first** waypoint.
+- The **target** anchor aims toward the **last** waypoint.
+
+This is essential for **edge bundling**: multiple edges that share a convergence waypoint will anchor at the **exact same perimeter point** on the target node, producing a clean fan-in without crossing artifacts.
+
+```typescript
+// Three edges from different sources converge at a shared waypoint
+// above the target node — all three will anchor at the same point.
+const convergence = { x: 200, y: 80 };
+
+builder
+  .edge('src1', 'target').via(convergence.x, convergence.y).arrow()
+  .edge('src2', 'target').via(convergence.x, convergence.y).arrow()
+  .edge('src3', 'target').via(convergence.x, convergence.y).arrow();
+```
+
+When no waypoints are present, endpoint anchoring falls back to the default center-to-center boundary intersection.
+
+:::tip
+Combine waypoints with `.curved()` routing for smooth bundled edges, or with `.straight()` for sharp polyline fans.
+:::
+
 ## Edge labels
 
 Place labels at `'start'`, `'mid'`, or `'end'` positions. Chain multiple `.label()` calls for multi-label edges (useful for ER diagrams):
