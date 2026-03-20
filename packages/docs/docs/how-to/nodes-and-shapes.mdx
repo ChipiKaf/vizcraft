@@ -1242,20 +1242,20 @@ You can also pass the anchor per-toggle via `ctx.toggle({ animate: 300, anchor: 
 const builder = viz().view(600, 300);
 
 builder.node('svc')
-  .at(200, 150).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
-  .collapseAnchor('top')   // top edge stays fixed
-  .compartment('name', (c) =>
-    c.label('UserService').height(36).onClick((ctx) => {
-      ctx.toggle({ animate: 300 });
-    })
-  )
-  .compartment('attrs', (c) =>
-    c.label('- db: Database\\n- cache: Cache', { fontSize: 12, textAnchor: 'start' })
-  )
-  .compartment('methods', (c) =>
-    c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' })
-  )
-  .done();
+.at(200, 150).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+.collapseAnchor('top') // top edge stays fixed
+.compartment('name', (c) =>
+c.label('UserService').height(36).onClick((ctx) => {
+ctx.toggle({ animate: 300 });
+})
+)
+.compartment('attrs', (c) =>
+c.label('- db: Database\\n- cache: Cache', { fontSize: 12, textAnchor: 'start' })
+)
+.compartment('methods', (c) =>
+c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' })
+)
+.done();
 
 builder.mount(document.getElementById('container'));
 `} />
