@@ -1079,31 +1079,43 @@ class VizBuilderImpl implements VizBuilder {
     if (!n.shape || !('h' in n.shape)) return;
 
     const newState = !n.collapsed;
+    const isExpanding = !!n.collapsed; // currently collapsed → about to expand
     const duration = animate ?? 0;
     const fullHeight = n.compartments.reduce((sum, c) => sum + c.height, 0);
     const headerH = n.compartments[0]!.height;
     const fromH = n.collapsed ? headerH : fullHeight;
     const toH = newState ? headerH : fullHeight;
 
-    // Update collapsed state and shape height
-    const shape = { ...n.shape, h: toH } as VizNode['shape'];
-    this.updateNode(nodeId, { collapsed: newState, shape });
-
     const container = this._mountedContainer;
-    if (!container) return;
 
-    if (duration > 0 && fromH !== toH) {
+    if (duration > 0 && fromH !== toH && container) {
+      // When collapsing: flip collapsed immediately so content hides from frame 1.
+      // When expanding: keep collapsed=true during animation so content stays
+      // hidden until the rect has grown to full height (final frame).
+      if (!isExpanding) {
+        this.updateNode(nodeId, { collapsed: newState });
+      }
+
       const startTime = performance.now();
       const animateFrame = (now: number) => {
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1);
         const eased = 1 - Math.pow(1 - t, 3);
         const currentH = fromH + (toH - fromH) * eased;
-        // Update shape.h each frame so commit() repositions everything
         const cur = this._nodes.get(nodeId);
         if (!cur?.shape || !('h' in cur.shape)) return;
-        const animShape = { ...cur.shape, h: currentH } as VizNode['shape'];
-        this.updateNode(nodeId, { shape: animShape });
+
+        if (t >= 1) {
+          // Final frame: set definitive state
+          const finalShape = { ...cur.shape, h: toH } as VizNode['shape'];
+          this.updateNode(nodeId, { collapsed: newState, shape: finalShape });
+        } else {
+          const animShape = {
+            ...cur.shape,
+            h: currentH,
+          } as VizNode['shape'];
+          this.updateNode(nodeId, { shape: animShape });
+        }
         this.commit(container);
         if (t < 1) {
           requestAnimationFrame(animateFrame);
@@ -1111,7 +1123,10 @@ class VizBuilderImpl implements VizBuilder {
       };
       requestAnimationFrame(animateFrame);
     } else {
-      this.commit(container);
+      // No animation – apply instantly
+      const shape = { ...n.shape, h: toH } as VizNode['shape'];
+      this.updateNode(nodeId, { collapsed: newState, shape });
+      if (container) this.commit(container);
     }
   }
 
