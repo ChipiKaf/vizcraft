@@ -290,6 +290,22 @@ export interface VizNodeCompartment {
 }
 
 /**
+ * Options for customizing the collapse indicator (chevron) on compartmented nodes.
+ * Pass `false` to hide the indicator entirely.
+ */
+export interface CollapseIndicatorOptions {
+  /** Fill color of the indicator. Defaults to the node's stroke color. */
+  color?: string;
+  /** Whether to show the indicator. Defaults to `true`. */
+  visible?: boolean;
+  /**
+   * Custom render function. Receives the current collapsed state and
+   * returns an SVG string that replaces the default triangle.
+   */
+  render?: (collapsed: boolean) => string;
+}
+
+/**
  * Context passed to a compartment's `onClick` handler.
  */
 export interface CompartmentClickContext {
@@ -491,6 +507,12 @@ export interface VizNode {
    * collapsible. Has no effect on nodes without compartments.
    */
   collapsed?: boolean;
+
+  /**
+   * Customize or hide the collapse indicator (chevron).
+   * Pass `false` to hide, or an options object to set color / custom renderer.
+   */
+  collapseIndicator?: CollapseIndicatorOptions | false;
 
   /**
    * Tooltip content shown on hover / focus.
@@ -811,6 +833,12 @@ export interface NodeOptions {
    * Has no effect on nodes without compartments.
    */
   collapsed?: boolean;
+
+  /**
+   * Customize or hide the collapse indicator (chevron).
+   * Pass `false` to hide, or an options object.
+   */
+  collapseIndicator?: CollapseIndicatorOptions | false;
 }
 
 /**

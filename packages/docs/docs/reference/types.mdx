@@ -50,6 +50,7 @@ A node in the scene graph.
 | `container?`  | `ContainerConfig`          | Container configuration                                                                         |
 | `ports?`      | `NodePort[]`               | Explicit connection ports                                                                       |     | `compartments?` | `VizNodeCompartment[]` | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment) |
 | `collapsed?`  | `boolean`                  | When `true`, only the first compartment is rendered (compact mode)                              |
+| `collapseIndicator?` | [`CollapseIndicatorOptions`](#collapseindicatoroptions) ` | false` | Customise or hide the collapse chevron. Pass `false` to hide entirely |
 | `tooltip?`    | `TooltipContent`           | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)                             |
 | `badges?`     | `VizNodeBadge[]`           | Text badges pinned to corners. See [VizNodeBadge](#viznodebadge)                                |
 
@@ -275,6 +276,22 @@ Context passed to a compartment's `onClick` handler, providing collapse control.
 | `compartmentId` | `string`                                 | The compartment's id                               |
 | `collapsed`     | `boolean`                                | Current collapsed state (before toggling)           |
 | `toggle`        | `(opts?: { animate?: number }) => void`  | Toggle collapse; optional `animate` duration in ms |
+
+### CollapseIndicatorOptions {#collapseindicatoroptions}
+
+Options for customising the collapse indicator (chevron) on compartmented nodes.
+
+| Field     | Type                              | Description                                                                                          |
+| --------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `color?`  | `string`                          | Fill colour of the default triangle. Defaults to the node's `stroke` colour                         |
+| `visible?`| `boolean`                         | Set to `false` to hide the indicator. Defaults to `true` when a compartment has an `onClick` handler |
+| `render?` | `(collapsed: boolean) => string`  | Return a custom SVG string to replace the default triangle. Receives the current collapsed state     |
+
+Pass `false` instead of an options object to hide the indicator entirely:
+
+```typescript
+.collapseIndicator(false)
+```
 
 ### CompartmentEntry {#compartmententry}
 

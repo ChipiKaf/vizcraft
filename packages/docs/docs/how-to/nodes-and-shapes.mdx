@@ -950,18 +950,55 @@ When collapsed:
 
 Use `.onClick(handler)` on a compartment to wire up collapse/expand behavior. The handler receives a `CompartmentClickContext` with a `toggle()` helper:
 
-```typescript
-builder.node('cls')
-  .rect(160, 0, 6)
+export const collapseToggleScene = viz()
+  .view(500, 200)
+  .node('cls')
+  .at(250, 100)
+  .rect(200, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
   .compartment('name', (c) =>
     c.label('MyClass').height(36).onClick((ctx) => {
-      console.log(`${ctx.nodeId} is now ${ctx.collapsed ? 'collapsed' : 'expanded'}`);
-      ctx.toggle({ animate: 200 }); // smooth 200ms animation
+      ctx.toggle({ animate: 200 });
     })
   )
-  .compartment('attrs', (c) => c.label('- field: string'))
+  .compartment('attrs', (c) =>
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
+  )
+  .compartment('methods', (c) =>
+    c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' })
+  )
   .done();
-```
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(500, 200);
+
+builder.node('cls')
+.at(250, 100).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+.compartment('name', (c) =>
+  c.label('MyClass').height(36).onClick((ctx) => {
+    ctx.toggle({ animate: 200 }); // smooth 200ms animation
+  })
+)
+.compartment('attrs', (c) =>
+  c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' })
+)
+.compartment('methods', (c) =>
+  c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' })
+)
+.done();
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={collapseToggleScene} style={{ height: '200px', width: '100%' }} />
+</CodePreview>
+
+Click the triangle indicator in the header to toggle between collapsed and expanded states.
 
 When the first compartment has an `onClick` handler, a clickable collapse indicator appears in the header — even when the node is expanded. Clicking the indicator fires the first compartment's `onClick`.
 
@@ -988,6 +1025,55 @@ builder.node('cls', {
   ],
 });
 ```
+
+#### Customising the collapse indicator
+
+The collapse chevron can be styled, hidden, or replaced with custom SVG:
+
+```typescript
+// Hide the indicator entirely
+builder.node('no-chevron')
+  .at(100, 100).rect(160, 0)
+  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
+  .compartment('body', c => c.label('Content'))
+  .collapseIndicator(false)
+  .done();
+
+// Custom colour
+builder.node('red-chevron')
+  .at(300, 100).rect(160, 0)
+  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
+  .compartment('body', c => c.label('Content'))
+  .collapseIndicator({ color: 'crimson' })
+  .done();
+
+// Custom SVG via render callback
+builder.node('custom')
+  .at(500, 100).rect(160, 0)
+  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
+  .compartment('body', c => c.label('Content'))
+  .collapseIndicator({
+    render: (collapsed) =>
+      `<text font-size="12">${collapsed ? '▶' : '▼'}</text>`,
+  })
+  .done();
+```
+
+The same options work declaratively:
+
+```typescript
+builder.node('cls', {
+  at: { x: 200, y: 200 },
+  rect: { w: 160, h: 0 },
+  compartments: [
+    { id: 'name', label: 'Title', onClick: (ctx) => ctx.toggle() },
+    { id: 'body', label: 'Content' },
+  ],
+  collapseIndicator: { color: 'blue' },
+});
+```
+
+See [CollapseIndicatorOptions](/docs/reference/types#collapseindicatoroptions) for all options.
 
 ## CSS classes
 

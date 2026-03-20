@@ -254,6 +254,7 @@ Each method sets the node's geometry:
 | ----------------------- | ----------------------------------------------------------------------------------- |
 | `.compartment(id, cb?)` | Add a compartment section. Optional callback receives a `CompartmentBuilder`        |
 | `.collapsed(state?)`    | Render only the first compartment (header). Pass `false` to expand. Default: `true` |
+| `.collapseIndicator(opts)` | Customise or hide the collapse chevron. Pass `false` to hide, or an object with `color`, `visible`, `render`. See [CollapseIndicatorOptions](/docs/reference/types#collapseindicatoroptions) |
 
 #### CompartmentBuilder
 

@@ -210,6 +210,7 @@ b.node('n1')
  .parent('containerId')  // Make child of a container
  .compartment(id, cb?)   // Add a UML-style compartment section
  .collapsed(state?)      // Collapse to header-only (compact mode)
+ .collapseIndicator(opts) // Customise or hide the collapse chevron
 ```
 
 ### Compartmented Nodes
@@ -283,6 +284,14 @@ b.node('cls')
   )
   .compartment('attrs', (c) => c.label('- field: string'))
   .done();
+```
+
+Customise the indicator with `.collapseIndicator()` — change its colour, hide it, or supply custom SVG:
+
+```typescript
+.collapseIndicator({ color: 'crimson' }) // custom colour
+.collapseIndicator(false)                // hide entirely
+.collapseIndicator({ render: (collapsed) => `<text>${collapsed ? '▶' : '▼'}</text>` })
 ```
 
 ### Container / Group Nodes

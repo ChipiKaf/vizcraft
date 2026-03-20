@@ -5834,6 +5834,99 @@ describe('vizcraft core', () => {
 
       expect(scene.nodes[0]!.compartments![0]!.onClick).toBe(handler);
     });
+
+    it('hides collapse indicator when collapseIndicator is false', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator(false)
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('collapse-indicator');
+    });
+
+    it('hides collapse indicator when visible is false', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({ visible: false })
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('collapse-indicator');
+    });
+
+    it('applies custom color to collapse indicator in SVG', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({ color: 'red' })
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('fill="red"');
+      expect(svgStr).toContain('collapse-indicator');
+    });
+
+    it('uses custom render function for collapse indicator in SVG', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({
+          render: (collapsed) =>
+            `<text data-custom="true">${collapsed ? '+' : '-'}</text>`,
+        })
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-custom="true"');
+      expect(svgStr).toContain('-');
+    });
+
+    it('stores collapseIndicator options via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: () => {} },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+          collapseIndicator: { color: 'blue' },
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseIndicator).toEqual({ color: 'blue' });
+    });
+
+    it('stores collapseIndicator false via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: () => {} },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+          collapseIndicator: false,
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseIndicator).toBe(false);
+    });
   });
 
   // -----------------------------------------------------------------------
