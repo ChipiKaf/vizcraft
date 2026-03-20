@@ -1079,7 +1079,6 @@ class VizBuilderImpl implements VizBuilder {
     if (!n.shape || !('h' in n.shape)) return;
 
     const newState = !n.collapsed;
-    const isExpanding = !!n.collapsed; // currently collapsed → about to expand
     const duration = animate ?? 0;
     const fullHeight = n.compartments.reduce((sum, c) => sum + c.height, 0);
     const headerH = n.compartments[0]!.height;
@@ -1088,14 +1087,13 @@ class VizBuilderImpl implements VizBuilder {
 
     const container = this._mountedContainer;
 
-    if (duration > 0 && fromH !== toH && container) {
-      // When collapsing: flip collapsed immediately so content hides from frame 1.
-      // When expanding: keep collapsed=true during animation so content stays
-      // hidden until the rect has grown to full height (final frame).
-      if (!isExpanding) {
-        this.updateNode(nodeId, { collapsed: newState });
-      }
+    // Flip collapsed state immediately so content is rendered/hidden from frame 1.
+    // During expand the growing rect clips overflow via clip-path so content
+    // reveals smoothly as the rect grows rather than popping in at the end.
+    const shape = { ...n.shape, h: fromH } as VizNode['shape'];
+    this.updateNode(nodeId, { collapsed: newState, shape });
 
+    if (duration > 0 && fromH !== toH && container) {
       const startTime = performance.now();
       const animateFrame = (now: number) => {
         const elapsed = now - startTime;
@@ -1105,27 +1103,35 @@ class VizBuilderImpl implements VizBuilder {
         const cur = this._nodes.get(nodeId);
         if (!cur?.shape || !('h' in cur.shape)) return;
 
-        if (t >= 1) {
-          // Final frame: set definitive state
-          const finalShape = { ...cur.shape, h: toH } as VizNode['shape'];
-          this.updateNode(nodeId, { collapsed: newState, shape: finalShape });
-        } else {
-          const animShape = {
-            ...cur.shape,
-            h: currentH,
-          } as VizNode['shape'];
-          this.updateNode(nodeId, { shape: animShape });
-        }
+        const animShape = { ...cur.shape, h: currentH } as VizNode['shape'];
+        this.updateNode(nodeId, { shape: animShape });
         this.commit(container);
+
+        // Apply clip-path to hide content outside the current rect bounds.
+        // The rect is center-based so clip from bottom = (fullH - currentH) / 2.
+        const nodeGroup = container.querySelector(
+          `[data-id="${nodeId}"]`
+        ) as SVGGElement | null;
+        if (nodeGroup) {
+          if (t < 1) {
+            // inset(top right bottom left) — clip the excess at the bottom
+            const clipBottom = ((fullHeight - currentH) / fullHeight) * 100;
+            nodeGroup.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
+          } else {
+            // Final frame: remove clip
+            nodeGroup.style.clipPath = '';
+          }
+        }
+
         if (t < 1) {
           requestAnimationFrame(animateFrame);
         }
       };
       requestAnimationFrame(animateFrame);
     } else {
-      // No animation – apply instantly
-      const shape = { ...n.shape, h: toH } as VizNode['shape'];
-      this.updateNode(nodeId, { collapsed: newState, shape });
+      // No animation – apply instantly at target height
+      const finalShape = { ...n.shape, h: toH } as VizNode['shape'];
+      this.updateNode(nodeId, { collapsed: newState, shape: finalShape });
       if (container) this.commit(container);
     }
   }
