@@ -32,6 +32,8 @@ import type {
   TooltipContent,
   BadgePosition,
   EntryOptions,
+  CompartmentClickContext,
+  CollapseIndicatorOptions,
 } from './types';
 import { OVERLAY_RUNTIME_DIRTY } from './types';
 import { setupPanZoom } from './interaction/panZoom';
@@ -514,6 +516,14 @@ export interface CompartmentBuilder {
    * content and emits a dev console warning.
    */
   entry(id: string, text: string, opts?: EntryOptions): CompartmentBuilder;
+  /**
+   * Register a click handler for this compartment.
+   *
+   * The callback receives a `CompartmentClickContext` with `nodeId`,
+   * `compartmentId`, the current `collapsed` state, and a `toggle()` helper
+   * for animating collapse/expand.
+   */
+  onClick(handler: (ctx: CompartmentClickContext) => void): CompartmentBuilder;
 }
 
 export interface NodeBuilder {
@@ -688,6 +698,28 @@ export interface NodeBuilder {
    * @param cb   Callback to configure the compartment's label
    */
   compartment(id: string, cb?: (c: CompartmentBuilder) => unknown): NodeBuilder;
+  /**
+   * Mark this compartmented node as collapsed.
+   *
+   * When collapsed, only the first compartment (header) is rendered and the
+   * node height shrinks to fit. All compartment data is preserved.
+   * Has no effect on nodes without compartments.
+   *
+   * @param state  `true` to collapse (default), `false` to expand.
+   */
+  collapsed(state?: boolean): NodeBuilder;
+  /**
+   * Customize or hide the collapse indicator (chevron).
+   *
+   * @param opts  Options object, or `false` to hide the indicator.
+   */
+  collapseIndicator(opts: CollapseIndicatorOptions | false): NodeBuilder;
+  /**
+   * Set the anchor point for collapse/expand animation.
+   *
+   * @param anchor  `'top'` | `'center'` (default) | `'bottom'`
+   */
+  collapseAnchor(anchor: import('./types').CollapseAnchor): NodeBuilder;
   /** Set tooltip content shown on hover/focus. */
   tooltip(content: TooltipContent): NodeBuilder;
   /**
@@ -1039,6 +1071,97 @@ class VizBuilderImpl implements VizBuilder {
       if (!this._changes.updated.nodes.includes(id)) {
         this._changes.updated.nodes.push(id);
       }
+    }
+  }
+
+  /**
+   * Toggle collapse state of a compartmented node and re-render.
+   * Used internally by compartment onClick handlers' `toggle()` helper.
+   * @internal
+   */
+  _performCollapseToggle(
+    nodeId: string,
+    animate?: number,
+    anchorOverride?: import('./types').CollapseAnchor
+  ): void {
+    const n = this._nodes.get(nodeId);
+    if (!n || !n.compartments || n.compartments.length === 0) return;
+    if (!n.shape || !('h' in n.shape)) return;
+
+    const anchor = anchorOverride ?? n.collapseAnchor ?? 'center';
+    const newState = !n.collapsed;
+    const isExpanding = !!n.collapsed; // currently collapsed → expanding
+    const duration = animate ?? 0;
+    const fullHeight = n.compartments.reduce((sum, c) => sum + c.height, 0);
+    const headerH = n.compartments[0]!.height;
+    const fromH = n.collapsed ? headerH : fullHeight;
+    const toH = newState ? headerH : fullHeight;
+    const originalY = n.pos?.y ?? 0;
+
+    const container = this._mountedContainer;
+
+    // Flip collapsed state immediately so content is rendered/hidden from frame 1.
+    // During expand the growing rect clips overflow via clip-path so content
+    // reveals smoothly as the rect grows rather than popping in at the end.
+    const shape = { ...n.shape, h: fromH } as VizNode['shape'];
+    this.updateNode(nodeId, { collapsed: newState, shape });
+
+    if (duration > 0 && fromH !== toH && container) {
+      const startTime = performance.now();
+      const animateFrame = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const currentH = fromH + (toH - fromH) * eased;
+        const cur = this._nodes.get(nodeId);
+        if (!cur?.shape || !('h' in cur.shape)) return;
+
+        // Compute y offset so the chosen edge stays fixed
+        const deltaH = currentH - fromH;
+        const dy =
+          anchor === 'top' ? deltaH / 2 : anchor === 'bottom' ? -deltaH / 2 : 0;
+
+        const animShape = { ...cur.shape, h: currentH } as VizNode['shape'];
+        this.updateNode(nodeId, {
+          shape: animShape,
+          pos: { x: cur.pos?.x ?? 0, y: originalY + dy },
+        });
+        this.commit(container);
+
+        // Clip-path only needed when expanding: content is rendered but should
+        // be hidden until the rect has grown to reveal it. When collapsing,
+        // collapsed=true already hides the extra compartments so no clip needed.
+        if (isExpanding) {
+          const nodeGroup = container.querySelector(
+            `[data-id="${nodeId}"]`
+          ) as SVGGElement | null;
+          if (nodeGroup) {
+            if (t < 1) {
+              const clipBottom = ((fullHeight - currentH) / fullHeight) * 100;
+              nodeGroup.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
+            } else {
+              nodeGroup.style.clipPath = '';
+            }
+          }
+        }
+
+        if (t < 1) {
+          requestAnimationFrame(animateFrame);
+        }
+      };
+      requestAnimationFrame(animateFrame);
+    } else {
+      // No animation – apply instantly at target height
+      const deltaH = toH - fromH;
+      const dy =
+        anchor === 'top' ? deltaH / 2 : anchor === 'bottom' ? -deltaH / 2 : 0;
+      const finalShape = { ...n.shape, h: toH } as VizNode['shape'];
+      this.updateNode(nodeId, {
+        collapsed: newState,
+        shape: finalShape,
+        pos: { x: n.pos?.x ?? 0, y: originalY + dy },
+      });
+      if (container) this.commit(container);
     }
   }
 
@@ -2566,13 +2689,17 @@ class VizBuilderImpl implements VizBuilder {
 
       // Compartment divider lines and labels
       const hasCompartments = node.compartments && node.compartments.length > 0;
+      const isCollapsed = !!(node.collapsed && hasCompartments);
 
       // Remove stale compartment elements before re-creating
       group
         .querySelectorAll(
-          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"],[data-viz-role="compartment-entry"]'
+          '[data-viz-role="compartment-divider"],[data-viz-role="compartment-label"],[data-viz-role="compartment-entry"],[data-viz-role="collapse-indicator"],[data-viz-role="collapse-indicator-group"]'
         )
         .forEach((el) => el.remove());
+
+      // Toggle collapsed class on the group
+      group.classList.toggle('viz-node-collapsed', isCollapsed);
 
       if (hasCompartments && 'w' in node.shape) {
         const sw = (node.shape as { w: number }).w;
@@ -2580,7 +2707,10 @@ class VizBuilderImpl implements VizBuilder {
         const nodeTop = y - sh / 2;
         const compartmentPadding = 8;
 
-        for (let ci = 0; ci < node.compartments!.length; ci++) {
+        // When collapsed, only render the first compartment (header)
+        const visibleCount = isCollapsed ? 1 : node.compartments!.length;
+
+        for (let ci = 0; ci < visibleCount; ci++) {
           const c = node.compartments![ci]!;
 
           // Draw divider line between compartments (skip the first one)
@@ -2677,8 +2807,11 @@ class VizBuilderImpl implements VizBuilder {
           }
         }
 
-        // Wire up per-entry click handlers
-        for (const c of node.compartments!) {
+        // Wire up per-entry click handlers (only for visible compartments)
+        const wireCompartments = isCollapsed
+          ? [node.compartments![0]!]
+          : node.compartments!;
+        for (const c of wireCompartments) {
           if (!c.entries) continue;
           for (const entry of c.entries) {
             if (!entry.onClick) continue;
@@ -2693,6 +2826,146 @@ class VizBuilderImpl implements VizBuilder {
               (entryEl as SVGElement).style.cursor = 'pointer';
             }
           }
+        }
+
+        // Collapse indicator (triangle) — shown when the first compartment
+        // has an onClick handler or the node is currently collapsed.
+        const firstComp = node.compartments![0]!;
+        const indicatorOpts = node.collapseIndicator;
+        const indicatorHidden =
+          indicatorOpts === false ||
+          (typeof indicatorOpts === 'object' &&
+            indicatorOpts.visible === false);
+        const isCollapsible = isCollapsed || !!firstComp.onClick;
+        if (
+          isCollapsible &&
+          !indicatorHidden &&
+          node.compartments!.length > 1
+        ) {
+          const indicatorSize = 6;
+          const ix = x + sw / 2 - compartmentPadding - indicatorSize;
+          const firstCompH = node.compartments![0]!.height;
+          const iy = nodeTop + firstCompH / 2;
+          const indicatorColor =
+            (typeof indicatorOpts === 'object'
+              ? indicatorOpts.color
+              : undefined) ??
+            node.style?.stroke ??
+            '#111';
+          const customRender =
+            typeof indicatorOpts === 'object'
+              ? indicatorOpts.render
+              : undefined;
+
+          let indicatorEl: SVGElement;
+          if (customRender) {
+            const svgStr = customRender(isCollapsed);
+            const wrapper = document.createElementNS(svgNS, 'g');
+            wrapper.innerHTML = svgStr;
+            indicatorEl = (wrapper.firstElementChild as SVGElement) ?? wrapper;
+            if (indicatorEl === wrapper && wrapper.childNodes.length > 0) {
+              indicatorEl = wrapper;
+            }
+            indicatorEl.setAttribute('data-viz-role', 'collapse-indicator');
+          } else {
+            const indicator = document.createElementNS(svgNS, 'polygon');
+            indicator.setAttribute('data-viz-role', 'collapse-indicator');
+            if (isCollapsed) {
+              indicator.setAttribute(
+                'points',
+                `${ix},${iy - indicatorSize} ${ix + indicatorSize},${iy} ${ix},${iy + indicatorSize}`
+              );
+            } else {
+              indicator.setAttribute(
+                'points',
+                `${ix},${iy - indicatorSize / 2} ${ix + indicatorSize * 2},${iy - indicatorSize / 2} ${ix + indicatorSize},${iy + indicatorSize / 2}`
+              );
+            }
+            indicator.setAttribute('fill', indicatorColor);
+            indicator.setAttribute('class', 'viz-collapse-indicator');
+            indicatorEl = indicator;
+          }
+
+          // Invisible hit-area rect for easier clicking
+          const hitPad = 10;
+          const hitRect = document.createElementNS(svgNS, 'rect');
+          hitRect.setAttribute('x', String(ix - hitPad));
+          hitRect.setAttribute('y', String(iy - indicatorSize - hitPad));
+          hitRect.setAttribute('width', String(indicatorSize * 2 + hitPad * 2));
+          hitRect.setAttribute(
+            'height',
+            String(indicatorSize * 2 + hitPad * 2)
+          );
+          hitRect.setAttribute('fill', 'transparent');
+          hitRect.style.cursor = 'pointer';
+
+          // Wrap indicator + hit rect in a group
+          const indicatorGroup = document.createElementNS(svgNS, 'g');
+          indicatorGroup.setAttribute(
+            'data-viz-role',
+            'collapse-indicator-group'
+          );
+          indicatorGroup.style.cursor = 'pointer';
+          indicatorGroup.appendChild(hitRect);
+          indicatorGroup.appendChild(indicatorEl);
+
+          if (firstComp.onClick) {
+            const nodeId = node.id;
+            const compartmentId = firstComp.id;
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            const builder = this;
+            indicatorGroup.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const currentNode = builder._nodes.get(nodeId);
+              firstComp.onClick!({
+                nodeId,
+                compartmentId,
+                collapsed: !!currentNode?.collapsed,
+                collapseAnchor: currentNode?.collapseAnchor ?? 'center',
+                toggle: (toggleOpts) =>
+                  builder._performCollapseToggle(
+                    nodeId,
+                    toggleOpts?.animate,
+                    toggleOpts?.anchor
+                  ),
+              });
+            });
+          }
+
+          group.appendChild(indicatorGroup);
+        }
+
+        // Wire compartment-level onClick handlers
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const builderRef = this;
+        for (const c of wireCompartments) {
+          if (!c.onClick) continue;
+          const compLabels = group.querySelectorAll(
+            `[data-viz-role="compartment-label"][data-compartment="${c.id}"]`
+          );
+          const nodeId = node.id;
+          const compartmentId = c.id;
+          const handler = c.onClick;
+          const attachClick = (el: Element) => {
+            el.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const currentNode = builderRef._nodes.get(nodeId);
+              handler({
+                nodeId,
+                compartmentId,
+                collapsed: !!currentNode?.collapsed,
+                collapseAnchor: currentNode?.collapseAnchor ?? 'center',
+                toggle: (toggleOpts) =>
+                  builderRef._performCollapseToggle(
+                    nodeId,
+                    toggleOpts?.animate,
+                    toggleOpts?.anchor
+                  ),
+              });
+            });
+            (el as SVGElement).style.cursor = 'pointer';
+          };
+          compLabels.forEach(attachClick);
         }
       }
 
@@ -3294,7 +3567,7 @@ class VizBuilderImpl implements VizBuilder {
 
       const isContainer = !!node.container;
       const nodeSketched = node.style?.sketch || globalSketchExport;
-      const className = `viz-node-group${isContainer ? ' viz-container' : ''}${nodeSketched ? ' viz-sketch' : ''} ${node.className || ''} ${animClasses}`;
+      const className = `viz-node-group${isContainer ? ' viz-container' : ''}${nodeSketched ? ' viz-sketch' : ''}${node.collapsed && node.compartments && node.compartments.length > 0 ? ' viz-node-collapsed' : ''} ${node.className || ''} ${animClasses}`;
 
       const scale = node.runtime?.scale;
       const rotation = node.runtime?.rotation;
@@ -3397,6 +3670,7 @@ class VizBuilderImpl implements VizBuilder {
 
       // Compartment divider lines and labels
       const hasCompartments = node.compartments && node.compartments.length > 0;
+      const isCollapsedSvg = !!(node.collapsed && hasCompartments);
 
       if (hasCompartments && 'w' in shape) {
         const sw = (shape as { w: number }).w;
@@ -3404,7 +3678,9 @@ class VizBuilderImpl implements VizBuilder {
         const nodeTop = y - sh / 2;
         const compartmentPadding = 8;
 
-        for (let ci = 0; ci < node.compartments!.length; ci++) {
+        const visibleCount = isCollapsedSvg ? 1 : node.compartments!.length;
+
+        for (let ci = 0; ci < visibleCount; ci++) {
           const c = node.compartments![ci]!;
 
           // Draw divider line between compartments (skip the first one)
@@ -3485,6 +3761,42 @@ class VizBuilderImpl implements VizBuilder {
             );
 
             content += cLabelSvg;
+          }
+        }
+
+        // Collapse indicator
+        const firstCompSvg = node.compartments![0]!;
+        const indicatorOptsSvg = node.collapseIndicator;
+        const indicatorHiddenSvg =
+          indicatorOptsSvg === false ||
+          (typeof indicatorOptsSvg === 'object' &&
+            indicatorOptsSvg.visible === false);
+        const isCollapsibleSvg = isCollapsedSvg || !!firstCompSvg.onClick;
+        if (
+          isCollapsibleSvg &&
+          !indicatorHiddenSvg &&
+          node.compartments!.length > 1
+        ) {
+          const indicatorSize = 6;
+          const ix = x + sw / 2 - compartmentPadding - indicatorSize;
+          const firstCompH = node.compartments![0]!.height;
+          const iy = nodeTop + firstCompH / 2;
+          const indicatorColorSvg =
+            (typeof indicatorOptsSvg === 'object'
+              ? indicatorOptsSvg.color
+              : undefined) ??
+            node.style?.stroke ??
+            '#111';
+          const customRenderSvg =
+            typeof indicatorOptsSvg === 'object'
+              ? indicatorOptsSvg.render
+              : undefined;
+          if (customRenderSvg) {
+            content += customRenderSvg(isCollapsedSvg);
+          } else if (isCollapsedSvg) {
+            content += `<polygon data-viz-role="collapse-indicator" class="viz-collapse-indicator" points="${ix},${iy - indicatorSize} ${ix + indicatorSize},${iy} ${ix},${iy + indicatorSize}" fill="${indicatorColorSvg}" />`;
+          } else {
+            content += `<polygon data-viz-role="collapse-indicator" class="viz-collapse-indicator" points="${ix},${iy - indicatorSize / 2} ${ix + indicatorSize * 2},${iy - indicatorSize / 2} ${ix + indicatorSize},${iy + indicatorSize / 2}" fill="${indicatorColorSvg}" />`;
           }
         }
       }

@@ -215,6 +215,9 @@ b.node('n1')
  .container(config?)     // Mark as container / group node
  .parent('containerId')  // Make child of a container
  .compartment(id, cb?)   // Add a UML-style compartment section
+ .collapsed(state?)      // Collapse to header-only (compact mode)
+ .collapseIndicator(opts) // Customise or hide the collapse chevron
+ .collapseAnchor(anchor)  // 'top' | 'center' (default) | 'bottom'
 ```
 
 ### Compartmented Nodes
@@ -265,6 +268,54 @@ b.node('service')
 Each entry also accepts `padding` (uniform number or `{ top, bottom }`) for vertical spacing and `className` for custom CSS targeting.
 
 Entries and labels are mutually exclusive within a compartment. Hovered entries receive the CSS class `viz-entry-hover`. `hitTest()` returns `entryId` alongside `compartmentId` for entry-based compartments.
+
+#### Collapsed / compact mode
+
+Use `.collapsed()` to show only the first compartment (header) while keeping all data intact — useful for compact UML overviews:
+
+```typescript
+b.node('cls')
+  .rect(160, 0, 6)
+  .compartment('name', (c) => c.label('MyClass').height(36))
+  .compartment('attrs', (c) => c.label('- field: string'))
+  .collapsed() // only header shown; triangle indicator rendered
+  .done();
+```
+
+The node auto-sizes to the first compartment height. A collapse indicator triangle is rendered. The group receives the CSS class `viz-node-collapsed`.
+
+Add `.onClick(handler)` on a compartment to wire up interactive collapse/expand with a `toggle()` helper:
+
+```typescript
+b.node('cls')
+  .rect(160, 0, 6)
+  .compartment('name', (c) =>
+    c
+      .label('MyClass')
+      .height(36)
+      .onClick((ctx) => ctx.toggle({ animate: 200 }))
+  )
+  .compartment('attrs', (c) => c.label('- field: string'))
+  .done();
+```
+
+Customise the indicator with `.collapseIndicator()` — change its colour, hide it, or supply custom SVG:
+
+```typescript
+.collapseIndicator({ color: 'crimson' }) // custom colour
+.collapseIndicator(false)                // hide entirely
+.collapseIndicator({ render: (collapsed) => `<text>${collapsed ? '▶' : '▼'}</text>` })
+```
+
+Control which edge stays fixed during the animation with `.collapseAnchor()`:
+
+```typescript
+.collapseAnchor('top')    // top edge fixed, grows/shrinks downward
+.collapseAnchor('center') // symmetric (default)
+.collapseAnchor('bottom') // bottom edge fixed, grows/shrinks upward
+```
+
+You can also pass `anchor` per-toggle: `ctx.toggle({ animate: 200, anchor: 'top' })`.
 
 ### Container / Group Nodes
 

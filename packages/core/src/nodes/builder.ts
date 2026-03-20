@@ -2,6 +2,7 @@ import type {
   VizNode,
   VizNodeCompartment,
   CompartmentEntry,
+  CompartmentClickContext,
   NodeLabel,
   AnimationConfig,
   ContainerConfig,
@@ -192,9 +193,16 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
           }
         }
         if (c.height !== undefined) cb.height(c.height);
+        if (c.onClick) cb.onClick(c.onClick);
       });
     }
   }
+
+  // Collapsed
+  if (opts.collapsed !== undefined) nb.collapsed(opts.collapsed);
+  if (opts.collapseIndicator !== undefined)
+    nb.collapseIndicator(opts.collapseIndicator);
+  if (opts.collapseAnchor !== undefined) nb.collapseAnchor(opts.collapseAnchor);
 }
 
 /** Default height for a compartment when no explicit height is provided and no label is set. */
@@ -210,6 +218,7 @@ interface PendingCompartment {
   label?: NodeLabel;
   explicitHeight?: number;
   entries?: PendingEntry[];
+  onClick?: (ctx: CompartmentClickContext) => void;
 }
 
 /** Pending entry definition before y/height are computed. */
@@ -288,6 +297,7 @@ export function resolveCompartments(
     const height = estimateCompartmentHeight(c);
     const compartment: VizNodeCompartment = { id: c.id, y, height };
     if (c.label) compartment.label = c.label;
+    if (c.onClick) compartment.onClick = c.onClick;
 
     // Resolve entries with computed y offsets within the compartment
     if (c.entries && c.entries.length > 0) {
@@ -315,12 +325,14 @@ export function resolveCompartments(
     return compartment;
   });
 
-  // Auto-size node height to fit compartments
-  const totalHeight = y;
+  // Auto-size node height to fit compartments.
+  // When collapsed, only the first compartment determines the height.
+  const visibleHeight =
+    nodeDef.collapsed && result.length > 0 ? result[0]!.height : y;
   if (nodeDef.shape && 'h' in nodeDef.shape) {
     const shape = nodeDef.shape as { h: number };
-    if (shape.h === 0 || totalHeight > shape.h) {
-      shape.h = totalHeight;
+    if (shape.h === 0 || visibleHeight > shape.h || nodeDef.collapsed) {
+      shape.h = visibleHeight;
     }
   }
 
@@ -394,6 +406,11 @@ class CompartmentBuilderImpl implements CompartmentBuilder {
       paddingTop: padTop,
       paddingBottom: padBottom,
     });
+    return this;
+  }
+
+  onClick(handler: (ctx: CompartmentClickContext) => void): CompartmentBuilder {
+    this._pending.onClick = handler;
     return this;
   }
 }
@@ -865,6 +882,23 @@ export class NodeBuilderImpl implements NodeBuilder {
     const builder = new CompartmentBuilderImpl(id);
     if (cb) cb(builder);
     this._pendingCompartments.push(builder._pending);
+    return this;
+  }
+
+  collapsed(state?: boolean): NodeBuilder {
+    this.nodeDef.collapsed = state !== false;
+    return this;
+  }
+
+  collapseIndicator(
+    opts: import('../types').CollapseIndicatorOptions | false
+  ): NodeBuilder {
+    this.nodeDef.collapseIndicator = opts;
+    return this;
+  }
+
+  collapseAnchor(anchor: import('../types').CollapseAnchor): NodeBuilder {
+    this.nodeDef.collapseAnchor = anchor;
     return this;
   }
 

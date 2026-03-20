@@ -5480,6 +5480,572 @@ describe('vizcraft core', () => {
   });
 
   // -----------------------------------------------------------------------
+  // Node Collapse / Compact Mode (#130)
+  // -----------------------------------------------------------------------
+  describe('Node Collapse / Compact Mode', () => {
+    it('sets collapsed flag via fluent .collapsed() API', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapsed).toBe(true);
+    });
+
+    it('collapsed(false) does not set collapsed flag', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .collapsed(false)
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapsed).toBe(false);
+    });
+
+    it('auto-sizes node height to first compartment when collapsed', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      const node = scene.nodes[0]!;
+      const shape = node.shape as { h: number };
+      // Should equal first compartment height only
+      expect(shape.h).toBe(30);
+    });
+
+    it('preserves all compartment data when collapsed', () => {
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.height(30).label('MyClass'))
+        .compartment('attrs', (c) => c.height(40).label('+ x: number'))
+        .compartment('methods', (c) => c.height(50).label('+ run(): void'))
+        .collapsed()
+        .done()
+        .build();
+
+      const comps = scene.nodes[0]!.compartments!;
+      // All three compartments are preserved in the data
+      expect(comps).toHaveLength(3);
+      expect(comps[0]!.id).toBe('name');
+      expect(comps[1]!.id).toBe('attrs');
+      expect(comps[2]!.id).toBe('methods');
+    });
+
+    it('renders only first compartment labels/entries in SVG when collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .svg();
+
+      // First compartment label should be visible
+      expect(svgStr).toContain('MyClass');
+      // Second compartment label should NOT be rendered
+      expect(svgStr).not.toContain('+ run(): void');
+      // No divider should be rendered (only one visible compartment)
+      expect(svgStr).not.toContain('data-viz-role="compartment-divider"');
+    });
+
+    it('renders collapse indicator in SVG when collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="collapse-indicator"');
+      expect(svgStr).toContain('viz-collapse-indicator');
+    });
+
+    it('does not render collapse indicator when not collapsed', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('data-viz-role="collapse-indicator"');
+    });
+
+    it('renders only first compartment in DOM mount when collapsed', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('attrs', (c) => c.label('+ x: number'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .mount(container);
+
+      const labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      // Only the first compartment label should be rendered
+      expect(labels.length).toBe(1);
+      expect(labels[0]!.textContent).toContain('MyClass');
+
+      // No dividers should be rendered
+      const dividers = container.querySelectorAll(
+        '[data-viz-role="compartment-divider"]'
+      );
+      expect(dividers.length).toBe(0);
+
+      // Collapse indicator should be present
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+    });
+
+    it('adds viz-node-collapsed class when collapsed', () => {
+      const container = document.createElement('div');
+      viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass'))
+        .compartment('methods', (c) => c.label('+ run(): void'))
+        .collapsed()
+        .done()
+        .mount(container);
+
+      const group = container.querySelector('[data-id="cls"]');
+      expect(group).not.toBeNull();
+      expect(group!.classList.contains('viz-node-collapsed')).toBe(true);
+    });
+
+    it('supports collapsed via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          collapsed: true,
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30 },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+        })
+        .build();
+
+      const node = scene.nodes[0]!;
+      expect(node.collapsed).toBe(true);
+      expect((node.shape as { h: number }).h).toBe(30);
+      expect(node.compartments).toHaveLength(2);
+    });
+
+    it('non-compartmented node ignores collapsed flag', () => {
+      const scene = viz()
+        .node('plain')
+        .at(100, 100)
+        .rect(100, 60)
+        .collapsed()
+        .done()
+        .build();
+
+      // collapsed is set on the data, but rendering should not be affected
+      expect(scene.nodes[0]!.collapsed).toBe(true);
+      expect((scene.nodes[0]!.shape as { h: number }).h).toBe(60);
+    });
+
+    it('stores compartment onClick handler via fluent API', () => {
+      const handler = vi.fn();
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c.height(30).label('MyClass').onClick(handler)
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.compartments![0]!.onClick).toBe(handler);
+    });
+
+    it('compartment onClick receives context with toggle helper', () => {
+      const handler = vi.fn();
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c.height(30).label('MyClass').onClick(handler)
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      // Click the collapse indicator to trigger the first compartment's onClick
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const ctx = handler.mock.calls[0]![0]!;
+      expect(ctx.nodeId).toBe('cls');
+      expect(ctx.compartmentId).toBe('name');
+      expect(typeof ctx.collapsed).toBe('boolean');
+      expect(typeof ctx.toggle).toBe('function');
+
+      builder.destroy();
+    });
+
+    it('toggle helper collapses and expands the node', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c
+            .height(30)
+            .label('MyClass')
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      // Initially expanded — should have 2 labels
+      let labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(2);
+
+      // Click indicator to toggle (collapse)
+      let indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+
+      // After toggle — only 1 label visible
+      labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(1);
+
+      // Click indicator again to toggle back (expand)
+      indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+      labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(2);
+
+      builder.destroy();
+    });
+
+    it('renders collapse indicator when first compartment has onClick (expanded)', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c
+            .height(30)
+            .label('MyClass')
+            .onClick(() => {})
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+
+      builder.destroy();
+    });
+
+    it('collapse indicator shows in SVG when first compartment has onClick', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="collapse-indicator"');
+    });
+
+    it('supports compartment onClick via declarative NodeOptions', () => {
+      const handler = vi.fn();
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: handler },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+        })
+        .build();
+
+      expect(scene.nodes[0]!.compartments![0]!.onClick).toBe(handler);
+    });
+
+    it('hides collapse indicator when collapseIndicator is false', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator(false)
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('collapse-indicator');
+    });
+
+    it('hides collapse indicator when visible is false', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({ visible: false })
+        .done()
+        .svg();
+
+      expect(svgStr).not.toContain('collapse-indicator');
+    });
+
+    it('applies custom color to collapse indicator in SVG', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({ color: 'red' })
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('fill="red"');
+      expect(svgStr).toContain('collapse-indicator');
+    });
+
+    it('uses custom render function for collapse indicator in SVG', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .collapseIndicator({
+          render: (collapsed) =>
+            `<text data-custom="true">${collapsed ? '+' : '-'}</text>`,
+        })
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-custom="true"');
+      expect(svgStr).toContain('-');
+    });
+
+    it('stores collapseIndicator options via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: () => {} },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+          collapseIndicator: { color: 'blue' },
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseIndicator).toEqual({ color: 'blue' });
+    });
+
+    it('stores collapseIndicator false via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: () => {} },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+          collapseIndicator: false,
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseIndicator).toBe(false);
+    });
+
+    // collapseAnchor
+    it('stores collapseAnchor via fluent builder', () => {
+      const scene = viz()
+        .node('n')
+        .at(100, 100)
+        .rect(160, 0)
+        .compartment('header', (c) => c.label('Title').height(36))
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('top')
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapseAnchor).toBe('top');
+    });
+
+    it('stores collapseAnchor via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('n', {
+          at: { x: 100, y: 100 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'header', label: 'Title', height: 36 },
+            { id: 'body', label: 'Content' },
+          ],
+          collapseAnchor: 'bottom',
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseAnchor).toBe('bottom');
+    });
+
+    it('adjusts pos.y when collapsing with anchor top (non-animated)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('top')
+        .done();
+
+      const sceneBefore = b.build();
+      const fullH = sceneBefore.nodes[0]!.shape.h;
+      const headerH = sceneBefore.nodes[0]!.compartments![0]!.height;
+      const origY = sceneBefore.nodes[0]!.pos.y;
+
+      // Toggle collapse (no animation)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      // Top anchor: y should move up so top edge stays fixed
+      const expectedDy = (headerH - fullH) / 2;
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY + expectedDy);
+    });
+
+    it('adjusts pos.y when collapsing with anchor bottom (non-animated)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('bottom')
+        .done();
+
+      const sceneBefore = b.build();
+      const fullH = sceneBefore.nodes[0]!.shape.h;
+      const headerH = sceneBefore.nodes[0]!.compartments![0]!.height;
+      const origY = sceneBefore.nodes[0]!.pos.y;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      // Bottom anchor: y should move down so bottom edge stays fixed
+      const expectedDy = -(headerH - fullH) / 2;
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY + expectedDy);
+    });
+
+    it('does not adjust pos.y with center anchor (default)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .done();
+
+      const origY = b.build().nodes[0]!.pos.y;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Tooltip / Hover Info API (#109)
   // -----------------------------------------------------------------------
   describe('Tooltip / Hover Info API', () => {

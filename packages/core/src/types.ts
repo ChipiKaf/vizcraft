@@ -281,6 +281,57 @@ export interface VizNodeCompartment {
    * instead of a single label block.
    */
   entries?: CompartmentEntry[];
+  /**
+   * Click handler for this compartment.
+   * Receives a context object with the node/compartment ids, current
+   * collapsed state, and a `toggle()` helper for collapse animation.
+   */
+  onClick?: (ctx: CompartmentClickContext) => void;
+}
+
+/**
+ * The anchor point from which the node collapses/expands.
+ *
+ * - `'top'`    — The top edge stays fixed; the node shrinks/grows downward.
+ * - `'center'` — The node shrinks/grows symmetrically (default).
+ * - `'bottom'` — The bottom edge stays fixed; the node shrinks/grows upward.
+ */
+export type CollapseAnchor = 'top' | 'center' | 'bottom';
+
+/**
+ * Options for customizing the collapse indicator (chevron) on compartmented nodes.
+ * Pass `false` to hide the indicator entirely.
+ */
+export interface CollapseIndicatorOptions {
+  /** Fill color of the indicator. Defaults to the node's stroke color. */
+  color?: string;
+  /** Whether to show the indicator. Defaults to `true`. */
+  visible?: boolean;
+  /**
+   * Custom render function. Receives the current collapsed state and
+   * returns an SVG string that replaces the default triangle.
+   */
+  render?: (collapsed: boolean) => string;
+}
+
+/**
+ * Context passed to a compartment's `onClick` handler.
+ */
+export interface CompartmentClickContext {
+  /** Id of the node that owns this compartment. */
+  nodeId: string;
+  /** Id of the clicked compartment. */
+  compartmentId: string;
+  /** Current collapsed state of the node (`true` = collapsed). */
+  collapsed: boolean;
+  /** Current collapse anchor of the node (`'center'` when unset). */
+  collapseAnchor: CollapseAnchor;
+  /**
+   * Toggle the collapsed state of the parent node.
+   * Optionally pass `{ animate: <ms> }` for a smooth height transition
+   * and `{ anchor }` to control which edge stays fixed.
+   */
+  toggle: (opts?: { animate?: number; anchor?: CollapseAnchor }) => void;
 }
 
 /** A single entry (line) inside a compartment. */
@@ -459,6 +510,30 @@ export interface VizNode {
    * label. Empty compartments (no label) are omitted from rendering.
    */
   compartments?: VizNodeCompartment[];
+
+  /**
+   * When `true`, a compartmented node renders only its first compartment
+   * (the header) and hides all others. All compartment data is preserved.
+   *
+   * A small collapse indicator is rendered so users can tell the node is
+   * collapsible. Has no effect on nodes without compartments.
+   */
+  collapsed?: boolean;
+
+  /**
+   * Customize or hide the collapse indicator (chevron).
+   * Pass `false` to hide, or an options object to set color / custom renderer.
+   */
+  collapseIndicator?: CollapseIndicatorOptions | false;
+
+  /**
+   * Anchor point for collapse/expand animation.
+   *
+   * - `'top'`    — top edge stays fixed, node grows/shrinks downward.
+   * - `'center'` — node grows/shrinks symmetrically (default).
+   * - `'bottom'` — bottom edge stays fixed, node grows/shrinks upward.
+   */
+  collapseAnchor?: CollapseAnchor;
 
   /**
    * Tooltip content shown on hover / focus.
@@ -768,7 +843,29 @@ export interface NodeOptions {
       padding?: number | { top?: number; bottom?: number };
       className?: string;
     }>;
+    /** Click handler for this compartment. */
+    onClick?: (ctx: CompartmentClickContext) => void;
   }>;
+
+  // --- Collapsed Mode ---
+  /**
+   * When `true`, renders only the first compartment (header) and hides
+   * the rest. All compartment data is preserved for expand/collapse toggling.
+   * Has no effect on nodes without compartments.
+   */
+  collapsed?: boolean;
+
+  /**
+   * Customize or hide the collapse indicator (chevron).
+   * Pass `false` to hide, or an options object.
+   */
+  collapseIndicator?: CollapseIndicatorOptions | false;
+
+  /**
+   * Anchor point for collapse/expand animation.
+   * `'top'` | `'center'` (default) | `'bottom'`.
+   */
+  collapseAnchor?: CollapseAnchor;
 }
 
 /**
