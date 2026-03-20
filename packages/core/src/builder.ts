@@ -2921,6 +2921,7 @@ class VizBuilderImpl implements VizBuilder {
                 nodeId,
                 compartmentId,
                 collapsed: !!currentNode?.collapsed,
+                collapseAnchor: currentNode?.collapseAnchor ?? 'center',
                 toggle: (toggleOpts) =>
                   builder._performCollapseToggle(
                     nodeId,
@@ -2953,6 +2954,7 @@ class VizBuilderImpl implements VizBuilder {
                 nodeId,
                 compartmentId,
                 collapsed: !!currentNode?.collapsed,
+                collapseAnchor: currentNode?.collapseAnchor ?? 'center',
                 toggle: (toggleOpts) =>
                   builderRef._performCollapseToggle(
                     nodeId,

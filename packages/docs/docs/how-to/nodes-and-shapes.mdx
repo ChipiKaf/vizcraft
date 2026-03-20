@@ -1051,12 +1051,13 @@ When the first compartment has an `onClick` handler, a clickable collapse indica
 
 The `CompartmentClickContext` provides:
 
-| Field           | Type                                    | Description                                       |
-| --------------- | --------------------------------------- | ------------------------------------------------- |
-| `nodeId`        | `string`                                | The id of the node                                |
-| `compartmentId` | `string`                                | The id of the compartment                         |
-| `collapsed`     | `boolean`                               | Current collapsed state (before toggling)         |
-| `toggle`        | `(opts?: { animate?: number }) => void` | Helper to toggle collapse with optional animation |
+| Field            | Type                                                             | Description                                                 |
+| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| `nodeId`         | `string`                                                         | The id of the node                                          |
+| `compartmentId`  | `string`                                                         | The id of the compartment                                   |
+| `collapsed`      | `boolean`                                                        | Current collapsed state (before toggling)                   |
+| `collapseAnchor` | `CollapseAnchor`                                                 | Current collapse anchor (`'center'` when unset)             |
+| `toggle`         | `(opts?: { animate?: number; anchor?: CollapseAnchor }) => void` | Toggle collapse with optional animation and anchor override |
 
 #### Declarative collapsed
 

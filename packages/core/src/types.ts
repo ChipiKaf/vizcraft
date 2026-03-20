@@ -324,6 +324,8 @@ export interface CompartmentClickContext {
   compartmentId: string;
   /** Current collapsed state of the node (`true` = collapsed). */
   collapsed: boolean;
+  /** Current collapse anchor of the node (`'center'` when unset). */
+  collapseAnchor: CollapseAnchor;
   /**
    * Toggle the collapsed state of the parent node.
    * Optionally pass `{ animate: <ms> }` for a smooth height transition

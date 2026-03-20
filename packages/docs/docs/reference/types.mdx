@@ -271,12 +271,13 @@ Compartments are auto-sized when no explicit height is given — the builder est
 
 Context passed to a compartment's `onClick` handler, providing collapse control.
 
-| Field           | Type                                                             | Description                                                                    |
-| --------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `nodeId`        | `string`                                                         | The node's id                                                                  |
-| `compartmentId` | `string`                                                         | The compartment's id                                                           |
-| `collapsed`     | `boolean`                                                        | Current collapsed state (before toggling)                                      |
-| `toggle`        | `(opts?: { animate?: number; anchor?: CollapseAnchor }) => void` | Toggle collapse; optional `animate` duration in ms, optional `anchor` override |
+| Field            | Type                                                             | Description                                                                    |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `nodeId`         | `string`                                                         | The node's id                                                                  |
+| `compartmentId`  | `string`                                                         | The compartment's id                                                           |
+| `collapsed`      | `boolean`                                                        | Current collapsed state (before toggling)                                      |
+| `collapseAnchor` | [`CollapseAnchor`](#collapseanchor)                              | Current collapse anchor of the node (`'center'` when unset)                    |
+| `toggle`         | `(opts?: { animate?: number; anchor?: CollapseAnchor }) => void` | Toggle collapse; optional `animate` duration in ms, optional `anchor` override |
 
 ### CollapseIndicatorOptions {#collapseindicatoroptions}
 
