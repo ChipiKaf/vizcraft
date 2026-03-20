@@ -885,16 +885,30 @@ export const collapsedScene = viz()
   .fill('#f5f5f5')
   .stroke('#333')
   .compartment('name', (c) => c.label('UserService').height(36))
-  .compartment('attrs', (c) => c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' }))
-  .compartment('methods', (c) => c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' }))
+  .compartment('attrs', (c) =>
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
+  )
+  .compartment('methods', (c) =>
+    c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' })
+  )
   .node('collapsed')
   .at(370, 100)
   .rect(200, 0, 6)
   .fill('#f5f5f5')
   .stroke('#333')
   .compartment('name', (c) => c.label('UserService').height(36))
-  .compartment('attrs', (c) => c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' }))
-  .compartment('methods', (c) => c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' }))
+  .compartment('attrs', (c) =>
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
+  )
+  .compartment('methods', (c) =>
+    c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' })
+  )
   .collapsed()
   .done();
 
@@ -925,11 +939,40 @@ builder.mount(document.getElementById('container'));
 </CodePreview>
 
 When collapsed:
+
 - Only the first compartment (header) is rendered; dividers and subsequent compartments are hidden.
 - A small triangle indicator appears in the header, signaling the collapsed state.
 - The node auto-sizes its height to the first compartment only.
 - All compartment data is preserved in the scene — toggling back to expanded restores the full view.
 - The node group receives the CSS class `viz-node-collapsed` for styling hooks.
+
+#### Interactive collapse toggle
+
+Use `.onClick(handler)` on a compartment to wire up collapse/expand behavior. The handler receives a `CompartmentClickContext` with a `toggle()` helper:
+
+```typescript
+builder.node('cls')
+  .rect(160, 0, 6)
+  .compartment('name', (c) =>
+    c.label('MyClass').height(36).onClick((ctx) => {
+      console.log(`${ctx.nodeId} is now ${ctx.collapsed ? 'collapsed' : 'expanded'}`);
+      ctx.toggle({ animate: 200 }); // smooth 200ms animation
+    })
+  )
+  .compartment('attrs', (c) => c.label('- field: string'))
+  .done();
+```
+
+When the first compartment has an `onClick` handler, a clickable collapse indicator appears in the header — even when the node is expanded. Clicking the indicator fires the first compartment's `onClick`.
+
+The `CompartmentClickContext` provides:
+
+| Field           | Type                                 | Description                                   |
+| --------------- | ------------------------------------ | --------------------------------------------- |
+| `nodeId`        | `string`                             | The id of the node                            |
+| `compartmentId` | `string`                             | The id of the compartment                     |
+| `collapsed`     | `boolean`                            | Current collapsed state (before toggling)      |
+| `toggle`        | `(opts?: { animate?: number }) => void` | Helper to toggle collapse with optional animation |
 
 #### Declarative collapsed
 
@@ -939,7 +982,7 @@ builder.node('cls', {
   rect: { w: 160, h: 0, rx: 6 },
   collapsed: true,
   compartments: [
-    { id: 'name', label: 'ClassName', height: 36 },
+    { id: 'name', label: 'ClassName', height: 36, onClick: (ctx) => ctx.toggle() },
     { id: 'attrs', label: '- field: string' },
     { id: 'methods', label: '+ doWork()' },
   ],

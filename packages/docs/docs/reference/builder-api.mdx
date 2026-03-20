@@ -250,9 +250,9 @@ Each method sets the node's geometry:
 
 ### Compartments
 
-| Method                  | Description                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `.compartment(id, cb?)` | Add a compartment section. Optional callback receives a `CompartmentBuilder` |
+| Method                  | Description                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `.compartment(id, cb?)` | Add a compartment section. Optional callback receives a `CompartmentBuilder`        |
 | `.collapsed(state?)`    | Render only the first compartment (header). Pass `false` to expand. Default: `true` |
 
 #### CompartmentBuilder
@@ -264,6 +264,7 @@ Returned inside the `.compartment(id, cb)` callback. All methods return `this` f
 | `.label(text, opts?)`     | Set the compartment label (defaults `textAnchor: 'start'`). Mutually exclusive with `.entry()`.                            |
 | `.entry(id, text, opts?)` | Add an interactive entry line. See [EntryOptions](/docs/reference/types#entryoptions). Mutually exclusive with `.label()`. |
 | `.height(px)`             | Set explicit height (auto-sized from label/entries when omitted)                                                           |
+| `.onClick(handler)`       | Register a click handler. Receives `CompartmentClickContext` with `nodeId`, `compartmentId`, `collapsed`, and `toggle()` helper |
 
 :::tip
 `.label()` and `.entry()` are mutually exclusive within a single compartment. Calling one after the other replaces the previous content and logs a console warning.

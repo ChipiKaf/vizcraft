@@ -273,6 +273,18 @@ b.node('cls')
 
 The node auto-sizes to the first compartment height. A collapse indicator triangle is rendered. The group receives the CSS class `viz-node-collapsed`.
 
+Add `.onClick(handler)` on a compartment to wire up interactive collapse/expand with a `toggle()` helper:
+
+```typescript
+b.node('cls')
+  .rect(160, 0, 6)
+  .compartment('name', (c) =>
+    c.label('MyClass').height(36).onClick((ctx) => ctx.toggle({ animate: 200 }))
+  )
+  .compartment('attrs', (c) => c.label('- field: string'))
+  .done();
+```
+
 ### Container / Group Nodes
 
 Group related nodes into visual containers (swimlanes, sub-processes, etc.).

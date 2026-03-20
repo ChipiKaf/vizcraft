@@ -281,6 +281,29 @@ export interface VizNodeCompartment {
    * instead of a single label block.
    */
   entries?: CompartmentEntry[];
+  /**
+   * Click handler for this compartment.
+   * Receives a context object with the node/compartment ids, current
+   * collapsed state, and a `toggle()` helper for collapse animation.
+   */
+  onClick?: (ctx: CompartmentClickContext) => void;
+}
+
+/**
+ * Context passed to a compartment's `onClick` handler.
+ */
+export interface CompartmentClickContext {
+  /** Id of the node that owns this compartment. */
+  nodeId: string;
+  /** Id of the clicked compartment. */
+  compartmentId: string;
+  /** Current collapsed state of the node (`true` = collapsed). */
+  collapsed: boolean;
+  /**
+   * Toggle the collapsed state of the parent node.
+   * Optionally pass `{ animate: <ms> }` for a smooth height transition.
+   */
+  toggle: (opts?: { animate?: number }) => void;
 }
 
 /** A single entry (line) inside a compartment. */
@@ -777,6 +800,8 @@ export interface NodeOptions {
       padding?: number | { top?: number; bottom?: number };
       className?: string;
     }>;
+    /** Click handler for this compartment. */
+    onClick?: (ctx: CompartmentClickContext) => void;
   }>;
 
   // --- Collapsed Mode ---

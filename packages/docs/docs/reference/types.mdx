@@ -261,8 +261,20 @@ A horizontal section inside a compartmented node (e.g. UML class box name/attrib
 | `height`   | `number`                                  | Height in pixels                                               |
 | `label?`   | `NodeLabel`                               | Optional label rendered inside the compartment                 |
 | `entries?` | [`CompartmentEntry[]`](#compartmententry) | Per-line interactive entries (mutually exclusive with `label`) |
+| `onClick?` | `(ctx: CompartmentClickContext) => void` | Click handler receiving context with `toggle()` helper. See [CompartmentClickContext](#compartmentclickcontext) |
 
 Compartments are auto-sized when no explicit height is given — the builder estimates height from the label's line count and font size, or from the number of entries.
+
+### CompartmentClickContext {#compartmentclickcontext}
+
+Context passed to a compartment's `onClick` handler, providing collapse control.
+
+| Field           | Type                                     | Description                                        |
+| --------------- | ---------------------------------------- | -------------------------------------------------- |
+| `nodeId`        | `string`                                 | The node's id                                      |
+| `compartmentId` | `string`                                 | The compartment's id                               |
+| `collapsed`     | `boolean`                                | Current collapsed state (before toggling)           |
+| `toggle`        | `(opts?: { animate?: number }) => void`  | Toggle collapse; optional `animate` duration in ms |
 
 ### CompartmentEntry {#compartmententry}
 

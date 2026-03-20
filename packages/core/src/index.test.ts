@@ -5678,6 +5678,162 @@ describe('vizcraft core', () => {
       expect(scene.nodes[0]!.collapsed).toBe(true);
       expect((scene.nodes[0]!.shape as { h: number }).h).toBe(60);
     });
+
+    it('stores compartment onClick handler via fluent API', () => {
+      const handler = vi.fn();
+      const scene = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c.height(30).label('MyClass').onClick(handler)
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.compartments![0]!.onClick).toBe(handler);
+    });
+
+    it('compartment onClick receives context with toggle helper', () => {
+      const handler = vi.fn();
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c.height(30).label('MyClass').onClick(handler)
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      // Click the collapse indicator to trigger the first compartment's onClick
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const ctx = handler.mock.calls[0]![0]!;
+      expect(ctx.nodeId).toBe('cls');
+      expect(ctx.compartmentId).toBe('name');
+      expect(typeof ctx.collapsed).toBe('boolean');
+      expect(typeof ctx.toggle).toBe('function');
+
+      builder.destroy();
+    });
+
+    it('toggle helper collapses and expands the node', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c
+            .height(30)
+            .label('MyClass')
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      // Initially expanded — should have 2 labels
+      let labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(2);
+
+      // Click indicator to toggle (collapse)
+      let indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+
+      // After toggle — only 1 label visible
+      labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(1);
+
+      // Click indicator again to toggle back (expand)
+      indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      (indicator as Element).dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+      labels = container.querySelectorAll(
+        '[data-viz-role="compartment-label"]'
+      );
+      expect(labels.length).toBe(2);
+
+      builder.destroy();
+    });
+
+    it('renders collapse indicator when first compartment has onClick (expanded)', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) =>
+          c
+            .height(30)
+            .label('MyClass')
+            .onClick(() => {})
+        )
+        .compartment('methods', (c) => c.height(40).label('+ run()'))
+        .done();
+
+      builder.mount(container);
+
+      const indicator = container.querySelector(
+        '[data-viz-role="collapse-indicator"]'
+      );
+      expect(indicator).not.toBeNull();
+
+      builder.destroy();
+    });
+
+    it('collapse indicator shows in SVG when first compartment has onClick', () => {
+      const svgStr = viz()
+        .node('cls')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('name', (c) => c.label('MyClass').onClick(() => {}))
+        .compartment('methods', (c) => c.label('+ run()'))
+        .done()
+        .svg();
+
+      expect(svgStr).toContain('data-viz-role="collapse-indicator"');
+    });
+
+    it('supports compartment onClick via declarative NodeOptions', () => {
+      const handler = vi.fn();
+      const scene = viz()
+        .node('cls', {
+          at: { x: 200, y: 200 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'name', label: 'ClassName', height: 30, onClick: handler },
+            { id: 'attrs', label: '+ x: number', height: 40 },
+          ],
+        })
+        .build();
+
+      expect(scene.nodes[0]!.compartments![0]!.onClick).toBe(handler);
+    });
   });
 
   // -----------------------------------------------------------------------

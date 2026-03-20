@@ -2,6 +2,7 @@ import type {
   VizNode,
   VizNodeCompartment,
   CompartmentEntry,
+  CompartmentClickContext,
   NodeLabel,
   AnimationConfig,
   ContainerConfig,
@@ -192,6 +193,7 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
           }
         }
         if (c.height !== undefined) cb.height(c.height);
+        if (c.onClick) cb.onClick(c.onClick);
       });
     }
   }
@@ -213,6 +215,7 @@ interface PendingCompartment {
   label?: NodeLabel;
   explicitHeight?: number;
   entries?: PendingEntry[];
+  onClick?: (ctx: CompartmentClickContext) => void;
 }
 
 /** Pending entry definition before y/height are computed. */
@@ -291,6 +294,7 @@ export function resolveCompartments(
     const height = estimateCompartmentHeight(c);
     const compartment: VizNodeCompartment = { id: c.id, y, height };
     if (c.label) compartment.label = c.label;
+    if (c.onClick) compartment.onClick = c.onClick;
 
     // Resolve entries with computed y offsets within the compartment
     if (c.entries && c.entries.length > 0) {
@@ -399,6 +403,11 @@ class CompartmentBuilderImpl implements CompartmentBuilder {
       paddingTop: padTop,
       paddingBottom: padBottom,
     });
+    return this;
+  }
+
+  onClick(handler: (ctx: CompartmentClickContext) => void): CompartmentBuilder {
+    this._pending.onClick = handler;
     return this;
   }
 }

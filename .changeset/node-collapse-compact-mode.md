@@ -10,3 +10,5 @@ Add node collapse / compact mode for compartmented nodes.
 - Adds `viz-node-collapsed` CSS class to the node group for styling hooks.
 - Supports declarative `collapsed: true` in `NodeOptions`.
 - Works in both DOM mount and SVG export.
+- New `.onClick(handler)` method on `CompartmentBuilder` — registers a click handler that receives `CompartmentClickContext` with `nodeId`, `compartmentId`, `collapsed` state, and a `toggle()` helper for animated collapse/expand.
+- Collapse indicator rendered when first compartment has an `onClick` handler.
