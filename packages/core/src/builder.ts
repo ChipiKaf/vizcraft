@@ -1079,6 +1079,7 @@ class VizBuilderImpl implements VizBuilder {
     if (!n.shape || !('h' in n.shape)) return;
 
     const newState = !n.collapsed;
+    const isExpanding = !!n.collapsed; // currently collapsed → expanding
     const duration = animate ?? 0;
     const fullHeight = n.compartments.reduce((sum, c) => sum + c.height, 0);
     const headerH = n.compartments[0]!.height;
@@ -1107,19 +1108,20 @@ class VizBuilderImpl implements VizBuilder {
         this.updateNode(nodeId, { shape: animShape });
         this.commit(container);
 
-        // Apply clip-path to hide content outside the current rect bounds.
-        // The rect is center-based so clip from bottom = (fullH - currentH) / 2.
-        const nodeGroup = container.querySelector(
-          `[data-id="${nodeId}"]`
-        ) as SVGGElement | null;
-        if (nodeGroup) {
-          if (t < 1) {
-            // inset(top right bottom left) — clip the excess at the bottom
-            const clipBottom = ((fullHeight - currentH) / fullHeight) * 100;
-            nodeGroup.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
-          } else {
-            // Final frame: remove clip
-            nodeGroup.style.clipPath = '';
+        // Clip-path only needed when expanding: content is rendered but should
+        // be hidden until the rect has grown to reveal it. When collapsing,
+        // collapsed=true already hides the extra compartments so no clip needed.
+        if (isExpanding) {
+          const nodeGroup = container.querySelector(
+            `[data-id="${nodeId}"]`
+          ) as SVGGElement | null;
+          if (nodeGroup) {
+            if (t < 1) {
+              const clipBottom = ((fullHeight - currentH) / fullHeight) * 100;
+              nodeGroup.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
+            } else {
+              nodeGroup.style.clipPath = '';
+            }
           }
         }
 
