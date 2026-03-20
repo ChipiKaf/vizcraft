@@ -951,19 +951,22 @@ When collapsed:
 Use `.onClick(handler)` on a compartment to wire up collapse/expand behavior. The handler receives a `CompartmentClickContext` with a `toggle()` helper:
 
 export const collapseToggleScene = viz()
-  .view(500, 200)
-  .node('cls')
-  .at(250, 100)
+  .view(600, 250)
+  .node('cls1')
+  .at(150, 125)
   .rect(200, 0, 6)
   .fill('#f5f5f5')
   .stroke('#333')
   .compartment('name', (c) =>
-    c.label('MyClass').height(36).onClick((ctx) => {
-      ctx.toggle({ animate: 200 });
-    })
+    c
+      .label('UserService')
+      .height(36)
+      .onClick((ctx) => {
+        ctx.toggle({ animate: 200 });
+      })
   )
   .compartment('attrs', (c) =>
-    c.label('- id: number\n- name: string', {
+    c.label('- db: Database\n- cache: Cache', {
       fontSize: 12,
       textAnchor: 'start',
     })
@@ -971,31 +974,74 @@ export const collapseToggleScene = viz()
   .compartment('methods', (c) =>
     c.label('+ create()\n+ find()', { fontSize: 12, textAnchor: 'start' })
   )
+  .done()
+  .node('cls2')
+  .at(450, 125)
+  .rect(200, 0, 6)
+  .fill('#f5f5f5')
+  .stroke('#333')
+  .compartment('name', (c) =>
+    c
+      .label('Database')
+      .height(36)
+      .onClick((ctx) => {
+        ctx.toggle({ animate: 200 });
+      })
+  )
+  .compartment('attrs', (c) =>
+    c.label('- host: string\n- port: number', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
+  )
+  .compartment('methods', (c) =>
+    c.label('+ connect()\n+ query()', { fontSize: 12, textAnchor: 'start' })
+  )
+  .done()
+  .edge('cls1', 'cls2')
+  .label('uses')
   .done();
 
 <CodePreview code={`import { viz } from 'vizcraft';
 
-const builder = viz().view(500, 200);
+const builder = viz().view(600, 250);
 
-builder.node('cls')
-.at(250, 100).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+builder.node('cls1')
+.at(150, 125).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
 .compartment('name', (c) =>
-  c.label('MyClass').height(36).onClick((ctx) => {
-    ctx.toggle({ animate: 200 }); // smooth 200ms animation
-  })
+c.label('UserService').height(36).onClick((ctx) => {
+ctx.toggle({ animate: 200 });
+})
 )
 .compartment('attrs', (c) =>
-  c.label('- id: number\\n- name: string', { fontSize: 12, textAnchor: 'start' })
+c.label('- db: Database\\n- cache: Cache', { fontSize: 12, textAnchor: 'start' })
 )
 .compartment('methods', (c) =>
-  c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' })
+c.label('+ create()\\n+ find()', { fontSize: 12, textAnchor: 'start' })
 )
 .done();
+
+builder.node('cls2')
+.at(450, 125).rect(200, 0, 6).fill('#f5f5f5').stroke('#333')
+.compartment('name', (c) =>
+c.label('Database').height(36).onClick((ctx) => {
+ctx.toggle({ animate: 200 });
+})
+)
+.compartment('attrs', (c) =>
+c.label('- host: string\\n- port: number', { fontSize: 12, textAnchor: 'start' })
+)
+.compartment('methods', (c) =>
+c.label('+ connect()\\n+ query()', { fontSize: 12, textAnchor: 'start' })
+)
+.done();
+
+builder.edge('cls1', 'cls2').label('uses').done();
 
 builder.mount(document.getElementById('container'));
 `}>
 
-  <VizMount builder={collapseToggleScene} style={{ height: '200px', width: '100%' }} />
+  <VizMount builder={collapseToggleScene} style={{ height: '250px', width: '100%' }} />
 </CodePreview>
 
 Click the triangle indicator in the header to toggle between collapsed and expanded states.
@@ -1004,11 +1050,11 @@ When the first compartment has an `onClick` handler, a clickable collapse indica
 
 The `CompartmentClickContext` provides:
 
-| Field           | Type                                 | Description                                   |
-| --------------- | ------------------------------------ | --------------------------------------------- |
-| `nodeId`        | `string`                             | The id of the node                            |
-| `compartmentId` | `string`                             | The id of the compartment                     |
-| `collapsed`     | `boolean`                            | Current collapsed state (before toggling)      |
+| Field           | Type                                    | Description                                       |
+| --------------- | --------------------------------------- | ------------------------------------------------- |
+| `nodeId`        | `string`                                | The id of the node                                |
+| `compartmentId` | `string`                                | The id of the compartment                         |
+| `collapsed`     | `boolean`                               | Current collapsed state (before toggling)         |
 | `toggle`        | `(opts?: { animate?: number }) => void` | Helper to toggle collapse with optional animation |
 
 #### Declarative collapsed
@@ -1019,7 +1065,12 @@ builder.node('cls', {
   rect: { w: 160, h: 0, rx: 6 },
   collapsed: true,
   compartments: [
-    { id: 'name', label: 'ClassName', height: 36, onClick: (ctx) => ctx.toggle() },
+    {
+      id: 'name',
+      label: 'ClassName',
+      height: 36,
+      onClick: (ctx) => ctx.toggle(),
+    },
     { id: 'attrs', label: '- field: string' },
     { id: 'methods', label: '+ doWork()' },
   ],
@@ -1032,26 +1083,32 @@ The collapse chevron can be styled, hidden, or replaced with custom SVG:
 
 ```typescript
 // Hide the indicator entirely
-builder.node('no-chevron')
-  .at(100, 100).rect(160, 0)
-  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
-  .compartment('body', c => c.label('Content'))
+builder
+  .node('no-chevron')
+  .at(100, 100)
+  .rect(160, 0)
+  .compartment('header', (c) => c.label('Title').onClick((ctx) => ctx.toggle()))
+  .compartment('body', (c) => c.label('Content'))
   .collapseIndicator(false)
   .done();
 
 // Custom colour
-builder.node('red-chevron')
-  .at(300, 100).rect(160, 0)
-  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
-  .compartment('body', c => c.label('Content'))
+builder
+  .node('red-chevron')
+  .at(300, 100)
+  .rect(160, 0)
+  .compartment('header', (c) => c.label('Title').onClick((ctx) => ctx.toggle()))
+  .compartment('body', (c) => c.label('Content'))
   .collapseIndicator({ color: 'crimson' })
   .done();
 
 // Custom SVG via render callback
-builder.node('custom')
-  .at(500, 100).rect(160, 0)
-  .compartment('header', c => c.label('Title').onClick(ctx => ctx.toggle()))
-  .compartment('body', c => c.label('Content'))
+builder
+  .node('custom')
+  .at(500, 100)
+  .rect(160, 0)
+  .compartment('header', (c) => c.label('Title').onClick((ctx) => ctx.toggle()))
+  .compartment('body', (c) => c.label('Content'))
   .collapseIndicator({
     render: (collapsed) =>
       `<text font-size="12">${collapsed ? '▶' : '▼'}</text>`,

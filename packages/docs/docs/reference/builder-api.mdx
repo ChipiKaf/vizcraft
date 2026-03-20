@@ -250,21 +250,21 @@ Each method sets the node's geometry:
 
 ### Compartments
 
-| Method                  | Description                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| `.compartment(id, cb?)` | Add a compartment section. Optional callback receives a `CompartmentBuilder`        |
-| `.collapsed(state?)`    | Render only the first compartment (header). Pass `false` to expand. Default: `true` |
+| Method                     | Description                                                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.compartment(id, cb?)`    | Add a compartment section. Optional callback receives a `CompartmentBuilder`                                                                                                                 |
+| `.collapsed(state?)`       | Render only the first compartment (header). Pass `false` to expand. Default: `true`                                                                                                          |
 | `.collapseIndicator(opts)` | Customise or hide the collapse chevron. Pass `false` to hide, or an object with `color`, `visible`, `render`. See [CollapseIndicatorOptions](/docs/reference/types#collapseindicatoroptions) |
 
 #### CompartmentBuilder
 
 Returned inside the `.compartment(id, cb)` callback. All methods return `this` for chaining.
 
-| Method                    | Description                                                                                                                |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `.label(text, opts?)`     | Set the compartment label (defaults `textAnchor: 'start'`). Mutually exclusive with `.entry()`.                            |
-| `.entry(id, text, opts?)` | Add an interactive entry line. See [EntryOptions](/docs/reference/types#entryoptions). Mutually exclusive with `.label()`. |
-| `.height(px)`             | Set explicit height (auto-sized from label/entries when omitted)                                                           |
+| Method                    | Description                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `.label(text, opts?)`     | Set the compartment label (defaults `textAnchor: 'start'`). Mutually exclusive with `.entry()`.                                 |
+| `.entry(id, text, opts?)` | Add an interactive entry line. See [EntryOptions](/docs/reference/types#entryoptions). Mutually exclusive with `.label()`.      |
+| `.height(px)`             | Set explicit height (auto-sized from label/entries when omitted)                                                                |
 | `.onClick(handler)`       | Register a click handler. Receives `CompartmentClickContext` with `nodeId`, `compartmentId`, `collapsed`, and `toggle()` helper |
 
 :::tip
