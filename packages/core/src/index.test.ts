@@ -5927,6 +5927,122 @@ describe('vizcraft core', () => {
 
       expect(scene.nodes[0]!.collapseIndicator).toBe(false);
     });
+
+    // collapseAnchor
+    it('stores collapseAnchor via fluent builder', () => {
+      const scene = viz()
+        .node('n')
+        .at(100, 100)
+        .rect(160, 0)
+        .compartment('header', (c) => c.label('Title').height(36))
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('top')
+        .done()
+        .build();
+
+      expect(scene.nodes[0]!.collapseAnchor).toBe('top');
+    });
+
+    it('stores collapseAnchor via declarative NodeOptions', () => {
+      const scene = viz()
+        .node('n', {
+          at: { x: 100, y: 100 },
+          rect: { w: 160, h: 0 },
+          compartments: [
+            { id: 'header', label: 'Title', height: 36 },
+            { id: 'body', label: 'Content' },
+          ],
+          collapseAnchor: 'bottom',
+        })
+        .build();
+
+      expect(scene.nodes[0]!.collapseAnchor).toBe('bottom');
+    });
+
+    it('adjusts pos.y when collapsing with anchor top (non-animated)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('top')
+        .done();
+
+      const sceneBefore = b.build();
+      const fullH = sceneBefore.nodes[0]!.shape.h;
+      const headerH = sceneBefore.nodes[0]!.compartments![0]!.height;
+      const origY = sceneBefore.nodes[0]!.pos.y;
+
+      // Toggle collapse (no animation)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      // Top anchor: y should move up so top edge stays fixed
+      const expectedDy = (headerH - fullH) / 2;
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY + expectedDy);
+    });
+
+    it('adjusts pos.y when collapsing with anchor bottom (non-animated)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .collapseAnchor('bottom')
+        .done();
+
+      const sceneBefore = b.build();
+      const fullH = sceneBefore.nodes[0]!.shape.h;
+      const headerH = sceneBefore.nodes[0]!.compartments![0]!.height;
+      const origY = sceneBefore.nodes[0]!.pos.y;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      // Bottom anchor: y should move down so bottom edge stays fixed
+      const expectedDy = -(headerH - fullH) / 2;
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY + expectedDy);
+    });
+
+    it('does not adjust pos.y with center anchor (default)', () => {
+      const b = viz()
+        .view(400, 400)
+        .node('n')
+        .at(200, 200)
+        .rect(160, 0)
+        .compartment('header', (c) =>
+          c
+            .label('Title')
+            .height(36)
+            .onClick((ctx) => ctx.toggle())
+        )
+        .compartment('body', (c) => c.label('Content'))
+        .done();
+
+      const origY = b.build().nodes[0]!.pos.y;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b as any)._performCollapseToggle('n', 0);
+      const sceneAfter = b.build();
+
+      expect(sceneAfter.nodes[0]!.pos.y).toBe(origY);
+    });
   });
 
   // -----------------------------------------------------------------------

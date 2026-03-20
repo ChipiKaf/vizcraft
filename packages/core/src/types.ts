@@ -290,6 +290,15 @@ export interface VizNodeCompartment {
 }
 
 /**
+ * The anchor point from which the node collapses/expands.
+ *
+ * - `'top'`    — The top edge stays fixed; the node shrinks/grows downward.
+ * - `'center'` — The node shrinks/grows symmetrically (default).
+ * - `'bottom'` — The bottom edge stays fixed; the node shrinks/grows upward.
+ */
+export type CollapseAnchor = 'top' | 'center' | 'bottom';
+
+/**
  * Options for customizing the collapse indicator (chevron) on compartmented nodes.
  * Pass `false` to hide the indicator entirely.
  */
@@ -317,9 +326,10 @@ export interface CompartmentClickContext {
   collapsed: boolean;
   /**
    * Toggle the collapsed state of the parent node.
-   * Optionally pass `{ animate: <ms> }` for a smooth height transition.
+   * Optionally pass `{ animate: <ms> }` for a smooth height transition
+   * and `{ anchor }` to control which edge stays fixed.
    */
-  toggle: (opts?: { animate?: number }) => void;
+  toggle: (opts?: { animate?: number; anchor?: CollapseAnchor }) => void;
 }
 
 /** A single entry (line) inside a compartment. */
@@ -513,6 +523,15 @@ export interface VizNode {
    * Pass `false` to hide, or an options object to set color / custom renderer.
    */
   collapseIndicator?: CollapseIndicatorOptions | false;
+
+  /**
+   * Anchor point for collapse/expand animation.
+   *
+   * - `'top'`    — top edge stays fixed, node grows/shrinks downward.
+   * - `'center'` — node grows/shrinks symmetrically (default).
+   * - `'bottom'` — bottom edge stays fixed, node grows/shrinks upward.
+   */
+  collapseAnchor?: CollapseAnchor;
 
   /**
    * Tooltip content shown on hover / focus.
@@ -839,6 +858,12 @@ export interface NodeOptions {
    * Pass `false` to hide, or an options object.
    */
   collapseIndicator?: CollapseIndicatorOptions | false;
+
+  /**
+   * Anchor point for collapse/expand animation.
+   * `'top'` | `'center'` (default) | `'bottom'`.
+   */
+  collapseAnchor?: CollapseAnchor;
 }
 
 /**

@@ -714,6 +714,12 @@ export interface NodeBuilder {
    * @param opts  Options object, or `false` to hide the indicator.
    */
   collapseIndicator(opts: CollapseIndicatorOptions | false): NodeBuilder;
+  /**
+   * Set the anchor point for collapse/expand animation.
+   *
+   * @param anchor  `'top'` | `'center'` (default) | `'bottom'`
+   */
+  collapseAnchor(anchor: import('./types').CollapseAnchor): NodeBuilder;
   /** Set tooltip content shown on hover/focus. */
   tooltip(content: TooltipContent): NodeBuilder;
   /**
@@ -1073,11 +1079,16 @@ class VizBuilderImpl implements VizBuilder {
    * Used internally by compartment onClick handlers' `toggle()` helper.
    * @internal
    */
-  _performCollapseToggle(nodeId: string, animate?: number): void {
+  _performCollapseToggle(
+    nodeId: string,
+    animate?: number,
+    anchorOverride?: import('./types').CollapseAnchor
+  ): void {
     const n = this._nodes.get(nodeId);
     if (!n || !n.compartments || n.compartments.length === 0) return;
     if (!n.shape || !('h' in n.shape)) return;
 
+    const anchor = anchorOverride ?? n.collapseAnchor ?? 'center';
     const newState = !n.collapsed;
     const isExpanding = !!n.collapsed; // currently collapsed → expanding
     const duration = animate ?? 0;
@@ -1085,6 +1096,7 @@ class VizBuilderImpl implements VizBuilder {
     const headerH = n.compartments[0]!.height;
     const fromH = n.collapsed ? headerH : fullHeight;
     const toH = newState ? headerH : fullHeight;
+    const originalY = n.pos?.y ?? 0;
 
     const container = this._mountedContainer;
 
@@ -1104,8 +1116,16 @@ class VizBuilderImpl implements VizBuilder {
         const cur = this._nodes.get(nodeId);
         if (!cur?.shape || !('h' in cur.shape)) return;
 
+        // Compute y offset so the chosen edge stays fixed
+        const deltaH = currentH - fromH;
+        const dy =
+          anchor === 'top' ? deltaH / 2 : anchor === 'bottom' ? -deltaH / 2 : 0;
+
         const animShape = { ...cur.shape, h: currentH } as VizNode['shape'];
-        this.updateNode(nodeId, { shape: animShape });
+        this.updateNode(nodeId, {
+          shape: animShape,
+          pos: { x: cur.pos?.x ?? 0, y: originalY + dy },
+        });
         this.commit(container);
 
         // Clip-path only needed when expanding: content is rendered but should
@@ -1132,8 +1152,15 @@ class VizBuilderImpl implements VizBuilder {
       requestAnimationFrame(animateFrame);
     } else {
       // No animation – apply instantly at target height
+      const deltaH = toH - fromH;
+      const dy =
+        anchor === 'top' ? deltaH / 2 : anchor === 'bottom' ? -deltaH / 2 : 0;
       const finalShape = { ...n.shape, h: toH } as VizNode['shape'];
-      this.updateNode(nodeId, { collapsed: newState, shape: finalShape });
+      this.updateNode(nodeId, {
+        collapsed: newState,
+        shape: finalShape,
+        pos: { x: n.pos?.x ?? 0, y: originalY + dy },
+      });
       if (container) this.commit(container);
     }
   }
@@ -2895,7 +2922,11 @@ class VizBuilderImpl implements VizBuilder {
                 compartmentId,
                 collapsed: !!currentNode?.collapsed,
                 toggle: (toggleOpts) =>
-                  builder._performCollapseToggle(nodeId, toggleOpts?.animate),
+                  builder._performCollapseToggle(
+                    nodeId,
+                    toggleOpts?.animate,
+                    toggleOpts?.anchor
+                  ),
               });
             });
           }
@@ -2925,7 +2956,8 @@ class VizBuilderImpl implements VizBuilder {
                 toggle: (toggleOpts) =>
                   builderRef._performCollapseToggle(
                     nodeId,
-                    toggleOpts?.animate
+                    toggleOpts?.animate,
+                    toggleOpts?.anchor
                   ),
               });
             });

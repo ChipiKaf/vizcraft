@@ -51,6 +51,7 @@ A node in the scene graph.
 | `ports?`             | `NodePort[]`                                              | Explicit connection ports                                                                       |                                                                       | `compartments?` | `VizNodeCompartment[]` | Horizontal sections (UML-style). See [VizNodeCompartment](#viznodecompartment) |
 | `collapsed?`         | `boolean`                                                 | When `true`, only the first compartment is rendered (compact mode)                              |
 | `collapseIndicator?` | [`CollapseIndicatorOptions`](#collapseindicatoroptions) ` | false`                                                                                          | Customise or hide the collapse chevron. Pass `false` to hide entirely |
+| `collapseAnchor?`    | [`CollapseAnchor`](#collapseanchor)                       | Anchor point for collapse animation: `'top'`, `'center'` (default), or `'bottom'`             |
 | `tooltip?`           | `TooltipContent`                                          | Tooltip shown on hover/focus. See [TooltipContent](#tooltipcontent)                             |
 | `badges?`            | `VizNodeBadge[]`                                          | Text badges pinned to corners. See [VizNodeBadge](#viznodebadge)                                |
 
@@ -275,7 +276,7 @@ Context passed to a compartment's `onClick` handler, providing collapse control.
 | `nodeId`        | `string`                                | The node's id                                      |
 | `compartmentId` | `string`                                | The compartment's id                               |
 | `collapsed`     | `boolean`                               | Current collapsed state (before toggling)          |
-| `toggle`        | `(opts?: { animate?: number }) => void` | Toggle collapse; optional `animate` duration in ms |
+| `toggle`        | `(opts?: { animate?: number; anchor?: CollapseAnchor }) => void` | Toggle collapse; optional `animate` duration in ms, optional `anchor` override |
 
 ### CollapseIndicatorOptions {#collapseindicatoroptions}
 
@@ -291,6 +292,20 @@ Pass `false` instead of an options object to hide the indicator entirely:
 
 ```typescript
 .collapseIndicator(false)
+```
+
+### CollapseAnchor {#collapseanchor}
+
+The anchor point from which a node collapses/expands:
+
+| Value      | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| `'top'`    | Top edge stays fixed; the node shrinks/grows downward          |
+| `'center'` | The node shrinks/grows symmetrically (default)                 |
+| `'bottom'` | Bottom edge stays fixed; the node shrinks/grows upward         |
+
+```typescript
+type CollapseAnchor = 'top' | 'center' | 'bottom';
 ```
 
 ### CompartmentEntry {#compartmententry}

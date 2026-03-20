@@ -211,6 +211,7 @@ b.node('n1')
  .compartment(id, cb?)   // Add a UML-style compartment section
  .collapsed(state?)      // Collapse to header-only (compact mode)
  .collapseIndicator(opts) // Customise or hide the collapse chevron
+ .collapseAnchor(anchor)  // 'top' | 'center' (default) | 'bottom'
 ```
 
 ### Compartmented Nodes
@@ -293,6 +294,16 @@ Customise the indicator with `.collapseIndicator()` — change its colour, hide 
 .collapseIndicator(false)                // hide entirely
 .collapseIndicator({ render: (collapsed) => `<text>${collapsed ? '▶' : '▼'}</text>` })
 ```
+
+Control which edge stays fixed during the animation with `.collapseAnchor()`:
+
+```typescript
+.collapseAnchor('top')    // top edge fixed, grows/shrinks downward
+.collapseAnchor('center') // symmetric (default)
+.collapseAnchor('bottom') // bottom edge fixed, grows/shrinks upward
+```
+
+You can also pass `anchor` per-toggle: `ctx.toggle({ animate: 200, anchor: 'top' })`.
 
 ### Container / Group Nodes
 

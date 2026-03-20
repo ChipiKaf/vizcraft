@@ -202,6 +202,7 @@ export function applyNodeOptions(nb: NodeBuilder, opts: NodeOptions): void {
   if (opts.collapsed !== undefined) nb.collapsed(opts.collapsed);
   if (opts.collapseIndicator !== undefined)
     nb.collapseIndicator(opts.collapseIndicator);
+  if (opts.collapseAnchor !== undefined) nb.collapseAnchor(opts.collapseAnchor);
 }
 
 /** Default height for a compartment when no explicit height is provided and no label is set. */
@@ -893,6 +894,11 @@ export class NodeBuilderImpl implements NodeBuilder {
     opts: import('../types').CollapseIndicatorOptions | false
   ): NodeBuilder {
     this.nodeDef.collapseIndicator = opts;
+    return this;
+  }
+
+  collapseAnchor(anchor: import('../types').CollapseAnchor): NodeBuilder {
+    this.nodeDef.collapseAnchor = anchor;
     return this;
   }
 
