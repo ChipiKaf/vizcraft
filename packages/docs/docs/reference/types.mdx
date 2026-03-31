@@ -66,6 +66,104 @@ Use either single-hop `from` / `to` fields or a declarative `chain` of [SignalOv
 
 ---
 
+## RectOverlayParams {#rectoverlayparams}
+
+Built-in params for the `rect` overlay.
+
+Use either absolute `x` / `y` coordinates or `nodeId` with optional `offsetX` / `offsetY`. Absolute `x` / `y` keep the existing top-left rectangle semantics. When `nodeId` is used, VizCraft resolves the node center first and then centers the rectangle on that anchor.
+
+| Field          | Type     | Description                                           |
+| -------------- | -------- | ----------------------------------------------------- |
+| `x`            | `number` | Absolute top-left x. Mutually exclusive with `nodeId` |
+| `y`            | `number` | Absolute top-left y. Mutually exclusive with `nodeId` |
+| `nodeId`       | `string` | Anchor the rectangle to a node center                 |
+| `offsetX?`     | `number` | Horizontal offset from the anchored node center       |
+| `offsetY?`     | `number` | Vertical offset from the anchored node center         |
+| `w`            | `number` | Rectangle width                                       |
+| `h`            | `number` | Rectangle height                                      |
+| `rx?`          | `number` | Corner radius on x                                    |
+| `ry?`          | `number` | Corner radius on y                                    |
+| `opacity?`     | `number` | Optional opacity                                      |
+| `fill?`        | `string` | Fill color                                            |
+| `stroke?`      | `string` | Stroke color                                          |
+| `strokeWidth?` | `number` | Stroke width                                          |
+
+---
+
+## CircleOverlayParams {#circleoverlayparams}
+
+Built-in params for the `circle` overlay.
+
+Use either absolute `x` / `y` coordinates or `nodeId` with optional `offsetX` / `offsetY`. When `nodeId` is used, the circle center becomes `node.centre + { offsetX, offsetY }`.
+
+| Field          | Type     | Description                                         |
+| -------------- | -------- | --------------------------------------------------- |
+| `x`            | `number` | Absolute center x. Mutually exclusive with `nodeId` |
+| `y`            | `number` | Absolute center y. Mutually exclusive with `nodeId` |
+| `nodeId`       | `string` | Anchor the circle to a node center                  |
+| `offsetX?`     | `number` | Horizontal offset from the anchored node center     |
+| `offsetY?`     | `number` | Vertical offset from the anchored node center       |
+| `r`            | `number` | Circle radius                                       |
+| `opacity?`     | `number` | Optional opacity                                    |
+| `fill?`        | `string` | Fill color                                          |
+| `stroke?`      | `string` | Stroke color                                        |
+| `strokeWidth?` | `number` | Stroke width                                        |
+
+---
+
+## TextOverlayParams {#textoverlayparams}
+
+Built-in params for the `text` overlay.
+
+Use either absolute `x` / `y` coordinates or `nodeId` with optional `offsetX` / `offsetY`. When `nodeId` is used, the text anchor point becomes `node.centre + { offsetX, offsetY }`.
+
+| Field               | Type                           | Description                                              |
+| ------------------- | ------------------------------ | -------------------------------------------------------- |
+| `x`                 | `number`                       | Absolute text anchor x. Mutually exclusive with `nodeId` |
+| `y`                 | `number`                       | Absolute text anchor y. Mutually exclusive with `nodeId` |
+| `nodeId`            | `string`                       | Anchor the text to a node center                         |
+| `offsetX?`          | `number`                       | Horizontal offset from the anchored node center          |
+| `offsetY?`          | `number`                       | Vertical offset from the anchored node center            |
+| `text`              | `string`                       | Text content                                             |
+| `opacity?`          | `number`                       | Optional opacity                                         |
+| `fill?`             | `string`                       | Fill color                                               |
+| `fontSize?`         | `number`                       | Font size                                                |
+| `fontWeight?`       | `string \| number`             | Font weight                                              |
+| `textAnchor?`       | `'start' \| 'middle' \| 'end'` | SVG text-anchor                                          |
+| `dominantBaseline?` | `string`                       | SVG dominant-baseline                                    |
+
+---
+
+## GroupOverlayParams {#groupoverlayparams}
+
+Built-in params for the `group` overlay.
+
+Use one of three positioning modes:
+
+- Absolute `x` / `y` translation in scene coordinates.
+- `nodeId` with optional `offsetX` / `offsetY` to anchor the group origin to a node center.
+- `from` / `to` with `progress` to interpolate between node centers.
+
+When `nodeId` or `from` / `to` are used, `x` and `y` remain additional offsets applied after the resolved anchor.
+
+| Field        | Type               | Description                                     |
+| ------------ | ------------------ | ----------------------------------------------- |
+| `x?`         | `number`           | Absolute translation or additional offset       |
+| `y?`         | `number`           | Absolute translation or additional offset       |
+| `nodeId`     | `string`           | Anchor the group origin to a node center        |
+| `offsetX?`   | `number`           | Horizontal offset from the anchored node center |
+| `offsetY?`   | `number`           | Vertical offset from the anchored node center   |
+| `from`       | `string`           | Source node id for interpolated motion          |
+| `to`         | `string`           | Target node id for interpolated motion          |
+| `progress?`  | `number`           | Interpolation amount used with `from` / `to`    |
+| `magnitude?` | `number`           | Optional pulse amount used to scale the group   |
+| `scale?`     | `number`           | Base scale                                      |
+| `rotation?`  | `number`           | Rotation in degrees                             |
+| `opacity?`   | `number`           | Group opacity                                   |
+| `children`   | `VizOverlaySpec[]` | Child overlays in group-local coordinates       |
+
+---
+
 ## VizNode
 
 A node in the scene graph.

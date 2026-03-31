@@ -49,9 +49,28 @@ export type DataPointsOverlayParams = {
   points: DataPoint[];
 };
 
-export type RectOverlayParams = {
+type NodeRelativeOverlayAnchor = {
+  nodeId: string;
+  offsetX?: number;
+  offsetY?: number;
+};
+
+type AbsoluteOverlayPoint = {
   x: number;
   y: number;
+  nodeId?: never;
+  offsetX?: never;
+  offsetY?: never;
+};
+
+type NodeRelativeOverlayPoint = NodeRelativeOverlayAnchor & {
+  x?: never;
+  y?: never;
+};
+
+type PrimitiveOverlayPoint = AbsoluteOverlayPoint | NodeRelativeOverlayPoint;
+
+export type RectOverlayParams = PrimitiveOverlayPoint & {
   w: number;
   h: number;
   rx?: number;
@@ -65,9 +84,7 @@ export type RectOverlayParams = {
   strokeWidth?: number;
 };
 
-export type CircleOverlayParams = {
-  x: number;
-  y: number;
+export type CircleOverlayParams = PrimitiveOverlayPoint & {
   r: number;
   opacity?: number;
   /** SVG fill (defaults to a visible blue). Can be overridden by CSS via className. */
@@ -78,9 +95,7 @@ export type CircleOverlayParams = {
   strokeWidth?: number;
 };
 
-export type TextOverlayParams = {
-  x: number;
-  y: number;
+export type TextOverlayParams = PrimitiveOverlayPoint & {
   text: string;
   opacity?: number;
   /** SVG fill color (defaults to #111). Can be overridden by CSS via className. */
@@ -91,11 +106,39 @@ export type TextOverlayParams = {
   dominantBaseline?: string;
 };
 
-export type GroupOverlayParams = {
+type GroupOverlayMotionAnchor = {
+  from: string;
+  to: string;
+  progress?: number;
+  nodeId?: never;
+  offsetX?: never;
+  offsetY?: never;
+};
+
+type GroupOverlayNodeAnchor = NodeRelativeOverlayAnchor & {
+  from?: never;
+  to?: never;
+  progress?: never;
+};
+
+type GroupOverlaySceneAnchor = {
+  from?: never;
+  to?: never;
+  progress?: never;
+  nodeId?: never;
+  offsetX?: never;
+  offsetY?: never;
+};
+
+export type GroupOverlayParams = (
+  | GroupOverlayMotionAnchor
+  | GroupOverlayNodeAnchor
+  | GroupOverlaySceneAnchor
+) & {
   /**
    * Translate (group-local origin).
    *
-   * If `from`/`to` are provided, these act as an additional offset.
+   * If `from`/`to` or `nodeId` are provided, these act as an additional offset.
    */
   x?: number;
   y?: number;
@@ -473,9 +516,11 @@ export const coreDataPointOverlay: CoreOverlayRenderer<DataPointsOverlayParams> 
 
 // Generic Overlay: Rect
 export const coreRectOverlay: CoreOverlayRenderer<RectOverlayParams> = {
-  render: ({ spec }) => {
-    const { x, y, w, h, rx, ry, opacity, fill, stroke, strokeWidth } =
-      spec.params;
+  render: ({ spec, nodesById }) => {
+    const position = resolveRectOverlayOrigin(spec.params, nodesById);
+    if (!position) return '';
+
+    const { w, h, rx, ry, opacity, fill, stroke, strokeWidth } = spec.params;
     const cls = spec.className ?? 'viz-overlay-rect';
     const rxAttr = rx !== undefined ? ` rx="${rx}"` : '';
     const ryAttr = ry !== undefined ? ` ry="${ry}"` : '';
@@ -487,22 +532,27 @@ export const coreRectOverlay: CoreOverlayRenderer<RectOverlayParams> = {
     const resolvedStrokeWidth = strokeWidth ?? 3;
     const fillOpacityAttr = usingDefaultFill ? ' fill-opacity="0.12"' : '';
     const strokeOpacityAttr = usingDefaultStroke ? ' stroke-opacity="0.9"' : '';
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${resolvedFill}"${fillOpacityAttr} stroke="${resolvedStroke}"${strokeOpacityAttr} stroke-width="${resolvedStrokeWidth}"${rxAttr}${ryAttr}${opAttr} class="${cls}" />`;
+    return `<rect x="${position.x}" y="${position.y}" width="${w}" height="${h}" fill="${resolvedFill}"${fillOpacityAttr} stroke="${resolvedStroke}"${strokeOpacityAttr} stroke-width="${resolvedStrokeWidth}"${rxAttr}${ryAttr}${opAttr} class="${cls}" />`;
   },
-  update: ({ spec }, container) => {
+  update: ({ spec, nodesById }, container) => {
     const svgNS = 'http://www.w3.org/2000/svg';
-    const { x, y, w, h, rx, ry, opacity, fill, stroke, strokeWidth } =
-      spec.params;
+    const position = resolveRectOverlayOrigin(spec.params, nodesById);
+    const { w, h, rx, ry, opacity, fill, stroke, strokeWidth } = spec.params;
     const cls = spec.className ?? 'viz-overlay-rect';
 
     let rect = container.querySelector('rect');
+    if (!position) {
+      rect?.remove();
+      return;
+    }
+
     if (!rect) {
       rect = document.createElementNS(svgNS, 'rect');
       container.appendChild(rect);
     }
 
-    rect.setAttribute('x', String(x));
-    rect.setAttribute('y', String(y));
+    rect.setAttribute('x', String(position.x));
+    rect.setAttribute('y', String(position.y));
     rect.setAttribute('width', String(w));
     rect.setAttribute('height', String(h));
     if (fill === undefined) {
@@ -533,8 +583,11 @@ export const coreRectOverlay: CoreOverlayRenderer<RectOverlayParams> = {
 
 // Generic Overlay: Circle
 export const coreCircleOverlay: CoreOverlayRenderer<CircleOverlayParams> = {
-  render: ({ spec }) => {
-    const { x, y, r, opacity, fill, stroke, strokeWidth } = spec.params;
+  render: ({ spec, nodesById }) => {
+    const position = resolvePrimitiveOverlayPoint(spec.params, nodesById);
+    if (!position) return '';
+
+    const { r, opacity, fill, stroke, strokeWidth } = spec.params;
     const cls = spec.className ?? 'viz-overlay-circle';
     const opAttr = opacity !== undefined ? ` opacity="${opacity}"` : '';
     const usingDefaultFill = fill === undefined;
@@ -544,21 +597,27 @@ export const coreCircleOverlay: CoreOverlayRenderer<CircleOverlayParams> = {
     const resolvedStrokeWidth = strokeWidth ?? 3;
     const fillOpacityAttr = usingDefaultFill ? ' fill-opacity="0.12"' : '';
     const strokeOpacityAttr = usingDefaultStroke ? ' stroke-opacity="0.9"' : '';
-    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${resolvedFill}"${fillOpacityAttr} stroke="${resolvedStroke}"${strokeOpacityAttr} stroke-width="${resolvedStrokeWidth}"${opAttr} class="${cls}" />`;
+    return `<circle cx="${position.x}" cy="${position.y}" r="${r}" fill="${resolvedFill}"${fillOpacityAttr} stroke="${resolvedStroke}"${strokeOpacityAttr} stroke-width="${resolvedStrokeWidth}"${opAttr} class="${cls}" />`;
   },
-  update: ({ spec }, container) => {
+  update: ({ spec, nodesById }, container) => {
     const svgNS = 'http://www.w3.org/2000/svg';
-    const { x, y, r, opacity, fill, stroke, strokeWidth } = spec.params;
+    const position = resolvePrimitiveOverlayPoint(spec.params, nodesById);
+    const { r, opacity, fill, stroke, strokeWidth } = spec.params;
     const cls = spec.className ?? 'viz-overlay-circle';
 
     let circle = container.querySelector('circle');
+    if (!position) {
+      circle?.remove();
+      return;
+    }
+
     if (!circle) {
       circle = document.createElementNS(svgNS, 'circle');
       container.appendChild(circle);
     }
 
-    circle.setAttribute('cx', String(x));
-    circle.setAttribute('cy', String(y));
+    circle.setAttribute('cx', String(position.x));
+    circle.setAttribute('cy', String(position.y));
     circle.setAttribute('r', String(r));
     if (fill === undefined) {
       circle.setAttribute('fill', '#3b82f6');
@@ -584,10 +643,11 @@ export const coreCircleOverlay: CoreOverlayRenderer<CircleOverlayParams> = {
 
 // Generic Overlay: Text
 export const coreTextOverlay: CoreOverlayRenderer<TextOverlayParams> = {
-  render: ({ spec }) => {
+  render: ({ spec, nodesById }) => {
+    const position = resolvePrimitiveOverlayPoint(spec.params, nodesById);
+    if (!position) return '';
+
     const {
-      x,
-      y,
       text,
       opacity,
       fill,
@@ -610,13 +670,12 @@ export const coreTextOverlay: CoreOverlayRenderer<TextOverlayParams> = {
 
     // Basic text rendering; users should avoid untrusted HTML here.
     const resolvedFill = fill ?? '#111';
-    return `<text x="${x}" y="${y}" fill="${resolvedFill}"${opAttr}${fsAttr}${fwAttr}${taAttr}${dbAttr} class="${cls}">${text}</text>`;
+    return `<text x="${position.x}" y="${position.y}" fill="${resolvedFill}"${opAttr}${fsAttr}${fwAttr}${taAttr}${dbAttr} class="${cls}">${text}</text>`;
   },
-  update: ({ spec }, container) => {
+  update: ({ spec, nodesById }, container) => {
     const svgNS = 'http://www.w3.org/2000/svg';
+    const position = resolvePrimitiveOverlayPoint(spec.params, nodesById);
     const {
-      x,
-      y,
       text,
       opacity,
       fill,
@@ -628,13 +687,18 @@ export const coreTextOverlay: CoreOverlayRenderer<TextOverlayParams> = {
     const cls = spec.className ?? 'viz-overlay-text';
 
     let el = container.querySelector('text');
+    if (!position) {
+      el?.remove();
+      return;
+    }
+
     if (!el) {
       el = document.createElementNS(svgNS, 'text');
       container.appendChild(el);
     }
 
-    el.setAttribute('x', String(x));
-    el.setAttribute('y', String(y));
+    el.setAttribute('x', String(position.x));
+    el.setAttribute('y', String(position.y));
     el.setAttribute('fill', fill ?? '#111');
     if (opacity !== undefined) el.setAttribute('opacity', String(opacity));
     else el.removeAttribute('opacity');
@@ -677,17 +741,64 @@ function clamp01(v: number) {
   return v;
 }
 
-function effectiveNodePos(node: VizNode) {
+function hasNodeRelativeAnchor(params: {
+  nodeId?: string;
+}): params is NodeRelativeOverlayAnchor {
+  return typeof params.nodeId === 'string' && params.nodeId.length > 0;
+}
+
+function resolveNodeRelativeAnchor(
+  params: NodeRelativeOverlayAnchor,
+  nodesById: Map<string, VizNode>
+): { x: number; y: number } | null {
+  const node = nodesById.get(params.nodeId);
+  if (!node) return null;
+
+  const pos = effectivePos(node);
   return {
-    x: node.runtime?.x ?? node.pos.x,
-    y: node.runtime?.y ?? node.pos.y,
+    x: pos.x + (params.offsetX ?? 0),
+    y: pos.y + (params.offsetY ?? 0),
+  };
+}
+
+function resolvePrimitiveOverlayPoint(
+  params: PrimitiveOverlayPoint,
+  nodesById: Map<string, VizNode>
+): { x: number; y: number } | null {
+  if (hasNodeRelativeAnchor(params)) {
+    return resolveNodeRelativeAnchor(params, nodesById);
+  }
+
+  return {
+    x: params.x,
+    y: params.y,
+  };
+}
+
+function resolveRectOverlayOrigin(
+  params: RectOverlayParams,
+  nodesById: Map<string, VizNode>
+): { x: number; y: number } | null {
+  if (hasNodeRelativeAnchor(params)) {
+    const anchor = resolveNodeRelativeAnchor(params, nodesById);
+    if (!anchor) return null;
+
+    return {
+      x: anchor.x - params.w / 2,
+      y: anchor.y - params.h / 2,
+    };
+  }
+
+  return {
+    x: params.x,
+    y: params.y,
   };
 }
 
 function resolveGroupTransformInputs(
   params: GroupOverlayParams,
   nodesById: Map<string, VizNode>
-): { x: number; y: number; scale: number; rotation: number } {
+): { x: number; y: number; scale: number; rotation: number } | null {
   const baseX = params.x ?? 0;
   const baseY = params.y ?? 0;
 
@@ -699,11 +810,17 @@ function resolveGroupTransformInputs(
     const end = nodesById.get(params.to);
     if (start && end) {
       const p = clamp01(params.progress ?? 0);
-      const a = effectiveNodePos(start);
-      const b = effectiveNodePos(end);
+      const a = effectivePos(start);
+      const b = effectivePos(end);
       x = a.x + (b.x - a.x) * p + baseX;
       y = a.y + (b.y - a.y) * p + baseY;
     }
+  } else if (hasNodeRelativeAnchor(params)) {
+    const anchor = resolveNodeRelativeAnchor(params, nodesById);
+    if (!anchor) return null;
+
+    x = anchor.x + baseX;
+    y = anchor.y + baseY;
   }
 
   const userScale = params.scale ?? 1;
@@ -724,6 +841,8 @@ export const coreGroupOverlay: CoreOverlayRenderer<GroupOverlayParams> = {
   render: ({ spec, nodesById, edgesById, scene, registry }) => {
     const { children, opacity } = spec.params;
     const inputs = resolveGroupTransformInputs(spec.params, nodesById);
+    if (!inputs) return '';
+
     const tr = groupTransform(inputs);
     const opAttr = opacity !== undefined ? ` opacity="${opacity}"` : '';
 
@@ -764,6 +883,13 @@ export const coreGroupOverlay: CoreOverlayRenderer<GroupOverlayParams> = {
     const { children, opacity } = spec.params;
 
     const inputs = resolveGroupTransformInputs(spec.params, nodesById);
+    if (!inputs) {
+      container.removeAttribute('transform');
+      container.removeAttribute('opacity');
+      container.innerHTML = '';
+      return;
+    }
+
     container.setAttribute('transform', groupTransform(inputs));
     if (opacity !== undefined) {
       container.setAttribute('opacity', String(opacity));

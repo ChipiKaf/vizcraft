@@ -651,6 +651,80 @@ Edges can also be styled **per-edge** via the builder (inline SVG attributes ove
 b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8);
 ```
 
+## Node-relative primitive overlays
+
+`rect`, `circle`, `text`, and `group` overlays can anchor themselves to a node with `nodeId`. `circle` and `text` use the resolved node center directly, `rect` centers itself on that point, and `group` uses it as the group origin. `offsetX` / `offsetY` let you stack anchored overlays without maintaining a separate scene-coordinate lookup table. Omitting `nodeId` preserves the existing absolute `x` / `y` behavior.
+
+```ts
+builder.overlay((o) =>
+  o
+    .circle(
+      {
+        nodeId: 'producer',
+        offsetX: 36,
+        offsetY: -18,
+        r: 6,
+        fill: '#f59e0b',
+        stroke: '#b45309',
+        strokeWidth: 2,
+      },
+      { key: 'producer-marker' }
+    )
+    .rect(
+      {
+        nodeId: 'broker',
+        w: 72,
+        h: 28,
+        rx: 14,
+        fill: '#dcfce7',
+        stroke: '#16a34a',
+        strokeWidth: 2,
+      },
+      { key: 'broker-slot' }
+    )
+    .text(
+      {
+        nodeId: 'store',
+        offsetY: 40,
+        text: '12 persisted',
+        textAnchor: 'middle',
+        fontWeight: 700,
+      },
+      { key: 'store-label' }
+    )
+    .group(
+      { nodeId: 'broker', offsetX: -40, offsetY: -8 },
+      (g) => {
+        g.circle({
+          x: 0,
+          y: -10,
+          r: 4,
+          fill: '#93c5fd',
+          stroke: '#1d4ed8',
+          strokeWidth: 2,
+        });
+        g.circle({
+          x: 0,
+          y: 0,
+          r: 4,
+          fill: '#93c5fd',
+          stroke: '#1d4ed8',
+          strokeWidth: 2,
+        });
+        g.circle({
+          x: 0,
+          y: 10,
+          r: 4,
+          fill: '#93c5fd',
+          stroke: '#1d4ed8',
+          strokeWidth: 2,
+        });
+      },
+      { key: 'broker-batch' }
+    )
+);
+```
+
 ## Routed signal overlays
 
 The built-in `signal` overlay can follow the actual rendered edge path instead of moving center-to-center:
