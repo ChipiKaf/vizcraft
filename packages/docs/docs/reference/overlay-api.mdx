@@ -114,46 +114,49 @@ Child coordinates are **group-local** (transformed by the group's translate/scal
 
 ### Pre-registered kinds
 
-| Kind          | Params                                                                                                   | Description                                                          |
-| ------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `signal`      | `{ from, to, progress, magnitude, followEdge?, edgeId?, resting?, parkAt?, parkOffsetX?, parkOffsetY? }` | Moving marker between nodes, along an edge path, or parked in a node |
-| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }`                                                             | Grid axis labels                                                     |
-| `data-points` | varies                                                                                                   | Points attached to nodes                                             |
+| Kind          | Params                                                      | Description                                                                           |
+| ------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `signal`      | `{ from, to, progress, ... }` or `{ chain, progress, ... }` | Moving marker between nodes, across hop chains, along edge paths, or parked in a node |
+| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }`                | Grid axis labels                                                                      |
+| `data-points` | varies                                                      | Points attached to nodes                                                              |
 
 ### `signal`
 
-`signal` interpolates between node centers by default. It can also follow a rendered edge path in flight, then park inside a node after arrival. See [SignalOverlayParams](./types#signaloverlayparams) for the exported type.
+`signal` interpolates between node centers by default. It can also follow a rendered edge path in flight, park inside a node after arrival, or move through a declarative multi-hop chain. See [SignalOverlayParams](./types#signaloverlayparams) and [SignalOverlayHop](./types#signaloverlayhop) for the exported types.
 
 - Set `followEdge: true` to follow the rendered edge path when there is exactly one matching `from -> to` edge.
 - Set `edgeId` to follow a specific edge when multiple edges connect the same nodes.
 - Set `resting: true` to keep the signal visible at `to` once `progress >= 1`.
 - Set `parkAt` to override the parked node, and use `parkOffsetX` / `parkOffsetY` to offset from that node's center for stacking or jitter.
+- Set `chain` to describe multiple hops inside one overlay. `floor(progress)` selects the active hop and the fractional part drives that hop.
+- When `progress >= chain.length`, chain signals park at the final hop's `to` node automatically.
 - If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation before arrival.
 
-| Param          | Type      | Description                                                                |
-| -------------- | --------- | -------------------------------------------------------------------------- |
-| `from`         | `string`  | Source node id used for fallback interpolation and implicit edge matching  |
-| `to`           | `string`  | Target node id used for fallback interpolation and the default parked node |
-| `progress`     | `number`  | Position along the motion path, typically `0..1`; parking begins at `>= 1` |
-| `magnitude?`   | `number`  | Visual intensity used to scale the marker radius                           |
-| `followEdge?`  | `boolean` | Follow the only matching `from -> to` edge path when `true`                |
-| `edgeId?`      | `string`  | Explicit edge id to follow; takes precedence over `followEdge`             |
-| `resting?`     | `boolean` | Keep the signal visible at `to` once it arrives                            |
-| `parkAt?`      | `string`  | Override the node used for parked placement after arrival                  |
-| `parkOffsetX?` | `number`  | Horizontal parked offset from the parked node center                       |
-| `parkOffsetY?` | `number`  | Vertical parked offset from the parked node center                         |
+| Param          | Type                 | Description                                                                                                                             |
+| -------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`         | `string`             | Single-hop source node id. Mutually exclusive with `chain`                                                                              |
+| `to`           | `string`             | Single-hop target node id and the default parked node. Mutually exclusive with `chain`                                                  |
+| `chain`        | `SignalOverlayHop[]` | Declarative hop sequence. Each hop may also set `followEdge` or `edgeId`                                                                |
+| `progress`     | `number`             | For single-hop signals, typically `0..1`. For chains, `floor(progress)` selects the hop and `progress >= chain.length` parks at the end |
+| `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                                                                        |
+| `followEdge?`  | `boolean`            | For single-hop signals, follow the only matching `from -> to` edge path when `true`                                                     |
+| `edgeId?`      | `string`             | For single-hop signals, explicit edge id to follow; takes precedence over `followEdge`                                                  |
+| `resting?`     | `boolean`            | For single-hop signals, keep the signal visible at `to` once it arrives                                                                 |
+| `parkAt?`      | `string`             | Override the node used for parked placement after arrival                                                                               |
+| `parkOffsetX?` | `number`             | Horizontal parked offset from the parked node center                                                                                    |
+| `parkOffsetY?` | `number`             | Vertical parked offset from the parked node center                                                                                      |
 
 ```typescript
 builder.overlay(
   'signal',
   {
-    from: 'broker',
-    to: 'p2',
-    edgeId: 'broker-p2',
-    progress: 1,
-    resting: true,
-    parkOffsetX: 12,
-    parkOffsetY: -8,
+    chain: [
+      { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+      { from: 'dispatcher', to: 'adapter', edgeId: 'dispatcher-adapter' },
+      { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+      { from: 'broker', to: 'p2', edgeId: 'broker-p2' },
+    ],
+    progress: 2.4,
     magnitude: 0.8,
   },
   'sig'

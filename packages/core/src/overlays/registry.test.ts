@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { viz } from '../builder';
-import { coreSignalOverlay } from './registry';
+import type { VizScene } from '../types';
+import { coreSignalOverlay, type SignalOverlayParams } from './registry';
 
 function buildSignalScene(includeStraightAlternative = false) {
   const builder = viz()
@@ -18,22 +19,30 @@ function buildSignalScene(includeStraightAlternative = false) {
   return builder.build();
 }
 
-function renderSignalFromScene(
-  includeStraightAlternative: boolean,
-  params: {
-    from: string;
-    to: string;
-    progress: number;
-    magnitude?: number;
-    followEdge?: boolean;
-    edgeId?: string;
-    resting?: boolean;
-    parkAt?: string;
-    parkOffsetX?: number;
-    parkOffsetY?: number;
-  }
-) {
-  const scene = buildSignalScene(includeStraightAlternative);
+function buildSignalChainScene() {
+  const builder = viz()
+    .view(640, 260)
+    .node('producer', { at: { x: 80, y: 140 }, circle: { r: 18 } })
+    .node('dispatcher', { at: { x: 220, y: 140 }, circle: { r: 18 } })
+    .node('adapter', { at: { x: 360, y: 140 }, circle: { r: 18 } })
+    .node('broker', { at: { x: 500, y: 140 }, circle: { r: 18 } });
+
+  builder
+    .edge('producer', 'dispatcher', 'producer-dispatcher')
+    .routing('curved')
+    .via(150, 220)
+    .done();
+  builder.edge('dispatcher', 'adapter', 'dispatcher-adapter').done();
+  builder
+    .edge('adapter', 'broker', 'adapter-broker')
+    .routing('curved')
+    .via(430, 60)
+    .done();
+
+  return builder.build();
+}
+
+function renderSignal(scene: VizScene, params: SignalOverlayParams) {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const edgesById = new Map(scene.edges.map((edge) => [edge.id, edge]));
 
@@ -43,6 +52,13 @@ function renderSignalFromScene(
     edgesById,
     scene,
   });
+}
+
+function renderSignalFromScene(
+  includeStraightAlternative: boolean,
+  params: SignalOverlayParams
+) {
+  return renderSignal(buildSignalScene(includeStraightAlternative), params);
 }
 
 function extractTranslate(markup: string) {
@@ -161,5 +177,73 @@ describe('coreSignalOverlay', () => {
 
     expect(point.x).toBeCloseTo(260, 5);
     expect(point.y).toBeCloseTo(100, 5);
+  });
+
+  it('uses floor(progress) to resolve the active chain hop', () => {
+    const point = extractTranslate(
+      renderSignal(buildSignalChainScene(), {
+        chain: [
+          { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+          { from: 'dispatcher', to: 'adapter' },
+          { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+        ],
+        progress: 1.25,
+        magnitude: 0.7,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(255, 5);
+    expect(point.y).toBeCloseTo(140, 5);
+  });
+
+  it('follows hop-specific edge paths inside a signal chain', () => {
+    const point = extractTranslate(
+      renderSignal(buildSignalChainScene(), {
+        chain: [
+          { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+          { from: 'dispatcher', to: 'adapter' },
+          { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+        ],
+        progress: 0.5,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(150, 1);
+    expect(point.y).toBeGreaterThan(150);
+  });
+
+  it('parks a completed signal chain at the final node automatically', () => {
+    const point = extractTranslate(
+      renderSignal(buildSignalChainScene(), {
+        chain: [
+          { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+          { from: 'dispatcher', to: 'adapter' },
+          { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+        ],
+        progress: 3.4,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(500, 5);
+    expect(point.y).toBeCloseTo(140, 5);
+  });
+
+  it('applies parked overrides after a signal chain completes', () => {
+    const point = extractTranslate(
+      renderSignal(buildSignalChainScene(), {
+        chain: [
+          { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+          { from: 'dispatcher', to: 'adapter' },
+          { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+        ],
+        progress: 3,
+        parkAt: 'adapter',
+        parkOffsetX: 6,
+        parkOffsetY: -4,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(366, 5);
+    expect(point.y).toBeCloseTo(136, 5);
   });
 });

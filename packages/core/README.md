@@ -698,6 +698,27 @@ builder.overlay(
 );
 ```
 
+## Multi-hop signal chains
+
+Use `chain` to move one `signal` overlay across multiple hops declaratively. `floor(progress)` selects the active hop and the fractional part drives that hop locally. Once `progress >= chain.length`, the signal parks at the final hop's `to` node automatically. Each hop can still set `followEdge` or `edgeId`.
+
+```ts
+builder.overlay(
+  'signal',
+  {
+    chain: [
+      { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+      { from: 'dispatcher', to: 'adapter', edgeId: 'dispatcher-adapter' },
+      { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+      { from: 'broker', to: 'p0', edgeId: 'broker-p0' },
+    ],
+    progress: 2.4,
+    magnitude: 0.9,
+  },
+  'sig-chain'
+);
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is a monorepo managed with Turbo.

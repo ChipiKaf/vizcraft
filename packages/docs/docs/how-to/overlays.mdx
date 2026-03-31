@@ -196,6 +196,91 @@ export const restingSignalScene = restingSignalBuilder
       )
   );
 
+export const signalChainCss = `
+.viz-signal-chain .viz-signal-shape {
+  fill: #22c55e;
+  stroke: #166534;
+}
+`;
+
+export const signalChainHops = [
+  { from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+  { from: 'dispatcher', to: 'adapter', edgeId: 'dispatcher-adapter' },
+  { from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+  { from: 'broker', to: 'partition', edgeId: 'broker-partition' },
+];
+
+export const signalChainBuilder = viz().view(860, 320);
+export const signalChainScene = signalChainBuilder
+  .node('producer')
+  .at(100, 220)
+  .rect(120, 72, 16)
+  .label('Producer', { dy: -50, fontWeight: 700 })
+  .node('dispatcher')
+  .at(280, 100)
+  .rect(130, 72, 16)
+  .label('Dispatcher', { dy: -50, fontWeight: 700 })
+  .node('adapter')
+  .at(470, 220)
+  .rect(120, 72, 16)
+  .label('Adapter', { dy: -50, fontWeight: 700 })
+  .node('broker')
+  .at(650, 100)
+  .rect(120, 72, 16)
+  .label('Broker', { dy: -50, fontWeight: 700 })
+  .node('partition')
+  .at(810, 220)
+  .rect(120, 72, 16)
+  .label('Partition 0', { dy: -50, fontWeight: 700 })
+  .edge('producer', 'dispatcher', 'producer-dispatcher')
+  .routing('curved')
+  .via(170, 280)
+  .via(220, 130)
+  .stroke('#334155', 3)
+  .edge('dispatcher', 'adapter', 'dispatcher-adapter')
+  .routing('curved')
+  .via(360, 20)
+  .via(390, 260)
+  .stroke('#334155', 3)
+  .edge('adapter', 'broker', 'adapter-broker')
+  .routing('curved')
+  .via(560, 120)
+  .via(590, 20)
+  .stroke('#334155', 3)
+  .edge('broker', 'partition', 'broker-partition')
+  .routing('curved')
+  .via(720, 150)
+  .via(760, 280)
+  .stroke('#334155', 3)
+  .overlay((o) =>
+    o
+      .text(
+        {
+          x: 24,
+          y: 30,
+          text: 'One scalar progress drives four routed hops; completion parks at the final node',
+          fontSize: 14,
+        },
+        { key: 'legend' }
+      )
+      .add(
+        'signal',
+        {
+          chain: signalChainHops,
+          progress: 0,
+          magnitude: 0.85,
+        },
+        { key: 'chain', className: 'viz-signal-chain' }
+      )
+  );
+
+export const signalChainAnim = signalChainBuilder.animate((aBuilder) => {
+  aBuilder.overlay('chain');
+  aBuilder.to({ progress: 4.15 }, { duration: 3000, easing: 'easeInOut' });
+  aBuilder.wait(250);
+  aBuilder.to({ progress: 0 }, { duration: 500, easing: 'easeOut' });
+});
+
 export const multiOverlayBuilder = viz().view(520, 240);
 export const multiOverlayScene = multiOverlayBuilder
   .grid(5, 3, { x: 30, y: 30 })
@@ -410,6 +495,46 @@ css: '.viz-signal-transit .viz-signal-shape { fill: #38bdf8; stroke: #0369a1; } 
   <VizMount builder={restingSignalScene} css={restingSignalCss} />
 </CodePreview>
 
+### Animate a declarative multi-hop signal chain
+
+Use `chain` to describe multiple hops inside one `signal` overlay. `floor(progress)` selects the active hop and the fractional part is that hop's local progress. Once `progress >= chain.length`, VizCraft parks the signal at the final hop's `to` node automatically. Each hop can still opt into routed edge following with `followEdge` or `edgeId`.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const chain = [
+{ from: 'producer', to: 'dispatcher', edgeId: 'producer-dispatcher' },
+{ from: 'dispatcher', to: 'adapter', edgeId: 'dispatcher-adapter' },
+{ from: 'adapter', to: 'broker', edgeId: 'adapter-broker' },
+{ from: 'broker', to: 'partition', edgeId: 'broker-partition' },
+];
+
+const builder = viz().view(860, 320);
+builder
+.node('producer').at(100, 220).rect(120, 72, 16).label('Producer', { dy: -50, fontWeight: 700 })
+.node('dispatcher').at(280, 100).rect(130, 72, 16).label('Dispatcher', { dy: -50, fontWeight: 700 })
+.node('adapter').at(470, 220).rect(120, 72, 16).label('Adapter', { dy: -50, fontWeight: 700 })
+.node('broker').at(650, 100).rect(120, 72, 16).label('Broker', { dy: -50, fontWeight: 700 })
+.node('partition').at(810, 220).rect(120, 72, 16).label('Partition 0', { dy: -50, fontWeight: 700 })
+.edge('producer', 'dispatcher', 'producer-dispatcher').routing('curved').via(170, 280).via(220, 130).stroke('#334155', 3)
+.edge('dispatcher', 'adapter', 'dispatcher-adapter').routing('curved').via(360, 20).via(390, 260).stroke('#334155', 3)
+.edge('adapter', 'broker', 'adapter-broker').routing('curved').via(560, 120).via(590, 20).stroke('#334155', 3)
+.edge('broker', 'partition', 'broker-partition').routing('curved').via(720, 150).via(760, 280).stroke('#334155', 3)
+.overlay('signal', { chain, progress: 0, magnitude: 0.85 }, 'chain');
+
+builder.animate((aBuilder) => {
+aBuilder.overlay('chain');
+aBuilder.to({ progress: 4.15 }, { duration: 3000, easing: 'easeInOut' });
+});
+
+builder.mount(document.getElementById('container'), {
+css: '.viz-signal-chain .viz-signal-shape { fill: #22c55e; stroke: #166534; }',
+});
+builder.play();
+`}>
+
+  <VizPlaybackControls builder={signalChainScene} autoPlay={true} />
+</CodePreview>
+
 ## Combining multiple overlays
 
 Use the callback form to compose several overlays in one call:
@@ -440,14 +565,14 @@ builder.mount(document.getElementById('container'));
 
 These ship in the default registry and can be used immediately:
 
-| Kind          | Description                                                          |
-| ------------- | -------------------------------------------------------------------- |
-| `signal`      | Moving marker between nodes, along an edge path, or parked in a node |
-| `grid-labels` | Axis/grid labels for the grid system                                 |
-| `data-points` | Points attached to nodes                                             |
-| `rect`        | Primitive rectangle (via `.rect()` helper)                           |
-| `circle`      | Primitive circle (via `.circle()` helper)                            |
-| `text`        | Primitive text label (via `.text()` helper)                          |
+| Kind          | Description                                                                           |
+| ------------- | ------------------------------------------------------------------------------------- |
+| `signal`      | Moving marker between nodes, across hop chains, along edge paths, or parked in a node |
+| `grid-labels` | Axis/grid labels for the grid system                                                  |
+| `data-points` | Points attached to nodes                                                              |
+| `rect`        | Primitive rectangle (via `.rect()` helper)                                            |
+| `circle`      | Primitive circle (via `.circle()` helper)                                             |
+| `text`        | Primitive text label (via `.text()` helper)                                           |
 
 ## Keys
 

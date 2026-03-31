@@ -2,18 +2,34 @@ import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from '../types';
 import { sampleEdgePathFromData } from '../edges/pathSampling';
 import { effectivePos } from '../shapes/geometry';
 
-export type SignalOverlayParams = {
+export type SignalOverlayHop = {
   from: string;
   to: string;
-  progress: number;
-  magnitude?: number;
   followEdge?: boolean;
   edgeId?: string;
+};
+
+type SignalOverlayBaseParams = {
+  progress: number;
+  magnitude?: number;
   resting?: boolean;
   parkAt?: string;
   parkOffsetX?: number;
   parkOffsetY?: number;
 };
+
+export type SignalOverlayParams =
+  | (SignalOverlayBaseParams &
+      SignalOverlayHop & {
+        chain?: never;
+      })
+  | (SignalOverlayBaseParams & {
+      chain: SignalOverlayHop[];
+      from?: never;
+      to?: never;
+      followEdge?: never;
+      edgeId?: never;
+    });
 
 export type GridLabelsOverlayParams = {
   colLabels?: Record<number, string>;
@@ -156,36 +172,99 @@ export class CoreOverlayRegistry {
 }
 
 function resolveSignalFollowEdge(
-  params: SignalOverlayParams,
+  hop: SignalOverlayHop,
   edgesById: Map<string, VizEdge>,
   scene: VizScene
 ): VizEdge | null {
-  if (params.edgeId) {
-    return edgesById.get(params.edgeId) ?? null;
+  if (hop.edgeId) {
+    return edgesById.get(hop.edgeId) ?? null;
   }
 
-  if (!params.followEdge) return null;
+  if (!hop.followEdge) return null;
 
   const matches = scene.edges.filter(
-    (edge) => edge.from === params.from && edge.to === params.to
+    (edge) => edge.from === hop.from && edge.to === hop.to
   );
 
   return matches.length === 1 ? matches[0]! : null;
 }
 
+type ResolvedSignalMotion = {
+  hop: SignalOverlayHop;
+  progress: number;
+  parkedNodeId: string;
+  fallbackParkedNodeId: string;
+  shouldPark: boolean;
+};
+
+function isSignalChainParams(
+  params: SignalOverlayParams
+): params is SignalOverlayBaseParams & { chain: SignalOverlayHop[] } {
+  return Array.isArray((params as { chain?: unknown }).chain);
+}
+
+function resolveSignalMotion(
+  params: SignalOverlayParams
+): ResolvedSignalMotion | null {
+  if (isSignalChainParams(params)) {
+    const finalHop = params.chain.at(-1);
+    if (!finalHop) return null;
+
+    const rawProgress = Number.isNaN(params.progress) ? 0 : params.progress;
+
+    if (rawProgress >= params.chain.length) {
+      return {
+        hop: finalHop,
+        progress: 1,
+        parkedNodeId: params.parkAt ?? finalHop.to,
+        fallbackParkedNodeId: finalHop.to,
+        shouldPark: true,
+      };
+    }
+
+    const clampedProgress =
+      !Number.isFinite(rawProgress) || rawProgress <= 0 ? 0 : rawProgress;
+    const hopIndex = Math.min(
+      Math.floor(clampedProgress),
+      params.chain.length - 1
+    );
+    const hop = params.chain[hopIndex];
+    if (!hop) return null;
+
+    return {
+      hop,
+      progress: clampedProgress - hopIndex,
+      parkedNodeId: params.parkAt ?? finalHop.to,
+      fallbackParkedNodeId: finalHop.to,
+      shouldPark: false,
+    };
+  }
+
+  return {
+    hop: {
+      from: params.from,
+      to: params.to,
+      followEdge: params.followEdge,
+      edgeId: params.edgeId,
+    },
+    progress: params.progress,
+    parkedNodeId: params.parkAt ?? params.to,
+    fallbackParkedNodeId: params.to,
+    shouldPark:
+      Number.isFinite(params.progress) &&
+      params.progress >= 1 &&
+      (params.resting === true || params.parkAt !== undefined),
+  };
+}
+
 function resolveSignalParkedPosition(
-  params: SignalOverlayParams,
+  parkedNodeId: string,
+  fallbackParkedNodeId: string,
+  params: SignalOverlayBaseParams,
   nodesById: Map<string, VizNode>
 ): { x: number; y: number } | null {
-  const shouldPark =
-    Number.isFinite(params.progress) &&
-    params.progress >= 1 &&
-    (params.resting === true || params.parkAt !== undefined);
-
-  if (!shouldPark) return null;
-
   const parkedNode =
-    nodesById.get(params.parkAt ?? params.to) ?? nodesById.get(params.to);
+    nodesById.get(parkedNodeId) ?? nodesById.get(fallbackParkedNodeId);
 
   if (!parkedNode) return null;
 
@@ -203,20 +282,29 @@ function resolveSignalPosition(
   edgesById: Map<string, VizEdge>,
   scene: VizScene
 ): { x: number; y: number } | null {
-  const parkedPosition = resolveSignalParkedPosition(params, nodesById);
-  if (parkedPosition) return parkedPosition;
+  const motion = resolveSignalMotion(params);
+  if (!motion) return null;
 
-  const start = nodesById.get(params.from);
-  const end = nodesById.get(params.to);
+  if (motion.shouldPark) {
+    return resolveSignalParkedPosition(
+      motion.parkedNodeId,
+      motion.fallbackParkedNodeId,
+      params,
+      nodesById
+    );
+  }
+
+  const start = nodesById.get(motion.hop.from);
+  const end = nodesById.get(motion.hop.to);
 
   if (!start || !end) return null;
 
-  const followedEdge = resolveSignalFollowEdge(params, edgesById, scene);
+  const followedEdge = resolveSignalFollowEdge(motion.hop, edgesById, scene);
   if (followedEdge) {
     const sampledPoint = sampleEdgePathFromData(
       followedEdge,
       nodesById,
-      params.progress
+      motion.progress
     );
     if (sampledPoint) return sampledPoint;
   }
@@ -225,8 +313,8 @@ function resolveSignalPosition(
   const endPos = effectivePos(end);
 
   return {
-    x: startPos.x + (endPos.x - startPos.x) * params.progress,
-    y: startPos.y + (endPos.y - startPos.y) * params.progress,
+    x: startPos.x + (endPos.x - startPos.x) * motion.progress,
+    y: startPos.y + (endPos.y - startPos.y) * motion.progress,
   };
 }
 
