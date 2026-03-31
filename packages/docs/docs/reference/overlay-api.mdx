@@ -83,7 +83,7 @@ Returns a shallow copy of accumulated specs.
 
 ### `o.group(params, children, options?)`
 
-Creates a group overlay for animating multiple elements as one unit.
+Creates a group overlay for animating multiple elements as one unit or anchoring a local overlay cluster to a node.
 
 ```typescript
 o.group(
@@ -99,18 +99,22 @@ o.group(
 
 Child coordinates are **group-local** (transformed by the group's translate/scale/rotate). Animatable group params: `x`, `y`, `scale`, `rotation`, `opacity`, `progress`, `magnitude`.
 
+Set `nodeId` with optional `offsetX` / `offsetY` to anchor the group origin to a node center. When `nodeId` or `from` / `to` are set, `x` and `y` remain additional offsets.
+
 ---
 
 ## Built-in overlay kinds
 
 ### Primitives (no custom renderer needed)
 
-| Kind     | Params                                                                                    | Notes            |
-| -------- | ----------------------------------------------------------------------------------------- | ---------------- |
-| `rect`   | `{ x, y, w, h, rx?, ry?, opacity?, fill?, stroke?, strokeWidth? }`                        | Rectangle        |
-| `circle` | `{ x, y, r, opacity?, fill?, stroke?, strokeWidth? }`                                     | Circle           |
-| `text`   | `{ x, y, text, opacity?, fill?, fontSize?, fontWeight?, textAnchor?, dominantBaseline? }` | Text label       |
-| `group`  | `{ x?, y?, scale?, rotation?, opacity?, children }`                                       | Grouped elements |
+| Kind     | Params                                                                                                                                    | Notes            |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `rect`   | `{ x, y, w, h, ... }` or `{ nodeId, offsetX?, offsetY?, w, h, ... }`                                                                      | Rectangle        |
+| `circle` | `{ x, y, r, ... }` or `{ nodeId, offsetX?, offsetY?, r, ... }`                                                                            | Circle           |
+| `text`   | `{ x, y, text, ... }` or `{ nodeId, offsetX?, offsetY?, text, ... }`                                                                      | Text label       |
+| `group`  | `{ x?, y?, children, ... }`, `{ nodeId, offsetX?, offsetY?, x?, y?, children, ... }`, or `{ from, to, progress?, x?, y?, children, ... }` | Grouped elements |
+
+When `nodeId` is provided, `circle` and `text` use `node.centre + { offsetX, offsetY }` as their position, `rect` centers itself on that resolved point, and `group` uses it as the group origin. Omitting `nodeId` preserves the current absolute-coordinate behavior.
 
 ### Pre-registered kinds
 

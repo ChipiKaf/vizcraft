@@ -1,8 +1,17 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it } from 'vitest';
 
 import { viz } from '../builder';
 import type { VizScene } from '../types';
-import { coreSignalOverlay, type SignalOverlayParams } from './registry';
+import {
+  coreCircleOverlay,
+  coreGroupOverlay,
+  coreRectOverlay,
+  coreSignalOverlay,
+  coreTextOverlay,
+  type SignalOverlayParams,
+} from './registry';
 
 function buildSignalScene(includeStraightAlternative = false) {
   const builder = viz()
@@ -42,6 +51,22 @@ function buildSignalChainScene() {
   return builder.build();
 }
 
+function buildAnchoredOverlayScene() {
+  return viz()
+    .view(520, 240)
+    .node('anchor', { at: { x: 180, y: 120 }, rect: { w: 120, h: 72, rx: 16 } })
+    .node('peer', { at: { x: 360, y: 120 }, circle: { r: 18 } })
+    .build();
+}
+
+function createOverlayContext(scene: VizScene) {
+  return {
+    nodesById: new Map(scene.nodes.map((node) => [node.id, node])),
+    edgesById: new Map(scene.edges.map((edge) => [edge.id, edge])),
+    scene,
+  };
+}
+
 function renderSignal(scene: VizScene, params: SignalOverlayParams) {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const edgesById = new Map(scene.edges.map((edge) => [edge.id, edge]));
@@ -74,6 +99,128 @@ function extractTranslate(markup: string) {
     y: Number(match[2]),
   };
 }
+
+function extractNumericAttribute(markup: string, attribute: string) {
+  const match = markup.match(new RegExp(`${attribute}="([\\-\\d.]+)"`));
+  if (!match) {
+    throw new Error(
+      `Expected overlay markup to contain ${attribute}, got: ${markup}`
+    );
+  }
+
+  return Number(match[1]);
+}
+
+describe('primitive overlay node anchors', () => {
+  it('anchors circles to a node center with offsets', () => {
+    const scene = buildAnchoredOverlayScene();
+    const markup = coreCircleOverlay.render({
+      spec: {
+        id: 'circle',
+        params: { nodeId: 'anchor', offsetX: 8, offsetY: -4, r: 6 },
+      },
+      ...createOverlayContext(scene),
+    });
+
+    expect(extractNumericAttribute(markup, 'cx')).toBeCloseTo(188, 5);
+    expect(extractNumericAttribute(markup, 'cy')).toBeCloseTo(116, 5);
+  });
+
+  it('centers node-anchored rects on the resolved node position', () => {
+    const scene = buildAnchoredOverlayScene();
+    const markup = coreRectOverlay.render({
+      spec: {
+        id: 'rect',
+        params: { nodeId: 'anchor', offsetX: 10, offsetY: -6, w: 40, h: 20 },
+      },
+      ...createOverlayContext(scene),
+    });
+
+    expect(extractNumericAttribute(markup, 'x')).toBeCloseTo(170, 5);
+    expect(extractNumericAttribute(markup, 'y')).toBeCloseTo(104, 5);
+  });
+
+  it('updates node-anchored text when the node runtime position changes', () => {
+    const scene = buildAnchoredOverlayScene();
+    const ctx = createOverlayContext(scene);
+    const container = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'g'
+    ) as SVGGElement;
+
+    coreTextOverlay.update?.(
+      {
+        spec: {
+          id: 'text',
+          params: { nodeId: 'anchor', offsetY: 26, text: '12 persisted' },
+        },
+        ...ctx,
+      },
+      container
+    );
+
+    let textEl = container.querySelector('text');
+    expect(textEl?.getAttribute('x')).toBe('180');
+    expect(textEl?.getAttribute('y')).toBe('146');
+
+    const anchorNode = scene.nodes.find((node) => node.id === 'anchor');
+    if (!anchorNode) {
+      throw new Error('Expected anchor node to exist');
+    }
+
+    anchorNode.runtime = { x: 260, y: 96 };
+
+    coreTextOverlay.update?.(
+      {
+        spec: {
+          id: 'text',
+          params: { nodeId: 'anchor', offsetY: 26, text: '12 persisted' },
+        },
+        ...ctx,
+      },
+      container
+    );
+
+    textEl = container.querySelector('text');
+    expect(textEl?.getAttribute('x')).toBe('260');
+    expect(textEl?.getAttribute('y')).toBe('122');
+  });
+
+  it('anchors groups to a node center before applying local offsets', () => {
+    const scene = buildAnchoredOverlayScene();
+    const markup = coreGroupOverlay.render({
+      spec: {
+        id: 'group',
+        params: {
+          nodeId: 'anchor',
+          offsetX: 12,
+          offsetY: -18,
+          x: 4,
+          y: 6,
+          children: [],
+        },
+      },
+      ...createOverlayContext(scene),
+    });
+
+    const point = extractTranslate(markup);
+    expect(point.x).toBeCloseTo(196, 5);
+    expect(point.y).toBeCloseTo(108, 5);
+  });
+
+  it('skips node-anchored primitive overlays when the node is missing', () => {
+    const scene = buildAnchoredOverlayScene();
+    const markup = coreCircleOverlay.render({
+      spec: {
+        id: 'circle',
+        params: { nodeId: 'missing-node', r: 6 },
+      },
+      ...createOverlayContext(scene),
+    });
+
+    expect(markup).toBe('');
+  });
+});
 
 describe('coreSignalOverlay', () => {
   it('follows the requested edge path when edgeId is provided', () => {

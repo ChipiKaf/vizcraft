@@ -43,6 +43,95 @@ export const primitiveOverlayScene = primitiveOverlayBuilder
       )
   );
 
+export const anchoredPrimitiveBuilder = viz().view(640, 260);
+export const anchoredPrimitiveScene = anchoredPrimitiveBuilder
+  .node('producer')
+  .at(120, 120)
+  .rect(110, 72, 16)
+  .label('Producer', { dy: -50, fontWeight: 700 })
+  .node('broker')
+  .at(320, 120)
+  .rect(120, 72, 16)
+  .label('Broker', { dy: -50, fontWeight: 700 })
+  .node('store')
+  .at(520, 120)
+  .cylinder(120, 64)
+  .label('Store', { dy: -48, fontWeight: 700 })
+  .overlay((o) =>
+    o
+      .circle(
+        {
+          nodeId: 'producer',
+          offsetX: 38,
+          offsetY: -18,
+          r: 6,
+          fill: '#f59e0b',
+          stroke: '#b45309',
+          strokeWidth: 2,
+        },
+        { key: 'producer-marker' }
+      )
+      .rect(
+        {
+          nodeId: 'broker',
+          offsetY: 4,
+          w: 74,
+          h: 30,
+          rx: 15,
+          fill: '#dcfce7',
+          stroke: '#16a34a',
+          strokeWidth: 2,
+        },
+        { key: 'broker-slot' }
+      )
+      .text(
+        {
+          nodeId: 'store',
+          offsetY: 44,
+          text: '12 persisted',
+          fontSize: 14,
+          fontWeight: 700,
+          textAnchor: 'middle',
+          fill: '#0f172a',
+        },
+        { key: 'store-label' }
+      )
+      .group(
+        {
+          nodeId: 'broker',
+          offsetX: -42,
+          offsetY: -10,
+        },
+        (g) => {
+          g.circle({
+            x: 0,
+            y: -10,
+            r: 4,
+            fill: '#93c5fd',
+            stroke: '#1d4ed8',
+            strokeWidth: 2,
+          });
+          g.circle({
+            x: 0,
+            y: 0,
+            r: 4,
+            fill: '#93c5fd',
+            stroke: '#1d4ed8',
+            strokeWidth: 2,
+          });
+          g.circle({
+            x: 0,
+            y: 10,
+            r: 4,
+            fill: '#93c5fd',
+            stroke: '#1d4ed8',
+            strokeWidth: 2,
+          });
+        },
+        { key: 'broker-group' }
+      )
+  );
+
 export const basicSignalBuilder = viz().view(520, 200);
 export const basicSignalScene = basicSignalBuilder
   .node('a')
@@ -416,6 +505,33 @@ css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; strok
   <VizMount builder={primitiveOverlayScene} css={primitiveCss} />
 </CodePreview>
 
+Primitive overlays can also anchor themselves to a node center with `nodeId`. `circle` and `text` use the resolved node center directly, `rect` centers itself on that anchor, and `group` uses it as the group origin. When `nodeId` is omitted, VizCraft keeps the existing absolute `x` / `y` behavior.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(640, 260);
+builder
+.node('producer').at(120, 120).rect(110, 72, 16).label('Producer', { dy: -50, fontWeight: 700 })
+.node('broker').at(320, 120).rect(120, 72, 16).label('Broker', { dy: -50, fontWeight: 700 })
+.node('store').at(520, 120).cylinder(120, 64).label('Store', { dy: -48, fontWeight: 700 })
+.overlay((o) =>
+o
+.circle({ nodeId: 'producer', offsetX: 38, offsetY: -18, r: 6, fill: '#f59e0b', stroke: '#b45309', strokeWidth: 2 }, { key: 'producer-marker' })
+.rect({ nodeId: 'broker', offsetY: 4, w: 74, h: 30, rx: 15, fill: '#dcfce7', stroke: '#16a34a', strokeWidth: 2 }, { key: 'broker-slot' })
+.text({ nodeId: 'store', offsetY: 44, text: '12 persisted', fontSize: 14, fontWeight: 700, textAnchor: 'middle', fill: '#0f172a' }, { key: 'store-label' })
+.group({ nodeId: 'broker', offsetX: -42, offsetY: -10 }, (g) => {
+g.circle({ x: 0, y: -10, r: 4, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+g.circle({ x: 0, y: 0, r: 4, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+g.circle({ x: 0, y: 10, r: 4, fill: '#93c5fd', stroke: '#1d4ed8', strokeWidth: 2 });
+}, { key: 'broker-group' })
+);
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={anchoredPrimitiveScene} />
+</CodePreview>
+
 ## Signal overlay
 
 The built-in `signal` overlay draws a moving marker between two nodes. By default it interpolates between node centers:
@@ -573,6 +689,7 @@ These ship in the default registry and can be used immediately:
 | `rect`        | Primitive rectangle (via `.rect()` helper)                                            |
 | `circle`      | Primitive circle (via `.circle()` helper)                                             |
 | `text`        | Primitive text label (via `.text()` helper)                                           |
+| `group`       | Primitive overlay container with local child coordinates (via `.group()` helper)      |
 
 ## Keys
 
@@ -612,6 +729,8 @@ builder.play();
 ### Group overlays
 
 Move multiple overlay elements as one unit using a **group overlay**:
+
+Set `nodeId` with optional `offsetX` / `offsetY` when the group's local origin should stay attached to a node center instead of an absolute scene position.
 
 <CodePreview code={`import { viz } from 'vizcraft';
 
