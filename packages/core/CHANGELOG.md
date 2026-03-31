@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.14.0
+
+### Minor Changes
+
+- [`7c4bee3`](https://github.com/ChipiKaf/vizcraft/commit/7c4bee3f3019b241f347230b6314c1859db751e1) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add resting and parked positioning options to the built-in `signal` overlay so signals can stay visible inside a node after arrival while still supporting routed edge motion.
+
 ## 1.13.0
 
 ### Minor Changes
