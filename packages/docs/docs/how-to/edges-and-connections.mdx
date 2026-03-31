@@ -730,7 +730,7 @@ Returns `null` when:
 - A referenced node id does not exist.
 - Both endpoints are missing (no `from`/`to` and no `fromAt`/`toAt`).
 
-The return type is [`ResolvedEdgeGeometry`](/reference/types#resolvededgegeometry), which extends [`EdgePathResult`](/reference/types#edgepathresult).
+The return type is [`ResolvedEdgeGeometry`](../reference/types#resolvededgegeometry), which extends [`EdgePathResult`](../reference/types#edgepathresult).
 
 For batch processing, use the lower-level `resolveEdgeGeometryFromData(edge, nodesById)` to avoid rebuilding the node map on each call:
 

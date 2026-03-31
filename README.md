@@ -632,6 +632,35 @@ For deeper guides and API references, see [docs here](https://vizcraft-docs.verc
 - **Overlays**: add non-node/edge visuals using `.overlay(id, params, key?)`.
 - **React integration**: see the workspace package [packages/react-vizcraft](packages/react-vizcraft) (monorepo).
 
+### Routed signal overlays
+
+The built-in `signal` overlay can follow the actual rendered edge path instead of moving center-to-center:
+
+```ts
+const builder = viz()
+  .view(620, 280)
+  .node('broker', { at: { x: 150, y: 180 }, rect: { w: 120, h: 72, rx: 16 } })
+  .node('p2', { at: { x: 470, y: 80 }, rect: { w: 110, h: 60, rx: 14 } })
+  .edge('broker', 'p2', 'broker-p2')
+  .routing('curved')
+  .via(250, 250)
+  .via(380, 40)
+  .done()
+  .overlay(
+    'signal',
+    {
+      from: 'broker',
+      to: 'p2',
+      edgeId: 'broker-p2',
+      progress: 0.6,
+      magnitude: 0.8,
+    },
+    'sig'
+  );
+```
+
+Use `followEdge: true` when there is only one `from -> to` edge. If the edge is missing or ambiguous, VizCraft falls back to the existing straight center-to-center interpolation.
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is a monorepo managed with Turbo.

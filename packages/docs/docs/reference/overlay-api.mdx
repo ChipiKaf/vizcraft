@@ -114,11 +114,42 @@ Child coordinates are **group-local** (transformed by the group's translate/scal
 
 ### Pre-registered kinds
 
-| Kind          | Params                                       | Description                     |
-| ------------- | -------------------------------------------- | ------------------------------- |
-| `signal`      | `{ from, to, progress, magnitude }`          | Moving marker between two nodes |
-| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }` | Grid axis labels                |
-| `data-points` | varies                                       | Points attached to nodes        |
+| Kind          | Params                                                    | Description                                       |
+| ------------- | --------------------------------------------------------- | ------------------------------------------------- |
+| `signal`      | `{ from, to, progress, magnitude, followEdge?, edgeId? }` | Moving marker between nodes or along an edge path |
+| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }`              | Grid axis labels                                  |
+| `data-points` | varies                                                    | Points attached to nodes                          |
+
+### `signal`
+
+`signal` interpolates between node centers by default.
+
+- Set `followEdge: true` to follow the rendered edge path when there is exactly one matching `from -> to` edge.
+- Set `edgeId` to follow a specific edge when multiple edges connect the same nodes.
+- If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation.
+
+| Param         | Type      | Description                                                               |
+| ------------- | --------- | ------------------------------------------------------------------------- |
+| `from`        | `string`  | Source node id used for fallback interpolation and implicit edge matching |
+| `to`          | `string`  | Target node id used for fallback interpolation and implicit edge matching |
+| `progress`    | `number`  | Position along the motion path, typically `0..1`                          |
+| `magnitude?`  | `number`  | Visual intensity used to scale the marker radius                          |
+| `followEdge?` | `boolean` | Follow the only matching `from -> to` edge path when `true`               |
+| `edgeId?`     | `string`  | Explicit edge id to follow; takes precedence over `followEdge`            |
+
+```typescript
+builder.overlay(
+  'signal',
+  {
+    from: 'broker',
+    to: 'p2',
+    edgeId: 'broker-p2',
+    progress: 0.6,
+    magnitude: 0.8,
+  },
+  'sig'
+);
+```
 
 ---
 

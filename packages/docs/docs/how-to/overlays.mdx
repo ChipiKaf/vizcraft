@@ -61,6 +61,62 @@ export const basicSignalScene = basicSignalBuilder
     )
   );
 
+export const routedSignalCss = `
+.viz-signal-centerline .viz-signal-shape {
+  fill: #94a3b8;
+  stroke: #475569;
+}
+
+.viz-signal-follow .viz-signal-shape {
+fill: #f97316;
+stroke: #c2410c;
+}
+`;
+
+export const routedSignalBuilder = viz().view(620, 280);
+export const routedSignalScene = routedSignalBuilder
+  .node('broker')
+  .at(150, 180)
+  .rect(120, 72, 16)
+  .label('Broker', { dy: -48, fontWeight: 700 })
+  .node('p2')
+  .at(470, 80)
+  .rect(110, 60, 14)
+  .label('Partition 2', { dy: -40, fontWeight: 700 })
+  .edge('broker', 'p2', 'broker-p2')
+  .routing('curved')
+  .via(250, 250)
+  .via(380, 40)
+  .stroke('#334155', 3)
+  .overlay((o) =>
+    o
+      .text(
+        {
+          x: 28,
+          y: 30,
+          text: 'Grey = center interpolation, orange = edge path',
+          fontSize: 14,
+        },
+        { key: 'legend' }
+      )
+      .add(
+        'signal',
+        { from: 'broker', to: 'p2', progress: 0.56, magnitude: 0.35 },
+        { key: 'centerline', className: 'viz-signal-centerline' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'broker',
+          to: 'p2',
+          edgeId: 'broker-p2',
+          progress: 0.56,
+          magnitude: 0.9,
+        },
+        { key: 'followed', className: 'viz-signal-follow' }
+      )
+  );
+
 export const multiOverlayBuilder = viz().view(520, 240);
 export const multiOverlayScene = multiOverlayBuilder
   .grid(5, 3, { x: 30, y: 30 })
@@ -198,7 +254,7 @@ css: '.viz-selection { fill: #3b82f6; fill-opacity: 0.12; stroke: #3b82f6; strok
 
 ## Signal overlay
 
-The built-in `signal` overlay draws a moving marker between two nodes:
+The built-in `signal` overlay draws a moving marker between two nodes. By default it interpolates between node centers:
 
 <CodePreview code={`import { viz } from 'vizcraft';
 
@@ -211,6 +267,33 @@ builder.mount(document.getElementById('container'));
 `}>
 
   <VizMount builder={basicSignalScene} />
+</CodePreview>
+
+### Follow the rendered edge path
+
+Add `followEdge: true` when a single edge connects `from -> to`, or pass `edgeId` to follow a specific routed edge path. If the edge is missing or ambiguous, VizCraft falls back to the existing center-to-center interpolation.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(620, 280);
+builder
+.node('broker').at(150, 180).rect(120, 72, 16).label('Broker', { dy: -48, fontWeight: 700 })
+.node('p2').at(470, 80).rect(110, 60, 14).label('Partition 2', { dy: -40, fontWeight: 700 })
+.edge('broker', 'p2', 'broker-p2').routing('curved').via(250, 250).via(380, 40).stroke('#334155', 3)
+.overlay((o) =>
+o
+.text({ x: 28, y: 30, text: 'Grey = center interpolation, orange = edge path', fontSize: 14 }, { key: 'legend' })
+.add('signal', { from: 'broker', to: 'p2', progress: 0.56, magnitude: 0.35 }, { key: 'centerline', className: 'viz-signal-centerline' })
+.add('signal', { from: 'broker', to: 'p2', edgeId: 'broker-p2', progress: 0.56, magnitude: 0.9 }, { key: 'followed', className: 'viz-signal-follow' })
+);
+
+builder.mount(document.getElementById('container'), {
+css: '.viz-signal-centerline .viz-signal-shape { fill: #94a3b8; stroke: #475569; } ' +
+'.viz-signal-follow .viz-signal-shape { fill: #f97316; stroke: #c2410c; }',
+});
+`}>
+
+  <VizMount builder={routedSignalScene} css={routedSignalCss} />
 </CodePreview>
 
 ## Combining multiple overlays
@@ -243,14 +326,14 @@ builder.mount(document.getElementById('container'));
 
 These ship in the default registry and can be used immediately:
 
-| Kind          | Description                                 |
-| ------------- | ------------------------------------------- |
-| `signal`      | Moving marker between two nodes             |
-| `grid-labels` | Axis/grid labels for the grid system        |
-| `data-points` | Points attached to nodes                    |
-| `rect`        | Primitive rectangle (via `.rect()` helper)  |
-| `circle`      | Primitive circle (via `.circle()` helper)   |
-| `text`        | Primitive text label (via `.text()` helper) |
+| Kind          | Description                                       |
+| ------------- | ------------------------------------------------- |
+| `signal`      | Moving marker between nodes or along an edge path |
+| `grid-labels` | Axis/grid labels for the grid system              |
+| `data-points` | Points attached to nodes                          |
+| `rect`        | Primitive rectangle (via `.rect()` helper)        |
+| `circle`      | Primitive circle (via `.circle()` helper)         |
+| `text`        | Primitive text label (via `.text()` helper)       |
 
 ## Keys
 

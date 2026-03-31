@@ -1,10 +1,13 @@
 import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from '../types';
+import { sampleEdgePathFromData } from '../edges/pathSampling';
 
 export type SignalOverlayParams = {
   from: string;
   to: string;
   progress: number;
   magnitude?: number;
+  followEdge?: boolean;
+  edgeId?: string;
 };
 
 export type GridLabelsOverlayParams = {
@@ -147,17 +150,62 @@ export class CoreOverlayRegistry {
   }
 }
 
+function resolveSignalFollowEdge(
+  params: SignalOverlayParams,
+  edgesById: Map<string, VizEdge>,
+  scene: VizScene
+): VizEdge | null {
+  if (params.edgeId) {
+    return edgesById.get(params.edgeId) ?? null;
+  }
+
+  if (!params.followEdge) return null;
+
+  const matches = scene.edges.filter(
+    (edge) => edge.from === params.from && edge.to === params.to
+  );
+
+  return matches.length === 1 ? matches[0]! : null;
+}
+
+function resolveSignalPosition(
+  params: SignalOverlayParams,
+  nodesById: Map<string, VizNode>,
+  edgesById: Map<string, VizEdge>,
+  scene: VizScene
+): { x: number; y: number } | null {
+  const start = nodesById.get(params.from);
+  const end = nodesById.get(params.to);
+
+  if (!start || !end) return null;
+
+  const followedEdge = resolveSignalFollowEdge(params, edgesById, scene);
+  if (followedEdge) {
+    const sampledPoint = sampleEdgePathFromData(
+      followedEdge,
+      nodesById,
+      params.progress
+    );
+    if (sampledPoint) return sampledPoint;
+  }
+
+  return {
+    x: start.pos.x + (end.pos.x - start.pos.x) * params.progress,
+    y: start.pos.y + (end.pos.y - start.pos.y) * params.progress,
+  };
+}
+
 // Built-in Overlay: Signal
 export const coreSignalOverlay: CoreOverlayRenderer<SignalOverlayParams> = {
-  render: ({ spec, nodesById }) => {
-    const { from, to, progress } = spec.params;
-    const start = nodesById.get(from);
-    const end = nodesById.get(to);
+  render: ({ spec, nodesById, edgesById, scene }) => {
+    const position = resolveSignalPosition(
+      spec.params,
+      nodesById,
+      edgesById,
+      scene
+    );
 
-    if (!start || !end) return '';
-
-    const x = start.pos.x + (end.pos.x - start.pos.x) * progress;
-    const y = start.pos.y + (end.pos.y - start.pos.y) * progress;
+    if (!position) return '';
 
     let v = Math.abs(spec.params.magnitude ?? 1);
     if (v > 1) v = 1;
@@ -166,7 +214,7 @@ export const coreSignalOverlay: CoreOverlayRenderer<SignalOverlayParams> = {
     const className = spec.className ?? 'viz-signal';
 
     return `
-            <g transform="translate(${x}, ${y})">
+        <g transform="translate(${position.x}, ${position.y})">
                 <g class="${className}">
                     <circle r="10" fill="transparent" stroke="none" />
                     <circle r="${r}" class="viz-signal-shape" />
