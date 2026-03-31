@@ -114,28 +114,34 @@ Child coordinates are **group-local** (transformed by the group's translate/scal
 
 ### Pre-registered kinds
 
-| Kind          | Params                                                    | Description                                       |
-| ------------- | --------------------------------------------------------- | ------------------------------------------------- |
-| `signal`      | `{ from, to, progress, magnitude, followEdge?, edgeId? }` | Moving marker between nodes or along an edge path |
-| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }`              | Grid axis labels                                  |
-| `data-points` | varies                                                    | Points attached to nodes                          |
+| Kind          | Params                                                                                                   | Description                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `signal`      | `{ from, to, progress, magnitude, followEdge?, edgeId?, resting?, parkAt?, parkOffsetX?, parkOffsetY? }` | Moving marker between nodes, along an edge path, or parked in a node |
+| `grid-labels` | `{ colLabels, rowLabels, xOffset, yOffset }`                                                             | Grid axis labels                                                     |
+| `data-points` | varies                                                                                                   | Points attached to nodes                                             |
 
 ### `signal`
 
-`signal` interpolates between node centers by default.
+`signal` interpolates between node centers by default. It can also follow a rendered edge path in flight, then park inside a node after arrival. See [SignalOverlayParams](./types#signaloverlayparams) for the exported type.
 
 - Set `followEdge: true` to follow the rendered edge path when there is exactly one matching `from -> to` edge.
 - Set `edgeId` to follow a specific edge when multiple edges connect the same nodes.
-- If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation.
+- Set `resting: true` to keep the signal visible at `to` once `progress >= 1`.
+- Set `parkAt` to override the parked node, and use `parkOffsetX` / `parkOffsetY` to offset from that node's center for stacking or jitter.
+- If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation before arrival.
 
-| Param         | Type      | Description                                                               |
-| ------------- | --------- | ------------------------------------------------------------------------- |
-| `from`        | `string`  | Source node id used for fallback interpolation and implicit edge matching |
-| `to`          | `string`  | Target node id used for fallback interpolation and implicit edge matching |
-| `progress`    | `number`  | Position along the motion path, typically `0..1`                          |
-| `magnitude?`  | `number`  | Visual intensity used to scale the marker radius                          |
-| `followEdge?` | `boolean` | Follow the only matching `from -> to` edge path when `true`               |
-| `edgeId?`     | `string`  | Explicit edge id to follow; takes precedence over `followEdge`            |
+| Param          | Type      | Description                                                                |
+| -------------- | --------- | -------------------------------------------------------------------------- |
+| `from`         | `string`  | Source node id used for fallback interpolation and implicit edge matching  |
+| `to`           | `string`  | Target node id used for fallback interpolation and the default parked node |
+| `progress`     | `number`  | Position along the motion path, typically `0..1`; parking begins at `>= 1` |
+| `magnitude?`   | `number`  | Visual intensity used to scale the marker radius                           |
+| `followEdge?`  | `boolean` | Follow the only matching `from -> to` edge path when `true`                |
+| `edgeId?`      | `string`  | Explicit edge id to follow; takes precedence over `followEdge`             |
+| `resting?`     | `boolean` | Keep the signal visible at `to` once it arrives                            |
+| `parkAt?`      | `string`  | Override the node used for parked placement after arrival                  |
+| `parkOffsetX?` | `number`  | Horizontal parked offset from the parked node center                       |
+| `parkOffsetY?` | `number`  | Vertical parked offset from the parked node center                         |
 
 ```typescript
 builder.overlay(
@@ -144,7 +150,10 @@ builder.overlay(
     from: 'broker',
     to: 'p2',
     edgeId: 'broker-p2',
-    progress: 0.6,
+    progress: 1,
+    resting: true,
+    parkOffsetX: 12,
+    parkOffsetY: -8,
     magnitude: 0.8,
   },
   'sig'

@@ -27,6 +27,10 @@ function renderSignalFromScene(
     magnitude?: number;
     followEdge?: boolean;
     edgeId?: string;
+    resting?: boolean;
+    parkAt?: string;
+    parkOffsetX?: number;
+    parkOffsetY?: number;
   }
 ) {
   const scene = buildSignalScene(includeStraightAlternative);
@@ -77,6 +81,53 @@ describe('coreSignalOverlay', () => {
         to: 'b',
         followEdge: true,
         progress: 0.5,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(260, 1);
+    expect(point.y).toBeGreaterThan(110);
+  });
+
+  it('parks at the destination node once a resting signal arrives', () => {
+    const point = extractTranslate(
+      renderSignalFromScene(false, {
+        from: 'a',
+        to: 'b',
+        followEdge: true,
+        progress: 1,
+        resting: true,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(400, 5);
+    expect(point.y).toBeCloseTo(100, 5);
+  });
+
+  it('applies parked offsets relative to the parked node center', () => {
+    const point = extractTranslate(
+      renderSignalFromScene(false, {
+        from: 'a',
+        to: 'b',
+        edgeId: 'curve',
+        progress: 1,
+        parkAt: 'b',
+        parkOffsetX: 8,
+        parkOffsetY: -4,
+      })
+    );
+
+    expect(point.x).toBeCloseTo(408, 5);
+    expect(point.y).toBeCloseTo(96, 5);
+  });
+
+  it('keeps a resting signal in motion until it arrives', () => {
+    const point = extractTranslate(
+      renderSignalFromScene(false, {
+        from: 'a',
+        to: 'b',
+        edgeId: 'curve',
+        progress: 0.5,
+        resting: true,
       })
     );
 

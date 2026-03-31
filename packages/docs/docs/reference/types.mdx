@@ -31,6 +31,27 @@ Complete, serializable description of what to render.
 
 ---
 
+## SignalOverlayParams {#signaloverlayparams}
+
+Built-in params for the `signal` overlay.
+
+Before arrival, the signal uses the normal center-to-center or edge-following motion rules. When `resting` or `parkAt` are set and `progress >= 1`, the signal parks at the chosen node center plus any offsets.
+
+| Field          | Type      | Description                                                                |
+| -------------- | --------- | -------------------------------------------------------------------------- |
+| `from`         | `string`  | Source node id used for fallback interpolation and implicit edge matching  |
+| `to`           | `string`  | Target node id used for fallback interpolation and the default parked node |
+| `progress`     | `number`  | Position along the motion path; parked placement begins at `>= 1`          |
+| `magnitude?`   | `number`  | Visual intensity used to scale the marker radius                           |
+| `followEdge?`  | `boolean` | Follow the only matching `from -> to` edge path when `true`                |
+| `edgeId?`      | `string`  | Explicit edge id to follow; takes precedence over `followEdge`             |
+| `resting?`     | `boolean` | Keep the signal visible at `to` once it arrives                            |
+| `parkAt?`      | `string`  | Override the node used for parked placement after arrival                  |
+| `parkOffsetX?` | `number`  | Horizontal parked offset from the parked node center                       |
+| `parkOffsetY?` | `number`  | Vertical parked offset from the parked node center                         |
+
+---
+
 ## VizNode
 
 A node in the scene graph.

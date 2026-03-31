@@ -1,5 +1,6 @@
 import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from '../types';
 import { sampleEdgePathFromData } from '../edges/pathSampling';
+import { effectivePos } from '../shapes/geometry';
 
 export type SignalOverlayParams = {
   from: string;
@@ -8,6 +9,10 @@ export type SignalOverlayParams = {
   magnitude?: number;
   followEdge?: boolean;
   edgeId?: string;
+  resting?: boolean;
+  parkAt?: string;
+  parkOffsetX?: number;
+  parkOffsetY?: number;
 };
 
 export type GridLabelsOverlayParams = {
@@ -168,12 +173,39 @@ function resolveSignalFollowEdge(
   return matches.length === 1 ? matches[0]! : null;
 }
 
+function resolveSignalParkedPosition(
+  params: SignalOverlayParams,
+  nodesById: Map<string, VizNode>
+): { x: number; y: number } | null {
+  const shouldPark =
+    Number.isFinite(params.progress) &&
+    params.progress >= 1 &&
+    (params.resting === true || params.parkAt !== undefined);
+
+  if (!shouldPark) return null;
+
+  const parkedNode =
+    nodesById.get(params.parkAt ?? params.to) ?? nodesById.get(params.to);
+
+  if (!parkedNode) return null;
+
+  const parkedPos = effectivePos(parkedNode);
+
+  return {
+    x: parkedPos.x + (params.parkOffsetX ?? 0),
+    y: parkedPos.y + (params.parkOffsetY ?? 0),
+  };
+}
+
 function resolveSignalPosition(
   params: SignalOverlayParams,
   nodesById: Map<string, VizNode>,
   edgesById: Map<string, VizEdge>,
   scene: VizScene
 ): { x: number; y: number } | null {
+  const parkedPosition = resolveSignalParkedPosition(params, nodesById);
+  if (parkedPosition) return parkedPosition;
+
   const start = nodesById.get(params.from);
   const end = nodesById.get(params.to);
 
@@ -189,9 +221,12 @@ function resolveSignalPosition(
     if (sampledPoint) return sampledPoint;
   }
 
+  const startPos = effectivePos(start);
+  const endPos = effectivePos(end);
+
   return {
-    x: start.pos.x + (end.pos.x - start.pos.x) * params.progress,
-    y: start.pos.y + (end.pos.y - start.pos.y) * params.progress,
+    x: startPos.x + (endPos.x - startPos.x) * params.progress,
+    y: startPos.y + (endPos.y - startPos.y) * params.progress,
   };
 }
 

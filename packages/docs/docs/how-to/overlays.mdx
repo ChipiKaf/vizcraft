@@ -117,6 +117,85 @@ export const routedSignalScene = routedSignalBuilder
       )
   );
 
+export const restingSignalCss = `
+.viz-signal-transit .viz-signal-shape {
+  fill: #38bdf8;
+  stroke: #0369a1;
+}
+
+.viz-signal-resting .viz-signal-shape {
+fill: #fbbf24;
+stroke: #b45309;
+}
+`;
+
+export const restingSignalBuilder = viz().view(620, 260);
+export const restingSignalScene = restingSignalBuilder
+  .node('broker')
+  .at(140, 150)
+  .rect(120, 72, 16)
+  .label('Broker', { dy: -48, fontWeight: 700 })
+  .node('partition')
+  .at(470, 110)
+  .rect(140, 78, 16)
+  .label('Partition', { dy: -52, fontWeight: 700 })
+  .edge('broker', 'partition', 'broker-partition')
+  .routing('curved')
+  .via(250, 225)
+  .via(365, 55)
+  .stroke('#475569', 3)
+  .overlay((o) =>
+    o
+      .text(
+        {
+          x: 24,
+          y: 30,
+          text: 'Blue = in flight, amber = parked inside the node',
+          fontSize: 14,
+        },
+        { key: 'legend' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'broker',
+          to: 'partition',
+          edgeId: 'broker-partition',
+          progress: 0.48,
+          magnitude: 0.55,
+        },
+        { key: 'moving', className: 'viz-signal-transit' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'broker',
+          to: 'partition',
+          edgeId: 'broker-partition',
+          progress: 1,
+          resting: true,
+          parkOffsetX: -14,
+          parkOffsetY: 10,
+          magnitude: 0.8,
+        },
+        { key: 'rest-a', className: 'viz-signal-resting' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'broker',
+          to: 'partition',
+          edgeId: 'broker-partition',
+          progress: 1,
+          parkAt: 'partition',
+          parkOffsetX: 14,
+          parkOffsetY: -10,
+          magnitude: 0.8,
+        },
+        { key: 'rest-b', className: 'viz-signal-resting' }
+      )
+  );
+
 export const multiOverlayBuilder = viz().view(520, 240);
 export const multiOverlayScene = multiOverlayBuilder
   .grid(5, 3, { x: 30, y: 30 })
@@ -296,6 +375,41 @@ css: '.viz-signal-centerline .viz-signal-shape { fill: #94a3b8; stroke: #475569;
   <VizMount builder={routedSignalScene} css={routedSignalCss} />
 </CodePreview>
 
+### Keep a signal parked after arrival
+
+Set `resting: true` to keep the same `signal` overlay visible at `to` once `progress >= 1`. Use `parkAt` to override the parked node and `parkOffsetX` / `parkOffsetY` to stack multiple arrived signals without switching to a different overlay kind. See [SignalOverlayParams](../reference/types#signaloverlayparams) for the exported type.
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(620, 260);
+builder
+.node('broker').at(140, 150).rect(120, 72, 16).label('Broker', { dy: -48, fontWeight: 700 })
+.node('partition').at(470, 110).rect(140, 78, 16).label('Partition', { dy: -52, fontWeight: 700 })
+.edge('broker', 'partition', 'broker-partition').routing('curved').via(250, 225).via(365, 55).stroke('#475569', 3)
+.overlay((o) =>
+o
+.add('signal', {
+from: 'broker', to: 'partition', edgeId: 'broker-partition', progress: 0.48, magnitude: 0.55,
+}, { key: 'moving', className: 'viz-signal-transit' })
+.add('signal', {
+from: 'broker', to: 'partition', edgeId: 'broker-partition', progress: 1, resting: true,
+parkOffsetX: -14, parkOffsetY: 10, magnitude: 0.8,
+}, { key: 'rest-a', className: 'viz-signal-resting' })
+.add('signal', {
+from: 'broker', to: 'partition', edgeId: 'broker-partition', progress: 1, parkAt: 'partition',
+parkOffsetX: 14, parkOffsetY: -10, magnitude: 0.8,
+}, { key: 'rest-b', className: 'viz-signal-resting' })
+);
+
+builder.mount(document.getElementById('container'), {
+css: '.viz-signal-transit .viz-signal-shape { fill: #38bdf8; stroke: #0369a1; } ' +
+'.viz-signal-resting .viz-signal-shape { fill: #fbbf24; stroke: #b45309; }',
+});
+`}>
+
+  <VizMount builder={restingSignalScene} css={restingSignalCss} />
+</CodePreview>
+
 ## Combining multiple overlays
 
 Use the callback form to compose several overlays in one call:
@@ -326,14 +440,14 @@ builder.mount(document.getElementById('container'));
 
 These ship in the default registry and can be used immediately:
 
-| Kind          | Description                                       |
-| ------------- | ------------------------------------------------- |
-| `signal`      | Moving marker between nodes or along an edge path |
-| `grid-labels` | Axis/grid labels for the grid system              |
-| `data-points` | Points attached to nodes                          |
-| `rect`        | Primitive rectangle (via `.rect()` helper)        |
-| `circle`      | Primitive circle (via `.circle()` helper)         |
-| `text`        | Primitive text label (via `.text()` helper)       |
+| Kind          | Description                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| `signal`      | Moving marker between nodes, along an edge path, or parked in a node |
+| `grid-labels` | Axis/grid labels for the grid system                                 |
+| `data-points` | Points attached to nodes                                             |
+| `rect`        | Primitive rectangle (via `.rect()` helper)                           |
+| `circle`      | Primitive circle (via `.circle()` helper)                            |
+| `text`        | Primitive text label (via `.text()` helper)                          |
 
 ## Keys
 

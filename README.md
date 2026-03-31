@@ -661,6 +661,24 @@ const builder = viz()
 
 Use `followEdge: true` when there is only one `from -> to` edge. If the edge is missing or ambiguous, VizCraft falls back to the existing straight center-to-center interpolation.
 
+To keep a signal visible after arrival without switching overlay kinds, set `resting: true`. Use `parkAt` to override the parked node and `parkOffsetX` / `parkOffsetY` to stack multiple arrived signals inside the same node:
+
+```ts
+builder.overlay(
+  'signal',
+  {
+    from: 'broker',
+    to: 'p2',
+    edgeId: 'broker-p2',
+    progress: 1,
+    resting: true,
+    parkOffsetX: 12,
+    parkOffsetY: -8,
+  },
+  'sig-resting'
+);
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is a monorepo managed with Turbo.
