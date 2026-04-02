@@ -1051,6 +1051,12 @@ export interface PanZoomOptions {
   maxZoom?: number;
   /** Initial zoom level ('fit' or number, default: 'fit') */
   initialZoom?: 'fit' | number;
+  /**
+   * Initial pan offset applied after mount.
+   * Only used when `initialZoom` is a number (ignored when `'fit'`).
+   * Useful for restoring viewport state across scene rebuilds.
+   */
+  initialPan?: Vec2;
   /** Whether scroll wheel zooms (default: true) */
   zoomOnWheel?: boolean;
   /** Whether drag on empty space pans (default: true) */
@@ -1073,6 +1079,9 @@ export interface PanZoomController {
   zoomToNode(nodeId: string, padding?: number): void;
   /** Reset pan and zoom to initial state */
   reset(): void;
+
+  /** Return a snapshot of the current viewport state (zoom + pan). */
+  getState(): { zoom: number; pan: Vec2 };
 
   /** Listen for viewport changes */
   onChange(cb: (state: { zoom: number; pan: Vec2 }) => void): () => void;

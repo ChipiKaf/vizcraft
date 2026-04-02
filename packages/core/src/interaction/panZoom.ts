@@ -93,7 +93,7 @@ export function setupPanZoom(
       fitToContent();
     } else {
       setZoom(options.initialZoom);
-      setPan({ x: 0, y: 0 });
+      setPan(options.initialPan ?? { x: 0, y: 0 });
     }
   };
 
@@ -225,6 +225,9 @@ export function setupPanZoom(
     fitToContent,
     zoomToNode,
     reset,
+    getState() {
+      return { zoom, pan: { ...pan } };
+    },
     onChange(cb: Listener) {
       listeners.push(cb);
       return () => {

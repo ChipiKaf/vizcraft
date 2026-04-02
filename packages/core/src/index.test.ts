@@ -4063,6 +4063,93 @@ describe('vizcraft core', () => {
       expect(viewport.getAttribute('transform')).toContain('translate(10, 20)');
       expect(viewport.getAttribute('transform')).toContain('scale(2)');
     });
+
+    it('getState() returns a snapshot of current zoom and pan', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .view(200, 200)
+        .node('a', { circle: { r: 10 }, at: { x: 100, y: 100 } });
+      const controller = builder.mount(container, {
+        panZoom: true,
+        initialZoom: 1,
+      });
+      expect(controller).toBeDefined();
+
+      controller!.setZoom(2.5);
+      controller!.setPan({ x: -30, y: 15 });
+
+      const state = controller!.getState();
+      expect(state.zoom).toBe(2.5);
+      expect(state.pan).toEqual({ x: -30, y: 15 });
+
+      // Returned snapshot is a copy, not a mutable reference
+      state.pan.x = 999;
+      expect(controller!.pan.x).toBe(-30);
+    });
+
+    it('initialPan sets the starting pan offset when initialZoom is a number', () => {
+      const container = document.createElement('div');
+      const builder = viz()
+        .view(200, 200)
+        .node('a', { circle: { r: 10 }, at: { x: 100, y: 100 } });
+      const controller = builder.mount(container, {
+        panZoom: true,
+        initialZoom: 1.5,
+        initialPan: { x: -40, y: 20 },
+      });
+      expect(controller).toBeDefined();
+
+      // The deferred rAF init applies initialZoom + initialPan; force it via reset()
+      controller!.reset();
+
+      expect(controller!.zoom).toBe(1.5);
+      expect(controller!.pan).toEqual({ x: -40, y: 20 });
+
+      const viewport = container.querySelector('g.viz-viewport') as SVGGElement;
+      expect(viewport.getAttribute('transform')).toContain(
+        'translate(-40, 20)'
+      );
+      expect(viewport.getAttribute('transform')).toContain('scale(1.5)');
+    });
+
+    it('pan-zoom state can be transferred across scene rebuilds', () => {
+      const container = document.createElement('div');
+
+      // Build and mount first scene
+      const builder1 = viz()
+        .view(200, 200)
+        .node('a', { circle: { r: 10 }, at: { x: 50, y: 50 } });
+      const ctrl1 = builder1.mount(container, {
+        panZoom: true,
+        initialZoom: 1,
+      });
+      expect(ctrl1).toBeDefined();
+
+      // User pans and zooms
+      ctrl1!.setZoom(2);
+      ctrl1!.setPan({ x: -100, y: 50 });
+
+      // Capture state before destroy
+      const prev = ctrl1!.getState();
+      builder1.destroy();
+
+      // Rebuild a new scene restoring the viewport
+      const builder2 = viz()
+        .view(200, 200)
+        .node('b', { circle: { r: 10 }, at: { x: 80, y: 80 } });
+      const ctrl2 = builder2.mount(container, {
+        panZoom: true,
+        initialZoom: prev.zoom,
+        initialPan: prev.pan,
+      });
+      expect(ctrl2).toBeDefined();
+
+      // Force initialization (simulates the rAF callback)
+      ctrl2!.reset();
+
+      expect(ctrl2!.zoom).toBe(2);
+      expect(ctrl2!.pan).toEqual({ x: -100, y: 50 });
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════
