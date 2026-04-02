@@ -295,11 +295,36 @@ controller.setZoom(2.5);
 controller.setPan({ x: -100, y: -50 });
 controller.reset();
 
+// Snapshot current viewport state
+const state = controller.getState(); // { zoom: number, pan: Vec2 }
+
 // Subscribe to viewport changes
 const unsubscribe = controller.onChange(({ zoom, pan }) => {
   console.log('Scale:', zoom, 'Translation:', pan);
 });
 ```
+
+### Persisting viewport across scene rebuilds
+
+When a scene is rebuilt (e.g. in a React `useLayoutEffect`), the
+`PanZoomController` is destroyed and the viewport resets. Use `getState()` to
+capture the viewport before destroying, then pass the values back via
+`initialZoom` and `initialPan`:
+
+```typescript
+// 1. Read from the outgoing controller
+const prev = oldController.getState();
+oldScene.destroy();
+
+// 2. Mount the new scene with the saved viewport
+const newController = newScene.mount(container, {
+  panZoom: true,
+  initialZoom: prev.zoom,
+  initialPan: prev.pan,
+});
+```
+
+`initialPan` is only used when `initialZoom` is a number (not `'fit'`).
 
 ## Tooltips
 

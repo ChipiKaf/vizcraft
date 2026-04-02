@@ -121,15 +121,16 @@ Compiles the builder state into a plain `VizScene` data object.
 
 Renders the scene to a DOM element.
 
-| Option            | Type              | Default | Description                   |
-| ----------------- | ----------------- | ------- | ----------------------------- |
-| `panZoom`         | `boolean`         | `false` | Enable interactive pan & zoom |
-| `minZoom`         | `number`          | `0.1`   | Minimum zoom level            |
-| `maxZoom`         | `number`          | `5`     | Maximum zoom level            |
-| `initialZoom`     | `'fit' \| number` | `'fit'` | Initial zoom                  |
-| `autoplay`        | `boolean`         | `false` | Auto-play animations          |
-| `css`             | `string`          | —       | Injected CSS string           |
-| `overlayRegistry` | `OverlayRegistry` | default | Custom overlay registry       |
+| Option            | Type              | Default | Description                                                   |
+| ----------------- | ----------------- | ------- | ------------------------------------------------------------- |
+| `panZoom`         | `boolean`         | `false` | Enable interactive pan & zoom                                 |
+| `minZoom`         | `number`          | `0.1`   | Minimum zoom level                                            |
+| `maxZoom`         | `number`          | `5`     | Maximum zoom level                                            |
+| `initialZoom`     | `'fit' \| number` | `'fit'` | Initial zoom                                                  |
+| `initialPan`      | `Vec2`            | —       | Initial pan offset (only used when `initialZoom` is a number) |
+| `autoplay`        | `boolean`         | `false` | Auto-play animations                                          |
+| `css`             | `string`          | —       | Injected CSS string                                           |
+| `overlayRegistry` | `OverlayRegistry` | default | Custom overlay registry                                       |
 
 ### `.svg(opts?)` → `string`
 

@@ -688,6 +688,41 @@ type LayoutAlgorithm<Options = any> = (
 
 ---
 
+## Pan & Zoom Types {#pan-zoom-types}
+
+### PanZoomOptions {#panzoomoptions}
+
+Options passed to `.mount(container, opts)` to configure interactive viewport controls.
+
+| Field         | Type              | Default | Description                                                  |
+| ------------- | ----------------- | ------- | ------------------------------------------------------------ |
+| `panZoom`     | `boolean`         | `false` | Enable pan & zoom                                            |
+| `minZoom`     | `number`          | `0.1`   | Minimum zoom level                                           |
+| `maxZoom`     | `number`          | `5`     | Maximum zoom level                                           |
+| `initialZoom` | `'fit' \| number` | `'fit'` | Initial zoom level. `'fit'` calculates zoom to fit content   |
+| `initialPan`  | `Vec2`            | —       | Initial pan offset. Only used when `initialZoom` is a number |
+| `zoomOnWheel` | `boolean`         | `true`  | Whether scroll wheel zooms                                   |
+| `panOnDrag`   | `boolean`         | `true`  | Whether drag on empty space pans                             |
+
+### PanZoomController {#panzoomcontroller}
+
+Returned by `.mount()` when `panZoom` is `true`.
+
+| Member                         | Type / Returns                | Description                                                 |
+| ------------------------------ | ----------------------------- | ----------------------------------------------------------- |
+| `zoom`                         | `number`                      | Current zoom level (read-only)                              |
+| `pan`                          | `Vec2`                        | Current pan offset (read-only copy)                         |
+| `setZoom(level, center?)`      | `void`                        | Set zoom level, optionally keeping `center` fixed           |
+| `setPan(offset)`               | `void`                        | Set absolute pan offset                                     |
+| `fitToContent(padding?)`       | `void`                        | Zoom & pan to fit all content                               |
+| `zoomToNode(nodeId, padding?)` | `void`                        | Center on a specific node                                   |
+| `reset()`                      | `void`                        | Restore initial zoom & pan                                  |
+| `getState()`                   | `{ zoom: number; pan: Vec2 }` | Snapshot current viewport state                             |
+| `onChange(cb)`                 | `() => void`                  | Subscribe to viewport changes; returns unsubscribe function |
+| `destroy()`                    | `void`                        | Clean up event listeners                                    |
+
+---
+
 ## Utilities {#utilities}
 
 ### `getNodeBoundingBox(shape)` {#getnodeboundingbox}
