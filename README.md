@@ -774,6 +774,40 @@ builder.overlay(
 );
 ```
 
+### Per-signal color override
+
+Set `color` to override the default blue fill on individual signals. An optional `glowColor` adds a drop-shadow halo (defaults to `color`).
+
+```ts
+// Green ball — majority committed
+builder.overlay(
+  'signal',
+  {
+    from: 'primary',
+    to: 'reader',
+    edgeId: 'primary-reader',
+    progress: 0.6,
+    magnitude: 0.85,
+    color: '#22c55e',
+  },
+  'committed'
+);
+
+// Amber ball — stale snapshot
+builder.overlay(
+  'signal',
+  {
+    from: 'primary',
+    to: 'reader',
+    edgeId: 'primary-reader',
+    progress: 0.6,
+    magnitude: 0.85,
+    color: '#f59e0b',
+  },
+  'stale'
+);
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is a monorepo managed with Turbo.
