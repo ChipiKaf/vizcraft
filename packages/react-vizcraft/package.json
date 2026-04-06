@@ -1,6 +1,6 @@
 {
   "name": "react-vizcraft",
-  "version": "19.0.0",
+  "version": "20.0.0",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
