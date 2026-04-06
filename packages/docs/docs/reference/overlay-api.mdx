@@ -132,6 +132,7 @@ When `nodeId` is provided, `circle` and `text` use `node.centre + { offsetX, off
 - Set `edgeId` to follow a specific edge when multiple edges connect the same nodes.
 - Set `resting: true` to keep the signal visible at `to` once `progress >= 1`.
 - Set `parkAt` to override the parked node, and use `parkOffsetX` / `parkOffsetY` to offset from that node's center for stacking or jitter.
+- Set `color` to override the default blue fill for a specific signal. Set `glowColor` for a separate halo effect (defaults to `color`).
 - Set `chain` to describe multiple hops inside one overlay. `floor(progress)` selects the active hop and the fractional part drives that hop.
 - When `progress >= chain.length`, chain signals park at the final hop's `to` node automatically.
 - If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation before arrival.
@@ -143,6 +144,8 @@ When `nodeId` is provided, `circle` and `text` use `node.centre + { offsetX, off
 | `chain`        | `SignalOverlayHop[]` | Declarative hop sequence. Each hop may also set `followEdge` or `edgeId`                                                                |
 | `progress`     | `number`             | For single-hop signals, typically `0..1`. For chains, `floor(progress)` selects the hop and `progress >= chain.length` parks at the end |
 | `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                                                                        |
+| `color?`       | `string`             | CSS color for the ball fill; overrides the default class fill (`#3b82f6`)                                                               |
+| `glowColor?`   | `string`             | Separate glow / halo color applied as a drop-shadow; defaults to `color` when omitted                                                   |
 | `followEdge?`  | `boolean`            | For single-hop signals, follow the only matching `from -> to` edge path when `true`                                                     |
 | `edgeId?`      | `string`             | For single-hop signals, explicit edge id to follow; takes precedence over `followEdge`                                                  |
 | `resting?`     | `boolean`            | For single-hop signals, keep the signal visible at `to` once it arrives                                                                 |

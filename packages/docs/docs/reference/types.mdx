@@ -57,6 +57,8 @@ Use either single-hop `from` / `to` fields or a declarative `chain` of [SignalOv
 | `chain?`       | `SignalOverlayHop[]` | Declarative multi-hop path. `floor(progress)` selects the active hop                   |
 | `progress`     | `number`             | Single-hop position `0..1`, or hop index plus local progress for `chain`               |
 | `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                       |
+| `color?`       | `string`             | CSS color for the ball fill; defaults to the class fill (`#3b82f6`)                    |
+| `glowColor?`   | `string`             | Separate glow / halo color; defaults to `color` when omitted                           |
 | `followEdge?`  | `boolean`            | Single-hop edge-follow hint; chain hops carry their own `followEdge`                   |
 | `edgeId?`      | `string`             | Single-hop explicit edge id; chain hops carry their own `edgeId`                       |
 | `resting?`     | `boolean`            | Single-hop only: keep the signal visible at `to` once it arrives                       |

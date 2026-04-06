@@ -370,6 +370,57 @@ export const signalChainAnim = signalChainBuilder.animate((aBuilder) => {
   aBuilder.to({ progress: 0 }, { duration: 500, easing: 'easeOut' });
 });
 
+export const coloredSignalBuilder = viz().view(520, 200);
+export const coloredSignalScene = coloredSignalBuilder
+  .node('primary')
+  .at(120, 100)
+  .circle(18)
+  .label('Primary')
+  .node('reader')
+  .at(400, 100)
+  .circle(18)
+  .label('Reader')
+  .edge('primary', 'reader', 'primary-reader')
+  .routing('curved')
+  .via(260, 180)
+  .stroke('#334155', 3)
+  .overlay((o) =>
+    o
+      .text(
+        {
+          x: 24,
+          y: 28,
+          text: 'Green = committed, amber = stale',
+          fontSize: 14,
+        },
+        { key: 'legend' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'primary',
+          to: 'reader',
+          edgeId: 'primary-reader',
+          progress: 0.35,
+          magnitude: 0.85,
+          color: '#22c55e',
+        },
+        { key: 'committed' }
+      )
+      .add(
+        'signal',
+        {
+          from: 'primary',
+          to: 'reader',
+          edgeId: 'primary-reader',
+          progress: 0.7,
+          magnitude: 0.85,
+          color: '#f59e0b',
+        },
+        { key: 'stale' }
+      )
+  );
+
 export const multiOverlayBuilder = viz().view(520, 240);
 export const multiOverlayScene = multiOverlayBuilder
   .grid(5, 3, { x: 30, y: 30 })
@@ -649,6 +700,35 @@ builder.play();
 `}>
 
   <VizPlaybackControls builder={signalChainScene} autoPlay={true} />
+</CodePreview>
+
+### Color individual signal balls
+
+Set `color` to override the default blue fill on a per-signal basis. An optional `glowColor` adds a drop-shadow halo around the ball (defaults to `color` when omitted). When neither field is set, the signal uses the CSS class default (`#3b82f6`).
+
+<CodePreview code={`import { viz } from 'vizcraft';
+
+const builder = viz().view(520, 200);
+builder
+.node('primary').at(120, 100).circle(18).label('Primary')
+.node('reader').at(400, 100).circle(18).label('Reader')
+.edge('primary', 'reader', 'primary-reader').routing('curved').via(260, 180).stroke('#334155', 3)
+.overlay((o) =>
+o
+.add('signal', {
+from: 'primary', to: 'reader', edgeId: 'primary-reader',
+progress: 0.35, magnitude: 0.85, color: '#22c55e',
+}, { key: 'committed' })
+.add('signal', {
+from: 'primary', to: 'reader', edgeId: 'primary-reader',
+progress: 0.7, magnitude: 0.85, color: '#f59e0b',
+}, { key: 'stale' })
+);
+
+builder.mount(document.getElementById('container'));
+`}>
+
+  <VizMount builder={coloredSignalScene} />
 </CodePreview>
 
 ## Combining multiple overlays

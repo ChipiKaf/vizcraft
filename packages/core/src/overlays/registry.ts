@@ -12,6 +12,8 @@ export type SignalOverlayHop = {
 type SignalOverlayBaseParams = {
   progress: number;
   magnitude?: number;
+  color?: string;
+  glowColor?: string;
   resting?: boolean;
   parkAt?: string;
   parkOffsetX?: number;
@@ -379,11 +381,16 @@ export const coreSignalOverlay: CoreOverlayRenderer<SignalOverlayParams> = {
 
     const className = spec.className ?? 'viz-signal';
 
+    const fillColor = spec.params.color;
+    const glow = spec.params.glowColor ?? fillColor;
+    const styleAttr = fillColor ? ` style="fill: ${fillColor}"` : '';
+    const glowFilter = glow ? ` filter="drop-shadow(0 0 3px ${glow})"` : '';
+
     return `
         <g transform="translate(${position.x}, ${position.y})">
-                <g class="${className}">
+                <g class="${className}"${styleAttr}>
                     <circle r="10" fill="transparent" stroke="none" />
-                    <circle r="${r}" class="viz-signal-shape" />
+                    <circle r="${r}" class="viz-signal-shape"${glowFilter} />
                 </g>
             </g>
         `;

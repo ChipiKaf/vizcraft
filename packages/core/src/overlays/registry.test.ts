@@ -393,4 +393,59 @@ describe('coreSignalOverlay', () => {
     expect(point.x).toBeCloseTo(366, 5);
     expect(point.y).toBeCloseTo(136, 5);
   });
+
+  it('applies inline fill style when color is provided', () => {
+    const markup = renderSignalFromScene(false, {
+      from: 'a',
+      to: 'b',
+      progress: 0.5,
+      color: '#22c55e',
+    });
+
+    expect(markup).toContain('style="fill: #22c55e"');
+  });
+
+  it('does not add inline fill style when color is omitted', () => {
+    const markup = renderSignalFromScene(false, {
+      from: 'a',
+      to: 'b',
+      progress: 0.5,
+    });
+
+    expect(markup).not.toContain('style=');
+  });
+
+  it('applies glow filter using glowColor when provided', () => {
+    const markup = renderSignalFromScene(false, {
+      from: 'a',
+      to: 'b',
+      progress: 0.5,
+      color: '#22c55e',
+      glowColor: '#f59e0b',
+    });
+
+    expect(markup).toContain('style="fill: #22c55e"');
+    expect(markup).toContain('filter="drop-shadow(0 0 3px #f59e0b)"');
+  });
+
+  it('defaults glow filter to color when glowColor is omitted', () => {
+    const markup = renderSignalFromScene(false, {
+      from: 'a',
+      to: 'b',
+      progress: 0.5,
+      color: '#3b82f6',
+    });
+
+    expect(markup).toContain('filter="drop-shadow(0 0 3px #3b82f6)"');
+  });
+
+  it('does not add glow filter when neither color nor glowColor is set', () => {
+    const markup = renderSignalFromScene(false, {
+      from: 'a',
+      to: 'b',
+      progress: 0.5,
+    });
+
+    expect(markup).not.toContain('filter=');
+  });
 });
