@@ -1,5 +1,17 @@
 # vizcraft
 
+## 1.16.0
+
+### Minor Changes
+
+- [#142](https://github.com/ChipiKaf/vizcraft/pull/142) [`63cd51a`](https://github.com/ChipiKaf/vizcraft/commit/63cd51a67991c48bc93512d2d4ef22d82c167595) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add `initialPan` mount option and `getState()` method to `PanZoomController` for persisting viewport state across scene rebuilds.
+
+  **New API:**
+  - `initialPan: Vec2` — set starting pan offset when `initialZoom` is a number
+  - `controller.getState()` — returns a `{ zoom, pan }` snapshot of the current viewport
+
+  This enables seamless viewport persistence by capturing `getState()` before destroy and passing the values as `initialZoom` / `initialPan` when remounting.
+
 ## 1.15.0
 
 ### Minor Changes
