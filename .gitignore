@@ -9,3 +9,5 @@ tsconfig.tsbuildinfo
 .turbo
 
 .vizness-requests
+
+interview-cockpit-requests

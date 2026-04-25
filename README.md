@@ -59,6 +59,29 @@ const container = document.getElementById('viz-basic');
 if (container) builder.mount(container);
 ```
 
+### Declarative spec API (`fromSpec`)
+
+If you prefer to describe a scene as a plain JSON object — or you're generating scenes programmatically / from an LLM — use `fromSpec`. It returns an ordinary `VizBuilder` you can chain or mount normally:
+
+```typescript
+import { fromSpec } from 'vizcraft';
+
+const builder = fromSpec({
+  view: { width: 900, height: 360 },
+  nodes: [
+    { id: 'client', label: 'Client',        x: 80,  y: 180, fill: '#0e7490' },
+    { id: 'lb',     label: 'Load Balancer', x: 420, y: 180, fill: '#7c3aed' },
+    { id: 's1',     label: 'Server 1',  shape: 'cylinder', x: 760, y: 100 },
+  ],
+  edges: [
+    { from: 'client', to: 'lb' },
+    { from: 'lb',     to: 's1' },
+  ],
+});
+
+builder.mount(document.getElementById('canvas')!);
+```
+
 For more examples and best practices, see [docs here](https://vizcraft-docs.vercel.app/docs/examples).
 
 ## 📚 Documentation (Topics)
