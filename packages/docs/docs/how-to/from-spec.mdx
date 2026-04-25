@@ -112,7 +112,7 @@ const builder = fromSpec({
 });
 
 builder.mount(document.getElementById('canvas')!);`}>
-  <VizMount scene={lbScene} />
+  <VizMount builder={lbScene} />
 </CodePreview>
 
 ---
@@ -189,7 +189,7 @@ const builder = fromSpec({
     { id: 'e',  shape: 'ellipse',  label: 'ellipse',  x: 590, y: 40, fill: '#89dceb' },
   ],
 });`}>
-  <VizMount scene={shapesScene} />
+  <VizMount builder={shapesScene} />
 </CodePreview>
 
 ---
@@ -245,7 +245,7 @@ const builder = fromSpec({
     { type: 'rect', nodeId: 'b', x: -8, y: -8, width: 16, height: 16, fill: '#ef4444', rx: 8 },
   ],
 });`}>
-  <VizMount scene={overlayScene} />
+  <VizMount builder={overlayScene} />
 </CodePreview>
 
 ---
