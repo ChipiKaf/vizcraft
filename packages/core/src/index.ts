@@ -27,3 +27,5 @@ export * from './serialization/scene';
 export * from './interaction/hitTest';
 export * from './layout/algorithms';
 export * from './ports/equidistant';
+export * from './spec';
+export { fromSpec } from './fromSpec';

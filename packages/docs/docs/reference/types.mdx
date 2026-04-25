@@ -16,6 +16,131 @@ import type { VizScene, VizNode, VizEdge, ... } from 'vizcraft';
 
 ---
 
+## VizSpec {#vizspec}
+
+Declarative, JSON-serialisable scene description for use with [`fromSpec`](/docs/how-to/from-spec).
+
+| Field         | Type                  | Required | Description                                                            |
+| ------------- | --------------------- | -------- | ---------------------------------------------------------------------- |
+| `view`        | `{ width; height }`   | ✓        | Viewport dimensions in scene units                                     |
+| `nodes`       | `NodeSpec[]`          | ✓        | Scene nodes. See [NodeSpec](#nodespec)                                 |
+| `edges`       | `EdgeSpec[]`          | —        | Edges. See [EdgeSpec](#edgespec)                                       |
+| `overlays`    | `StaticOverlaySpec[]` | —        | Overlay annotations. See [StaticOverlaySpec](#staticoverlayspec)       |
+| `autoSignals` | `AutoSignalSpec[]`    | —        | Self-animating signals (future). See [AutoSignalSpec](#autosignalspec) |
+| `steps`       | `VizStepSpec[]`       | —        | Step-through walkthrough (future). See [VizStepSpec](#vizstepspec)     |
+
+---
+
+## NodeSpec {#nodespec}
+
+Plain JSON node description consumed by `fromSpec`.
+
+| Field         | Type                 | Default  | Description                                           |
+| ------------- | -------------------- | -------- | ----------------------------------------------------- |
+| `id`          | `string`             | —        | Unique id                                             |
+| `label`       | `string \| string[]` | —        | Display text. Array → multi-line                      |
+| `shape`       | `NodeSpecShape`      | `'rect'` | Shape name. See [NodeSpecShape](#nodespecshape)       |
+| `x`           | `number`             | —        | Centre X in scene coordinates                         |
+| `y`           | `number`             | —        | Centre Y in scene coordinates                         |
+| `width`       | `number`             | per-shape| Width (`circle`: diameter, `ellipse`: full width)     |
+| `height`      | `number`             | per-shape| Height (ignored for `circle` / `hexagon`)             |
+| `fill`        | `string`             | —        | Fill colour                                           |
+| `stroke`      | `string`             | —        | Stroke colour                                         |
+| `strokeWidth` | `number`             | —        | Stroke width                                          |
+| `opacity`     | `number`             | —        | Opacity 0–1                                           |
+| `dashed`      | `boolean`            | —        | Dashed border                                         |
+| `dotted`      | `boolean`            | —        | Dotted border                                         |
+| `class`       | `string`             | —        | CSS class on the node's SVG element                   |
+| `tooltip`     | `object`             | —        | `{ title, sections? }` hover tooltip                  |
+
+---
+
+## NodeSpecShape {#nodespecshape}
+
+String union used in `NodeSpec.shape`. One of:
+`'rect'` · `'circle'` · `'diamond'` · `'cylinder'` · `'hexagon'` · `'ellipse'` · `'cloud'` · `'document'` · `'parallelogram'` · `'triangle'` · `'note'`
+
+---
+
+## EdgeSpec {#edgespec}
+
+Plain JSON edge description consumed by `fromSpec`.
+
+| Field         | Type               | Default      | Description                                          |
+| ------------- | ------------------ | ------------ | ---------------------------------------------------- |
+| `from`        | `string`           | —            | Source node id                                       |
+| `to`          | `string`           | —            | Target node id                                       |
+| `id`          | `string`           | `from-to`    | Explicit id for overlay anchoring                    |
+| `label`       | `string`           | —            | Edge label                                           |
+| `style`       | `EdgeStyleSpec`    | `'straight'` | `'straight'` · `'curved'` · `'orthogonal'`           |
+| `arrow`       | `ArrowModeSpec`    | `'end'`      | `'end'` · `'start'` · `'both'` · `false`             |
+| `animate`     | `'flow' \| false`  | —            | `'flow'` → marching-ants CSS animation               |
+| `stroke`      | `string`           | —            | Stroke colour                                        |
+| `strokeWidth` | `number`           | —            | Stroke width                                         |
+| `dashed`      | `boolean`          | —            | Dashed stroke                                        |
+| `dotted`      | `boolean`          | —            | Dotted stroke                                        |
+| `opacity`     | `number`           | —            | Opacity 0–1                                          |
+| `class`       | `string`           | —            | CSS class                                            |
+
+---
+
+## StaticOverlaySpec {#staticoverlayspec}
+
+Discriminated union on `type` (`'rect'` · `'circle'` · `'text'`). Consumed by `fromSpec`.
+
+Shared positioning fields:
+
+| Field    | Type     | Description                                                        |
+| -------- | -------- | ------------------------------------------------------------------ |
+| `type`   | `string` | Shape discriminant                                                 |
+| `key`    | `string` | Optional stable key for runtime patching                           |
+| `nodeId` | `string` | Anchor to node centre; `x`/`y` become offsets                      |
+| `x`      | `number` | Absolute x, or x-offset when `nodeId` is set                       |
+| `y`      | `number` | Absolute y, or y-offset when `nodeId` is set                       |
+| `opacity`| `number` | Opacity 0–1                                                        |
+
+Type-specific fields for `'rect'`: `width`, `height`, `rx`, `fill`, `stroke`, `strokeWidth`.  
+Type-specific fields for `'circle'`: `r`, `fill`, `stroke`, `strokeWidth`.  
+Type-specific fields for `'text'`: `text`, `fill`, `fontSize`, `fontWeight`, `textAnchor`.
+
+---
+
+## AutoSignalSpec {#autosignalspec}
+
+Declarative self-animating signal spec. Stored by `VizBuilder.autoSignal()` and
+accepted in `VizSpec.autoSignals`. Silently ignored until the internal-signal-animation
+feature is activated.
+
+| Field           | Type       | Default | Description                                          |
+| --------------- | ---------- | ------- | ---------------------------------------------------- |
+| `id`            | `string`   | —       | Unique stable id                                     |
+| `chain`         | `string[]` | —       | Ordered node ids (min 2)                             |
+| `durationPerHop`| `number`   | 800     | ms per hop                                           |
+| `totalDuration` | `number`   | —       | Total ms across all hops (alternative to per-hop)    |
+| `loop`          | `boolean`  | false   | Restart after reaching the final node                |
+| `loopDelay`     | `number`   | 0       | Pause in ms before restarting when `loop: true`      |
+| `keepFinal`     | `boolean`  | false   | Park the dot at the final node when not looping      |
+| `color`         | `string`   | —       | Dot fill colour                                      |
+| `glowColor`     | `string`   | —       | Glow / halo colour                                   |
+| `magnitude`     | `number`   | 1       | Visual scale of the signal dot, 0–1                  |
+
+---
+
+## VizStepSpec {#vizstepspec}
+
+One step in a `VizSpec.steps` walkthrough. Silently ignored until the
+step-controller feature is activated.
+
+| Field         | Type                  | Description                                          |
+| ------------- | --------------------- | ---------------------------------------------------- |
+| `label`       | `string`              | Descriptive label for the step                       |
+| `highlight`   | `string[]`            | Node ids to visually highlight                       |
+| `overlays`    | `StaticOverlaySpec[]` | Overlays added on top of the base scene              |
+| `signals`     | `AutoSignalSpec[]`    | Signals to animate when this step activates          |
+| `autoAdvance` | `boolean`             | Auto-advance after all non-looping signals complete  |
+
+---
+
 ## VizScene
 
 Complete, serializable description of what to render.

@@ -1,0 +1,282 @@
+---
+sidebar_position: 8
+title: Declarative Specs (fromSpec)
+description: Use fromSpec to build VizCraft scenes from plain JSON objects — ideal for AI-generated content, serialized scenes, and data-driven visualization.
+slug: /how-to/from-spec
+tags: [how-to, fromSpec, declarative, json, ai]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { fromSpec } from 'vizcraft';
+
+export const lbScene = fromSpec({
+  view: { width: 640, height: 260 },
+  nodes: [
+    { id: 'client', label: 'Client',        x: 80,  y: 130, width: 100, height: 38, fill: '#0e7490', stroke: '#164e63' },
+    { id: 'lb',     label: 'Load Balancer', x: 320, y: 130, width: 140, height: 38, fill: '#7c3aed', stroke: '#5b21b6' },
+    { id: 's1',     label: 'Server 1',      x: 560, y: 70,  width: 100, height: 38, shape: 'cylinder', fill: '#065f46', stroke: '#047857' },
+    { id: 's2',     label: 'Server 2',      x: 560, y: 190, width: 100, height: 38, shape: 'cylinder', fill: '#065f46', stroke: '#047857' },
+  ],
+  edges: [
+    { from: 'client', to: 'lb' },
+    { from: 'lb',     to: 's1' },
+    { from: 'lb',     to: 's2' },
+  ],
+});
+
+export const shapesScene = fromSpec({
+  view: { width: 640, height: 80 },
+  nodes: [
+    { id: 'r',  shape: 'rect',        label: 'rect',        x: 60,  y: 40, fill: '#a6e3a1' },
+    { id: 'c',  shape: 'circle',      label: 'circle',      x: 170, y: 40, width: 40, fill: '#89b4fa' },
+    { id: 'd',  shape: 'diamond',     label: 'diamond',     x: 280, y: 40, fill: '#f9e2af' },
+    { id: 'cy', shape: 'cylinder',    label: 'cylinder',    x: 390, y: 40, fill: '#fab387' },
+    { id: 'h',  shape: 'hexagon',     label: 'hex',         x: 500, y: 40, fill: '#cba6f7' },
+    { id: 'e',  shape: 'ellipse',     label: 'ellipse',     x: 590, y: 40, fill: '#89dceb' },
+  ],
+});
+
+export const overlayScene = fromSpec({
+  view: { width: 640, height: 180 },
+  nodes: [
+    { id: 'a', label: 'Cache',  x: 160, y: 90, fill: '#22c55e', stroke: '#15803d' },
+    { id: 'b', label: 'Worker', x: 480, y: 90, fill: '#3b82f6', stroke: '#1d4ed8' },
+  ],
+  edges: [{ from: 'a', to: 'b', label: 'task' }],
+  overlays: [
+    { type: 'text', nodeId: 'a', y: -38, text: 'CACHED', fill: '#86efac', fontSize: 11 },
+    { type: 'rect', nodeId: 'b', x: -8, y: -8, width: 16, height: 16, fill: '#ef4444', rx: 8 },
+  ],
+});
+
+# Declarative Specs (`fromSpec`)
+
+## Overview
+
+`fromSpec` lets you describe a VizCraft scene as a plain JSON object, then
+get back a fully hydrated `VizBuilder` you can chain, mount, or build like
+normal.
+
+```ts
+import { fromSpec } from 'vizcraft';
+
+const builder = fromSpec({ view: ..., nodes: [...], edges: [...] });
+builder.mount(container);
+```
+
+Use it when:
+
+- **An LLM is generating scenes.** Plain JSON is schema-validatable and
+  round-trips cleanly through structured outputs.
+- **Scenes come from a database or API.** Store a `VizSpec` object; hydrate
+  it back into a live builder at render time.
+- **You prefer a data-first workflow.** Build the data, inspect it, then
+  render — no method-chaining required.
+
+---
+
+## Mental model
+
+`fromSpec` is a translation layer, not a sealed format. It calls the same
+fluent builder methods you would write by hand. The result is an ordinary
+`VizBuilder` — you can keep chaining after `fromSpec` returns:
+
+```ts
+const builder = fromSpec(spec)
+  .node('extra').at(900, 180).rect(120, 40).label('Extra').done()
+  .edge('lb', 'extra').done();
+
+builder.mount(container);
+```
+
+---
+
+## Quick start
+
+<CodePreview code={`import { fromSpec } from 'vizcraft';
+
+const builder = fromSpec({
+  view: { width: 640, height: 260 },
+  nodes: [
+    { id: 'client', label: 'Client',        x: 80,  y: 130, fill: '#0e7490' },
+    { id: 'lb',     label: 'Load Balancer', x: 320, y: 130, fill: '#7c3aed' },
+    { id: 's1',     label: 'Server 1', shape: 'cylinder', x: 560, y: 70  },
+    { id: 's2',     label: 'Server 2', shape: 'cylinder', x: 560, y: 190 },
+  ],
+  edges: [
+    { from: 'client', to: 'lb' },
+    { from: 'lb',     to: 's1' },
+    { from: 'lb',     to: 's2' },
+  ],
+});
+
+builder.mount(document.getElementById('canvas')!);`}>
+  <VizMount scene={lbScene} />
+</CodePreview>
+
+---
+
+## API reference
+
+### `fromSpec(spec: VizSpec): VizBuilder`
+
+Translates the spec and returns a `VizBuilder`. Throws if `spec.view` is
+missing required fields, but is otherwise lenient — unknown fields are
+silently ignored.
+
+---
+
+### `VizSpec`
+
+| Field          | Type                  | Required | Description                                   |
+| -------------- | --------------------- | -------- | --------------------------------------------- |
+| `view`         | `{ width; height }`   | ✓        | Viewport dimensions in scene units            |
+| `nodes`        | `NodeSpec[]`          | ✓        | Scene nodes                                   |
+| `edges`        | `EdgeSpec[]`          | —        | Edges between nodes                           |
+| `overlays`     | `StaticOverlaySpec[]` | —        | Static rect / circle / text annotations       |
+| `autoSignals`  | `AutoSignalSpec[]`    | —        | Self-animating signals (future feature)       |
+| `steps`        | `VizStepSpec[]`       | —        | Step-through walkthrough (future feature)     |
+
+---
+
+### `NodeSpec`
+
+| Field         | Type             | Default   | Description                                                |
+| ------------- | ---------------- | --------- | ---------------------------------------------------------- |
+| `id`          | `string`         | —         | Unique id. Referenced by edges, overlays, and signals      |
+| `label`       | `string \| string[]` | —     | Display text. Array → multi-line (joined with `\n`)        |
+| `shape`       | `NodeSpecShape`  | `'rect'`  | Shape name (see table below)                               |
+| `x`           | `number`         | —         | Centre X in scene coordinates                              |
+| `y`           | `number`         | —         | Centre Y in scene coordinates                              |
+| `width`       | `number`         | per-shape | Width. For `circle`: diameter; for `ellipse`: full width   |
+| `height`      | `number`         | per-shape | Height. Ignored for `circle` and `hexagon`                 |
+| `fill`        | `string`         | —         | Fill colour                                                |
+| `stroke`      | `string`         | —         | Stroke colour                                              |
+| `strokeWidth` | `number`         | —         | Stroke width                                               |
+| `opacity`     | `number`         | —         | Opacity 0–1                                                |
+| `dashed`      | `boolean`        | —         | Dashed border                                              |
+| `dotted`      | `boolean`        | —         | Dotted border                                              |
+| `class`       | `string`         | —         | CSS class on the node's root SVG element                   |
+| `tooltip`     | `object`         | —         | `{ title, sections? }` tooltip on hover                    |
+
+#### Node shape defaults
+
+| `shape`         | Default `width` | Default `height` | Notes                                     |
+| --------------- | --------------- | ---------------- | ----------------------------------------- |
+| `rect`          | 120             | 40               |                                           |
+| `circle`        | 40              | —                | `width` = diameter; radius = `width / 2` |
+| `cylinder`      | 100             | 50               |                                           |
+| `diamond`       | 80              | 60               |                                           |
+| `hexagon`       | 80              | 60               | radius = `min(width, height) / 2`         |
+| `ellipse`       | 120             | 40               | semi-axes = `width/2`, `height/2`         |
+| `cloud`         | 120             | 40               |                                           |
+| `document`      | 120             | 40               |                                           |
+| `parallelogram` | 120             | 40               |                                           |
+| `triangle`      | 120             | 40               |                                           |
+| `note`          | 120             | 40               |                                           |
+
+<CodePreview code={`import { fromSpec } from 'vizcraft';
+
+const builder = fromSpec({
+  view: { width: 640, height: 80 },
+  nodes: [
+    { id: 'r',  shape: 'rect',     label: 'rect',     x: 60,  y: 40, fill: '#a6e3a1' },
+    { id: 'c',  shape: 'circle',   label: 'circle',   x: 170, y: 40, width: 40, fill: '#89b4fa' },
+    { id: 'd',  shape: 'diamond',  label: 'diamond',  x: 280, y: 40, fill: '#f9e2af' },
+    { id: 'cy', shape: 'cylinder', label: 'cylinder', x: 390, y: 40, fill: '#fab387' },
+    { id: 'h',  shape: 'hexagon',  label: 'hex',      x: 500, y: 40, fill: '#cba6f7' },
+    { id: 'e',  shape: 'ellipse',  label: 'ellipse',  x: 590, y: 40, fill: '#89dceb' },
+  ],
+});`}>
+  <VizMount scene={shapesScene} />
+</CodePreview>
+
+---
+
+### `EdgeSpec`
+
+| Field         | Type              | Default      | Description                                        |
+| ------------- | ----------------- | ------------ | -------------------------------------------------- |
+| `from`        | `string`          | —            | Source node id                                     |
+| `to`          | `string`          | —            | Target node id                                     |
+| `id`          | `string`          | `from-to`    | Explicit edge id for overlay anchoring             |
+| `label`       | `string`          | —            | Edge label                                         |
+| `style`       | `EdgeStyleSpec`   | `'straight'` | `'straight'` \| `'curved'` \| `'orthogonal'`       |
+| `arrow`       | `ArrowModeSpec`   | `'end'`      | `'end'` \| `'start'` \| `'both'` \| `false`        |
+| `animate`     | `'flow' \| false` | —            | `'flow'` adds a marching-ants CSS animation        |
+| `stroke`      | `string`          | —            | Stroke colour                                      |
+| `strokeWidth` | `number`          | —            | Stroke width                                       |
+| `dashed`      | `boolean`         | —            | Dashed stroke                                      |
+| `dotted`      | `boolean`         | —            | Dotted stroke                                      |
+| `opacity`     | `number`          | —            | Opacity 0–1                                        |
+| `class`       | `string`          | —            | CSS class                                          |
+
+---
+
+### `StaticOverlaySpec`
+
+Discriminated union on `type`. All types share the positioning fields:
+
+| Field    | Type     | Description                                                        |
+| -------- | -------- | ------------------------------------------------------------------ |
+| `type`   | `string` | `'rect'`, `'circle'`, or `'text'`                                  |
+| `key`    | `string` | Optional stable key for runtime patching                           |
+| `nodeId` | `string` | When present, `x`/`y` are offsets from the node centre             |
+| `x`      | `number` | Absolute x, or x-offset from `nodeId` centre when `nodeId` is set |
+| `y`      | `number` | Absolute y, or y-offset from `nodeId` centre when `nodeId` is set |
+| `opacity`| `number` | Opacity 0–1                                                        |
+
+See the [Overlay API](/docs/reference/overlay-api) for the complete field listings per type.
+
+<CodePreview code={`import { fromSpec } from 'vizcraft';
+
+const builder = fromSpec({
+  view: { width: 640, height: 180 },
+  nodes: [
+    { id: 'a', label: 'Cache',  x: 160, y: 90, fill: '#22c55e' },
+    { id: 'b', label: 'Worker', x: 480, y: 90, fill: '#3b82f6' },
+  ],
+  edges: [{ from: 'a', to: 'b', label: 'task' }],
+  overlays: [
+    // node-relative text label
+    { type: 'text', nodeId: 'a', y: -38, text: 'CACHED', fill: '#86efac', fontSize: 11 },
+    // node-relative badge dot
+    { type: 'rect', nodeId: 'b', x: -8, y: -8, width: 16, height: 16, fill: '#ef4444', rx: 8 },
+  ],
+});`}>
+  <VizMount scene={overlayScene} />
+</CodePreview>
+
+---
+
+### `AutoSignalSpec` (future)
+
+The `autoSignals` field is accepted and stored but produces no rendering
+behaviour until the internal-signal-animation feature is activated.
+
+| Field           | Type      | Default | Description                                               |
+| --------------- | --------- | ------- | --------------------------------------------------------- |
+| `id`            | `string`  | —       | Unique id. Must be stable across re-renders               |
+| `chain`         | `string[]`| —       | Ordered node ids. Minimum 2 entries                       |
+| `durationPerHop`| `number`  | 800     | ms per hop                                                |
+| `totalDuration` | `number`  | —       | Alternative: total ms across all hops                     |
+| `loop`          | `boolean` | false   | Restart after reaching the final node                     |
+| `loopDelay`     | `number`  | 0       | Pause in ms before restarting when `loop: true`           |
+| `keepFinal`     | `boolean` | false   | Park the dot at the final node when `loop: false`         |
+| `color`         | `string`  | —       | Dot fill colour                                           |
+| `glowColor`     | `string`  | —       | Separate glow / halo colour                               |
+| `magnitude`     | `number`  | 1       | Visual scale of the signal dot (0–1)                      |
+
+---
+
+## Notes
+
+- `fromSpec` calls the same builder methods as hand-authored code — there is
+  no separate render path.
+- The returned `VizBuilder` can be further chained after `fromSpec`.
+- `autoSignals` and `steps` are silently ignored at build/mount time until
+  the corresponding features are activated. No error is thrown.
+- Overlay `x`/`y` are **offsets** (not absolute coords) when `nodeId` is
+  present, matching the semantics of `nodeId + offsetX/offsetY` in the
+  internal overlay system.

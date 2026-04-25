@@ -55,6 +55,7 @@ import {
 } from './edges/paths';
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edges/labels';
 import { renderSvgText } from './utils/text';
+import type { AutoSignalSpec } from './spec';
 import type { AnimationSpec } from './animation/spec';
 import {
   buildAnimationSpec,
@@ -437,6 +438,18 @@ export interface VizBuilder extends VizSceneMutator {
    * Safe to call even if `mount()` was never called.
    */
   destroy(): void;
+
+  /**
+   * Declare a self-animating signal on this builder.
+   *
+   * The spec is stored but produces no rendering behaviour until the internal
+   * animator is activated (see `internal-signal-animation` feature). This
+   * method exists to pin the API surface and to allow specs produced by
+   * `fromSpec` to roundtrip cleanly.
+   *
+   * @returns The builder, for fluent chaining.
+   */
+  autoSignal(spec: AutoSignalSpec): VizBuilder;
 }
 
 export interface RichLabelBuilder {
@@ -1659,6 +1672,14 @@ class VizBuilderImpl implements VizBuilder {
   /**
    * Tear down a previously mounted scene.
    */
+  autoSignal(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _spec: AutoSignalSpec
+  ): VizBuilder {
+    // Stub: stored for future use by the internal-signal-animation feature.
+    return this;
+  }
+
   destroy(): void {
     // 1. Destroy PanZoomController if created
     if (this._panZoomController) {
