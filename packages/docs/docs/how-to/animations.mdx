@@ -9,6 +9,7 @@ tags: [how-to, animations, timeline, playback]
 import CodePreview from '@site/src/components/CodePreview';
 import VizMount from '@site/src/components/VizMount';
 import VizPlaybackControls from '@site/src/components/VizPlaybackControls';
+import SignalPatchDemo from '@site/src/components/SignalPatchDemo';
 import { viz } from 'vizcraft';
 
 export const slideInBuilder = (() => {
@@ -58,6 +59,17 @@ export const flowEdgeBuilder = (() => {
   b.node('a').at(50, 80).circle(22).fill('#89b4fa').label('A');
   b.node('b').at(350, 80).rect(70, 40, 8).fill('#a6e3a1').label('B');
   b.edge('a', 'b').arrow().animate('flow');
+  return b;
+})();
+
+export const autoSignalBuilder = (() => {
+  const b = viz().view(520, 160);
+  b.node('a').at(80, 80).circle(22).fill('#89b4fa').label('A');
+  b.node('b').at(260, 80).circle(22).fill('#a6e3a1').label('B');
+  b.node('c').at(440, 80).circle(22).fill('#f9e2af').label('C');
+  b.edge('a', 'b').arrow();
+  b.edge('b', 'c').arrow();
+  b.autoSignal({ id: 'flow', chain: ['a', 'b', 'c'], loop: true, durationPerHop: 800 });
   return b;
 })();
 
@@ -245,61 +257,68 @@ For more details on the animation builder API, see the [Animation API Reference]
 Declare a continuously-moving signal dot without writing any playback code.
 `autoSignal()` drives its own rAF loop — it starts automatically when `mount()` is called.
 
-```typescript
-import { viz } from 'vizcraft';
+<CodePreview code={`import { viz } from 'vizcraft';
 
 const controller = viz()
-  .view(500, 200)
-  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
-  .node('b', { circle: { r: 20 }, at: { x: 250, y: 100 } })
-  .node('c', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .view(520, 160)
+  .node('a').at(80, 80).circle(22).fill('#89b4fa').label('A')
+  .node('b').at(260, 80).circle(22).fill('#a6e3a1').label('B')
+  .node('c').at(440, 80).circle(22).fill('#f9e2af').label('C')
   .edge('a', 'b').arrow()
   .edge('b', 'c').arrow()
-  .autoSignal({
-    id: 'flow',
-    chain: ['a', 'b', 'c'],
-    durationPerHop: 800,
-    loop: true,
-  })
-  .mount(document.getElementById('container')!);
+  .autoSignal({ id: 'flow', chain: ['a', 'b', 'c'], loop: true, durationPerHop: 800 })
+  .mount(document.getElementById('container'));
 
-// Control the animator at any time via the returned MountController
+// Control the animator via the returned MountController
 controller.pause();
 controller.resume();
-controller.setSpeed(2);  // 2× faster
-controller.stop();       // clears signal dots
-controller.restart();    // restarts from progress = 0
+controller.setSpeed(2);   // 2× faster
+controller.stop();        // clears signal dots
+controller.restart();     // restart from progress 0
 
-// Subscribe to completion events (fires at end of each traversal)
+// Subscribe to completion (fires at end of each traversal)
 const unsub = controller.onSignalComplete('flow', () => {
-  console.log('flow signal completed one lap');
+  console.log('one lap done');
 });
 unsub(); // stop receiving events
-```
+`}>
+  <VizMount builder={autoSignalBuilder} style={{ height: '160px', width: '100%' }} />
+</CodePreview>
 
 ### Manually patching signals (`patchSignals`)
 
-For fine-grained control — or when you're driving progress from your own animation
-loop — use `patchSignals` directly on the `MountController`:
+For full control — or when you're driving progress from your own loop — use
+`patchSignals` on the `MountController`. `clearSignals()` removes all dots.
 
-```typescript
+<CodePreview code={`import { viz } from 'vizcraft';
+
 const controller = viz()
-  .view(500, 200)
-  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
-  .node('b', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .view(520, 160)
+  .node('a').at(80, 80).circle(22).fill('#89b4fa').label('A')
+  .node('b').at(260, 80).circle(22).fill('#a6e3a1').label('B')
+  .node('c').at(440, 80).circle(22).fill('#f9e2af').label('C')
   .edge('a', 'b').arrow()
-  .mount(container);
+  .edge('b', 'c').arrow()
+  .mount(document.getElementById('container'));
 
 let progress = 0;
-function animate() {
-  progress = (progress + 0.004) % 1;
-  controller.patchSignals([{ key: 'sig', from: 'a', to: 'b', progress }]);
-  requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
-```
+(function tick() {
+  progress = (progress + 0.003) % 2; // two hops: 0 → 1 → 2
+  controller.patchSignals([{
+    key: 'manual-sig',
+    chain: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }],
+    progress,
+    color: '#cba6f7',
+    glowColor: '#cba6f7',
+  }]);
+  requestAnimationFrame(tick);
+})();
 
-Call `controller.clearSignals()` to remove all manually-drawn signal dots.
+// Remove all signal dots
+controller.clearSignals();
+`}>
+  <SignalPatchDemo style={{ height: '160px', width: '100%' }} />
+</CodePreview>
 
 See [`MountController`](/docs/reference/types#mountcontroller) and
 [`PatchSignalSpec`](/docs/reference/types#patchsignalspec) for the full API.
