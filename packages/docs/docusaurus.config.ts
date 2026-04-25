@@ -1,3 +1,4 @@
+import path from 'path';
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
@@ -37,7 +38,25 @@ const config: Config = {
     locales: ['en'],
   },
 
-  plugins: ['docusaurus-plugin-sass'],
+  plugins: [
+    'docusaurus-plugin-sass',
+    () => ({
+      name: 'resolve-workspace-packages',
+      configureWebpack() {
+        return {
+          resolve: {
+            alias: {
+              vizcraft: path.resolve(__dirname, '../core/dist/index.js'),
+              'react-vizcraft': path.resolve(
+                __dirname,
+                '../react-vizcraft/src/index.ts'
+              ),
+            },
+          },
+        };
+      },
+    }),
+  ],
 
   presets: [
     [
