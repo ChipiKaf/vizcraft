@@ -18,7 +18,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Fluent Builder API**: Define your visualization scene using a readable, chainable API.
 - **Grid System**: Built-in 2D grid system for easy, structured layout of nodes.
 - **Auto-Layout Algorithms**: Built-in circular and grid layouts, custom sync/async algorithm support (e.g. ELK), and a `getNodeBoundingBox` utility for robust layout integration.
-- **Three Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`), data-only timeline animations (`AnimationSpec`), and self-animating signals (`autoSignal`) that drive their own rAF loop.
+- **Three Animation Systems + Step Controller**: Lightweight registry/CSS animations, data-only timeline animations (`AnimationSpec`), self-animating signals (`autoSignal`), and `createStepController` for zero-infrastructure step-through walkthroughs.
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 - **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
@@ -911,6 +911,39 @@ controller.clearSignals();
 ```
 
 `mount()` always returns a `MountController`. Pan-zoom (when enabled) is at `controller.panZoom`.
+
+## Step-through walkthroughs (`createStepController`)
+
+`createStepController` manages mounting, signal animation, and step lifecycle — no Redux, no external rAF loop.
+
+```ts
+import { createStepController } from 'vizcraft';
+
+const ctrl = createStepController({
+  container: document.getElementById('canvas')!,
+  steps: [
+    {
+      label: 'Client sends a request',
+      builder: () => viz().view(560, 180) /* ... */,
+      autoSignals: [{ id: 'req', chain: ['a', 'b'], durationPerHop: 900 }],
+    },
+    {
+      label: 'Cache miss — forwarding to DB',
+      builder: () => viz().view(560, 180) /* ... */,
+      autoSignals: [{ id: 'fwd', chain: ['b', 'c'], durationPerHop: 900 }],
+    },
+  ],
+  onStepChange: (i, step) => {
+    label.textContent = `Step ${i + 1}: ${step.label}`;
+    nextBtn.disabled = true;
+  },
+  onReady: () => (nextBtn.disabled = false),
+});
+
+nextBtn.addEventListener('click', () => ctrl.next());
+```
+
+For declarative/AI-generated walkthroughs, use `createStepControllerFromSpec` with `VizSpec.steps`.
 
 ## 🤝 Contributing
 

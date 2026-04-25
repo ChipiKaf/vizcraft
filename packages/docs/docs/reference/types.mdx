@@ -27,7 +27,7 @@ Declarative, JSON-serialisable scene description for use with [`fromSpec`](/docs
 | `edges`       | `EdgeSpec[]`          | —        | Edges. See [EdgeSpec](#edgespec)                                       |
 | `overlays`    | `StaticOverlaySpec[]` | —        | Overlay annotations. See [StaticOverlaySpec](#staticoverlayspec)       |
 | `autoSignals` | `AutoSignalSpec[]`    | —        | Self-animating signals (future). See [AutoSignalSpec](#autosignalspec) |
-| `steps`       | `VizStepSpec[]`       | —        | Step-through walkthrough (future). See [VizStepSpec](#vizstepspec)     |
+| `steps`       | `VizStepSpec[]`       | —        | Step-through walkthrough. See [VizStepSpec](#vizstepspec) and [`createStepControllerFromSpec`](/docs/how-to/step-controller) |
 
 ---
 
@@ -128,16 +128,50 @@ accepted in `VizSpec.autoSignals`. The internal animator starts automatically wh
 
 ## VizStepSpec {#vizstepspec}
 
-One step in a `VizSpec.steps` walkthrough. Silently ignored until the
-step-controller feature is activated.
+One step in a `VizSpec.steps` walkthrough. Used with
+[`createStepControllerFromSpec`](/docs/how-to/step-controller#spec-driven-declarative).
 
-| Field         | Type                  | Description                                          |
-| ------------- | --------------------- | ---------------------------------------------------- |
-| `label`       | `string`              | Descriptive label for the step                       |
-| `highlight`   | `string[]`            | Node ids to visually highlight                       |
-| `overlays`    | `StaticOverlaySpec[]` | Overlays added on top of the base scene              |
-| `signals`     | `AutoSignalSpec[]`    | Signals to animate when this step activates          |
-| `autoAdvance` | `boolean`             | Auto-advance after all non-looping signals complete  |
+| Field         | Type                  | Description                                                                     |
+| ------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `label`       | `string`              | Descriptive label for the step                                                  |
+| `highlight`   | `string[]`            | Node ids to keep at full opacity; others are dimmed to 30%                      |
+| `overlays`    | `StaticOverlaySpec[]` | Step-specific overlays added on top of the base scene; removed on step exit    |
+| `signals`     | `AutoSignalSpec[]`    | Signals to animate. Always treated as `loop: false`                             |
+| `autoAdvance` | `boolean`             | When `true`, calls `next()` automatically after all non-looping signals complete|
+
+---
+
+## StepDef {#stepdef}
+
+One step in a programmatic walkthrough. Used with
+[`createStepController`](/docs/how-to/step-controller).
+
+| Field          | Type                                   | Description                                                |
+| -------------- | -------------------------------------- | ---------------------------------------------------------- |
+| `label`        | `string`                               | Text shown in the step bar / `onStepChange` callback       |
+| `builder`      | `VizBuilder \| (() => VizBuilder)`     | Scene for this step. Factories are called once and cached  |
+| `autoSignals?` | `AutoSignalSpec[]`                     | Signals to run while this step is active                   |
+| `autoAdvance?` | `boolean`                              | Auto-advance after non-looping signals complete. Default: `false` |
+
+---
+
+## StepController {#stepcontroller}
+
+Returned by [`createStepController`](/docs/how-to/step-controller) and
+[`createStepControllerFromSpec`](/docs/how-to/step-controller#spec-driven-declarative).
+
+| Member           | Type                      | Description                                                              |
+| ---------------- | ------------------------- | ------------------------------------------------------------------------ |
+| `next()`         | `() => void`              | Advance to the next step. No-op at the last step                         |
+| `prev()`         | `() => void`              | Go back. No-op at the first step                                         |
+| `goTo(index)`    | `(number) => void`        | Jump to a step by index. Throws `RangeError` if out of range             |
+| `reset()`        | `() => void`              | Return to step 0                                                         |
+| `currentIndex`   | `number` (readonly)       | 0-based index of the active step                                         |
+| `totalSteps`     | `number` (readonly)       | Total number of steps                                                    |
+| `isReady`        | `boolean` (readonly)      | `true` once all non-looping animations have completed                    |
+| `pause()`        | `() => void`              | Pause signal animations on the current step                              |
+| `resume()`       | `() => void`              | Resume paused animations                                                 |
+| `destroy()`      | `() => void`              | Stop animations, clear SVG, remove step bar. Idempotent                 |
 
 ---
 

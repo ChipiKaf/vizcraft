@@ -29,3 +29,12 @@ export * from './layout/algorithms';
 export * from './ports/equidistant';
 export * from './spec';
 export { fromSpec } from './fromSpec';
+export {
+  createStepController,
+  createStepControllerFromSpec,
+} from './steps/controller';
+export type {
+  StepDef,
+  StepControllerOptions,
+  StepController,
+} from './steps/controller';

@@ -1,0 +1,270 @@
+---
+sidebar_position: 9
+title: Step-Through Walkthroughs
+description: Drive interactive step-through explanations with createStepController — no Redux, no external animation loop.
+slug: /how-to/step-controller
+tags: [how-to, stepController, walkthrough, interactive]
+---
+
+import CodePreview from '@site/src/components/CodePreview';
+import VizMount from '@site/src/components/VizMount';
+import { viz, createStepControllerFromSpec } from 'vizcraft';
+
+export const stepDemoSpec = {
+  view: { width: 560, height: 180 },
+  nodes: [
+    { id: 'client', label: 'Client', x: 80,  y: 90, shape: 'rect', width: 100, height: 36, fill: '#89b4fa' },
+    { id: 'cache',  label: 'Cache',  x: 280, y: 90, shape: 'rect', width: 100, height: 36, fill: '#a6e3a1' },
+    { id: 'db',     label: 'DB',     x: 480, y: 90, shape: 'rect', width: 100, height: 36, fill: '#f9e2af' },
+  ],
+  edges: [
+    { from: 'client', to: 'cache', arrow: 'end' },
+    { from: 'cache',  to: 'db',   arrow: 'end' },
+  ],
+  steps: [
+    {
+      label: 'Request arrives at the cache',
+      highlight: ['client', 'cache'],
+      signals: [{ id: 'req', chain: ['client', 'cache'], durationPerHop: 900 }],
+    },
+    {
+      label: 'Cache miss — forwarding to DB',
+      highlight: ['cache', 'db'],
+      overlays: [{ type: 'text', nodeId: 'cache', y: -28, text: 'MISS', fill: '#f38ba8', fontSize: 11 }],
+      signals: [{ id: 'fwd', chain: ['cache', 'db'], durationPerHop: 900 }],
+    },
+    {
+      label: 'DB responds and cache is populated',
+      signals: [
+        { id: 'rsp1', chain: ['db', 'cache'], durationPerHop: 700 },
+        { id: 'rsp2', chain: ['cache', 'client'], durationPerHop: 700 },
+      ],
+    },
+  ],
+};
+
+# Step-Through Walkthroughs
+
+## Overview
+
+`createStepController` gives you a self-contained step-through walkthrough controller.
+Each step mounts its own scene, runs its own signal animations, and notifies you when
+it is ready to advance — without a Redux store, animation hook, or external rAF loop.
+
+**When to use it:**
+- Embedding walkthroughs in chat UIs, blog posts, or documentation pages
+- Simple "explain this diagram in N steps" flows that don't need domain state
+- AI-generated walkthroughs via `viz.fromSpec` + `steps`
+
+---
+
+## Quick start — standalone
+
+```ts
+import { viz, createStepController } from 'vizcraft';
+
+const ctrl = createStepController({
+  container: document.getElementById('canvas')!,
+  steps: [
+    {
+      label: 'Client sends a request',
+      builder: () =>
+        viz()
+          .view(560, 180)
+          .node('a').at(80,  90).rect(100, 36).fill('#89b4fa').label('Client').done()
+          .node('b').at(280, 90).rect(100, 36).fill('#a6e3a1').label('Cache').done()
+          .node('c').at(480, 90).rect(100, 36).fill('#f9e2af').label('DB').done()
+          .edge('a', 'b').arrow().done()
+          .edge('b', 'c').arrow().done(),
+      autoSignals: [{ id: 'req', chain: ['a', 'b'], durationPerHop: 900 }],
+    },
+    {
+      label: 'Cache miss — forwarding to DB',
+      builder: () =>
+        viz()
+          .view(560, 180)
+          .node('a').at(80,  90).rect(100, 36).fill('#89b4fa').label('Client').done()
+          .node('b').at(280, 90).rect(100, 36).fill('#ef4444').label('Cache').done() // red = miss
+          .node('c').at(480, 90).rect(100, 36).fill('#f9e2af').label('DB').done()
+          .edge('a', 'b').arrow().done()
+          .edge('b', 'c').arrow().done(),
+      autoSignals: [{ id: 'fwd', chain: ['b', 'c'], durationPerHop: 900 }],
+    },
+    {
+      label: 'DB responds',
+      builder: () =>
+        viz()
+          .view(560, 180)
+          .node('a').at(80,  90).rect(100, 36).fill('#89b4fa').label('Client').done()
+          .node('b').at(280, 90).rect(100, 36).fill('#22c55e').label('Cache').done() // green = hit
+          .node('c').at(480, 90).rect(100, 36).fill('#f9e2af').label('DB').done()
+          .edge('a', 'b').arrow().done()
+          .edge('b', 'c').arrow().done(),
+      autoSignals: [
+        { id: 'rsp1', chain: ['c', 'b'], durationPerHop: 700 },
+        { id: 'rsp2', chain: ['b', 'a'], durationPerHop: 700 },
+      ],
+    },
+  ],
+  onStepChange: (i, step) => {
+    document.getElementById('label')!.textContent = `Step ${i + 1}: ${step.label}`;
+    document.getElementById('next')!.setAttribute('disabled', '');
+  },
+  onReady: () => {
+    document.getElementById('next')!.removeAttribute('disabled');
+  },
+});
+
+document.getElementById('next')!.addEventListener('click', () => ctrl.next());
+document.getElementById('prev')!.addEventListener('click', () => ctrl.prev());
+```
+
+---
+
+## Spec-driven (declarative)
+
+When using `fromSpec`, declare `steps` as part of the spec. Each `VizStepSpec` shares
+the base `nodes` and `edges` and adds step-specific highlights, overlays, and signals.
+Call `createStepControllerFromSpec` to mount the whole thing:
+
+```ts
+import { createStepControllerFromSpec } from 'vizcraft';
+
+const ctrl = createStepControllerFromSpec(
+  {
+    view: { width: 560, height: 180 },
+    nodes: [
+      { id: 'client', label: 'Client', x: 80,  y: 90, shape: 'rect', width: 100, height: 36 },
+      { id: 'cache',  label: 'Cache',  x: 280, y: 90, shape: 'rect', width: 100, height: 36 },
+      { id: 'db',     label: 'DB',     x: 480, y: 90, shape: 'rect', width: 100, height: 36 },
+    ],
+    edges: [
+      { from: 'client', to: 'cache', arrow: 'end' },
+      { from: 'cache',  to: 'db',   arrow: 'end' },
+    ],
+    steps: [
+      {
+        label: 'Request arrives at the cache',
+        highlight: ['client', 'cache'],
+        signals: [{ id: 'req', chain: ['client', 'cache'], durationPerHop: 900 }],
+      },
+      {
+        label: 'Cache miss — forwarding to DB',
+        highlight: ['cache', 'db'],
+        overlays: [{ type: 'text', nodeId: 'cache', y: -28, text: 'MISS', fill: '#f38ba8', fontSize: 11 }],
+        signals: [{ id: 'fwd', chain: ['cache', 'db'], durationPerHop: 900 }],
+      },
+      {
+        label: 'DB responds',
+        signals: [
+          { id: 'rsp1', chain: ['db', 'cache'], durationPerHop: 700 },
+          { id: 'rsp2', chain: ['cache', 'client'], durationPerHop: 700 },
+        ],
+      },
+    ],
+  },
+  document.getElementById('canvas')!,
+  {
+    onReady: () => (nextBtn.disabled = false),
+    onStepChange: () => (nextBtn.disabled = true),
+  }
+);
+```
+
+---
+
+## API reference
+
+### `createStepController(opts)`
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `container` | `HTMLElement` | The element to mount each step's scene into. |
+| `steps` | `StepDef[]` | Array of step definitions (must be non-empty). |
+| `onStepChange?` | `(index, step) => void` | Called whenever the active step changes. Use to update a label or disable the Next button. |
+| `onReady?` | `() => void` | Called when the current step's non-looping signals have completed. Use to re-enable the Next button. |
+| `showStepBar?` | `boolean` | When `true`, renders a minimal `.viz-step-bar` element below the canvas. Default: `false`. |
+
+Returns a [`StepController`](#stepcontroller).
+
+---
+
+### `StepDef`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `label` | `string` | Displayed in the step bar / `onStepChange` callback. |
+| `builder` | `VizBuilder \| (() => VizBuilder)` | Scene for this step. Factories are called **once** (lazy) and cached. |
+| `autoSignals?` | `AutoSignalSpec[]` | Signals to run when the step is active. |
+| `autoAdvance?` | `boolean` | When `true`, calls `next()` 50 ms after all non-looping signals complete. Default: `false`. |
+
+---
+
+### `StepController`
+
+| Member | Description |
+|--------|-------------|
+| `next()` | Advance to the next step. No-op at the last step. |
+| `prev()` | Go back to the previous step. No-op at the first step. |
+| `goTo(index)` | Jump to a specific step. Throws `RangeError` if out of range. |
+| `reset()` | Return to step 0. |
+| `currentIndex` | 0-based index of the active step (readonly). |
+| `totalSteps` | Total number of steps (readonly). |
+| `isReady` | `true` once all non-looping animations on the current step have completed (readonly). |
+| `pause()` | Pause signal animations on the current step. |
+| `resume()` | Resume paused animations. |
+| `destroy()` | Destroy: stops animations, clears SVG, removes step bar. Idempotent. |
+
+---
+
+### `VizStepSpec` (spec-driven)
+
+Used inside `VizSpec.steps[]` when calling `createStepControllerFromSpec`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `label` | `string` | Step label. |
+| `highlight?` | `string[]` | Node ids to keep at full opacity; all others are dimmed to 30%. |
+| `overlays?` | `StaticOverlaySpec[]` | Step-specific overlays added on top of the base scene. |
+| `signals?` | `AutoSignalSpec[]` | Signals to animate. Always treated as `loop: false`. |
+| `autoAdvance?` | `boolean` | Auto-advance after signals complete. Default: `false`. |
+
+---
+
+## Built-in step bar
+
+Pass `showStepBar: true` to get a minimal step indicator bar rendered as a sibling `div`
+below the container with CSS class `viz-step-bar`. Override by targeting the class:
+
+```css
+.viz-step-bar {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-top: 1px solid #313244;
+}
+```
+
+The bar shows the current step label (left-aligned) and "Step N / Total" (right-aligned).
+It does **not** include Next/Prev buttons — those are always the host's responsibility.
+
+---
+
+## Key behaviours
+
+- **Lazy builders**: factory functions are called once at first activation. The same
+  `VizBuilder` instance is reused on every revisit.
+- **Advancing mid-animation**: calling `next()` while signals are running immediately
+  stops the current animation, destroys the scene, and mounts the next step.
+- **`isReady` semantics**: `false` from step activation until all non-looping signals
+  fire `onSignalComplete`. Steps with no signals (or only looping ones) fire `onReady`
+  on the next microtask.
+- **Destruction**: `destroy()` is idempotent. All methods are no-ops after `destroy()`.
+
+---
+
+## See also
+
+- [`AutoSignalSpec`](/docs/reference/types#autosignalspec) — signal options
+- [`VizStepSpec`](/docs/reference/types#vizstepspec) — spec-driven step definition
+- [`StepController`](/docs/reference/types#stepcontroller) — full type reference
+- [Self-animating signals](/docs/how-to/animations#self-animating-signals-autosignal) — the underlying animation system
