@@ -1,5 +1,13 @@
 # @vizcraft/docs
 
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [[`aeb6058`](https://github.com/ChipiKaf/vizcraft/commit/aeb60582bc56ffa24ef26902f8f8d119cc2f0e92)]:
+  - vizcraft@1.17.0
+  - react-vizcraft@21.0.0
+
 ## 0.0.25
 
 ### Patch Changes
