@@ -1063,6 +1063,96 @@ export interface PanZoomOptions {
   panOnDrag?: boolean;
 }
 
+/**
+ * Spec for a single patched signal — used with {@link MountController.patchSignals}.
+ * Keyed by `key`; signals missing from subsequent calls are left untouched.
+ */
+export interface PatchSignalSpec {
+  /** Stable key used to identify and reuse the signal element in the SVG DOM. */
+  key: string;
+
+  /** Single-hop: source node id. Ignored when `chain` is provided. */
+  from?: string;
+  /** Single-hop: target node id. Ignored when `chain` is provided. */
+  to?: string;
+
+  /** Multi-hop chain (takes precedence over `from`/`to`). */
+  chain?: Array<{ from: string; to: string }>;
+
+  /**
+   * Animation progress.
+   * - Single hop: 0 (source) → 1 (target).
+   * - Multi-hop chain of N hops: 0 → N.
+   */
+  progress: number;
+
+  /** Park the dot at the final node when `progress >= N`. */
+  resting?: boolean;
+  /** Override the node to park at when resting. */
+  parkAt?: string;
+  parkOffsetX?: number;
+  parkOffsetY?: number;
+
+  color?: string;
+  glowColor?: string;
+  /** Visual scale of the dot, 0–1. Default: 1. */
+  magnitude?: number;
+}
+
+/**
+ * Controller returned by every {@link VizBuilder.mount} call.
+ *
+ * Always present (never `undefined`). Exposes signal patching and the
+ * internal self-animating signal loop. Pan-zoom controls are available
+ * on the optional `panZoom` sub-object when `mount()` was called with
+ * `{ panZoom: true }`.
+ */
+export interface MountController {
+  /**
+   * Update signal overlay positions in the mounted SVG directly,
+   * without tearing down or rebuilding any other scene element.
+   *
+   * Each entry is keyed by `key`. Existing signals for that key are
+   * repositioned; missing keys are created. Keys absent from the array
+   * are left untouched. Pass an empty array to leave all signals
+   * unchanged, or call `clearSignals()` to remove them all.
+   */
+  patchSignals(signals: PatchSignalSpec[]): void;
+
+  /** Remove all signal overlays injected via `patchSignals`. */
+  clearSignals(): void;
+
+  // ── internal animator controls (Part B) ──────────────────────────────
+  // All methods are always present. They are no-ops when no autoSignals
+  // were declared on the builder.
+
+  /** Pause the internal signal animation loop. The dot remains visible. */
+  pause(): void;
+  /** Resume the loop from the paused position (not from 0). */
+  resume(): void;
+  /** Stop the loop and remove all animated signal dots. */
+  stop(): void;
+  /** Equivalent to stop() followed by automatic start from progress=0. */
+  restart(): void;
+  /**
+   * Adjust animation playback speed.
+   * @param factor 1.0 = normal, 0.5 = half speed, 2.0 = double speed.
+   */
+  setSpeed(factor: number): void;
+  /**
+   * Subscribe to completion events for a specific auto-signal.
+   * The callback fires each time the signal finishes one full traversal.
+   * @returns An unsubscribe function.
+   */
+  onSignalComplete(id: string, cb: () => void): () => void;
+
+  /** Pan-zoom controller — present only when `mount()` was called with `{ panZoom: true }`. */
+  readonly panZoom: PanZoomController | undefined;
+
+  /** Tear down the mounted scene (equivalent to calling `builder.destroy()`). */
+  destroy(): void;
+}
+
 export interface PanZoomController {
   /** Current zoom level (1 = 100%) */
   zoom: number;
@@ -1113,7 +1203,7 @@ export type VizBuildEvent = {
  */
 export type VizMountEvent = {
   container: HTMLElement;
-  controller?: PanZoomController;
+  controller: MountController;
 };
 
 /**

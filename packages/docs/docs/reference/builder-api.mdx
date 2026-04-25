@@ -119,7 +119,7 @@ Compiles the builder state into a plain `VizScene` data object.
 
 ### `.mount(container, opts?)` → `MountController`
 
-Renders the scene to a DOM element.
+Renders the scene to a DOM element. Always returns a [`MountController`](/docs/reference/types#mountcontroller) — no overload returns `undefined`.
 
 | Option            | Type              | Default | Description                                                   |
 | ----------------- | ----------------- | ------- | ------------------------------------------------------------- |
@@ -131,6 +131,31 @@ Renders the scene to a DOM element.
 | `autoplay`        | `boolean`         | `false` | Auto-play animations                                          |
 | `css`             | `string`          | —       | Injected CSS string                                           |
 | `overlayRegistry` | `OverlayRegistry` | default | Custom overlay registry                                       |
+
+The `MountController` exposes:
+- **`patchSignals(signals)`** — inject or update moving signal dots by key
+- **`clearSignals()`** — remove all patched signal elements
+- **`pause() / resume() / stop() / restart() / setSpeed(n)`** — control the internal animator
+- **`onSignalComplete(id, cb)`** — subscribe to a signal finishing; returns an unsubscribe function
+- **`panZoom`** — `PanZoomController` when `{ panZoom: true }` was passed, otherwise `undefined`
+- **`destroy()`** — tear down the scene
+
+### `.autoSignal(spec)` → `VizBuilder`
+
+Declare a self-animating signal. The internal rAF animator starts automatically when
+`mount()` is called — no playback code required.
+
+```typescript
+viz()
+  .view(500, 200)
+  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
+  .node('b', { circle: { r: 20 }, at: { x: 250, y: 100 } })
+  .node('c', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .autoSignal({ id: 'flow', chain: ['a', 'b', 'c'], loop: true, durationPerHop: 800 })
+  .mount(container);
+```
+
+See [`AutoSignalSpec`](/docs/reference/types#autosignalspec) for all fields.
 
 ### `.svg(opts?)` → `string`
 

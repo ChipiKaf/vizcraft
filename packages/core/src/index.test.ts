@@ -3967,12 +3967,12 @@ describe('vizcraft core', () => {
         panZoom: true,
         autoplay: true,
       });
-      expect(controller).toBeDefined();
+      expect(controller.panZoom).toBeDefined();
 
-      const destroySpy = vi.spyOn(controller!, 'destroy');
+      const pzDestroySpy = vi.spyOn(controller.panZoom!, 'destroy');
 
       builder.destroy();
-      expect(destroySpy).toHaveBeenCalled();
+      expect(pzDestroySpy).toHaveBeenCalled();
       expect(container.querySelector('svg')).toBeNull();
     });
 
@@ -4000,7 +4000,7 @@ describe('vizcraft core', () => {
   // Mount API defaults & options
   // ═══════════════════════════════════════════════════════════════════════
   describe('mount API with panZoom options', () => {
-    it('returns a PanZoomController when panZoom is true and mounts the structure', () => {
+    it('returns a MountController with panZoom when panZoom is true', () => {
       // Vitest's JSDOM setup allows standard DOM APIs
       const container = document.createElement('div');
       document.body.appendChild(container);
@@ -4013,8 +4013,9 @@ describe('vizcraft core', () => {
       const controller = builder.mount(container, { panZoom: true });
 
       expect(controller).toBeDefined();
-      expect(controller!.zoom).toBeDefined();
-      expect(controller!.pan).toBeDefined();
+      expect(controller.panZoom).toBeDefined();
+      expect(controller.panZoom!.zoom).toBeDefined();
+      expect(controller.panZoom!.pan).toBeDefined();
 
       const svg = container.querySelector('svg');
       expect(svg).toBeTruthy();
@@ -4026,16 +4027,18 @@ describe('vizcraft core', () => {
       document.body.removeChild(container);
     });
 
-    it('returns undefined when panZoom is false or omitted', () => {
+    it('returns a MountController with panZoom undefined when panZoom is false or omitted', () => {
       const container = document.createElement('div');
 
       const builder = viz().node('a', { circle: { r: 10 } });
 
       const controller1 = builder.mount(container);
-      expect(controller1).toBeUndefined();
+      expect(controller1).toBeDefined();
+      expect(controller1.panZoom).toBeUndefined();
 
       const controller2 = builder.mount(container, { panZoom: false });
-      expect(controller2).toBeUndefined();
+      expect(controller2).toBeDefined();
+      expect(controller2.panZoom).toBeUndefined();
     });
 
     it('updates zoom and pan programmatically', () => {
@@ -4050,13 +4053,14 @@ describe('vizcraft core', () => {
         maxZoom: 5,
       });
 
-      expect(controller).toBeDefined();
+      expect(controller.panZoom).toBeDefined();
+      const pz = controller.panZoom!;
 
-      controller!.setZoom(2);
-      expect(controller!.zoom).toBe(2);
+      pz.setZoom(2);
+      expect(pz.zoom).toBe(2);
 
-      controller!.setPan({ x: 10, y: 20 });
-      expect(controller!.pan).toEqual({ x: 10, y: 20 });
+      pz.setPan({ x: 10, y: 20 });
+      expect(pz.pan).toEqual({ x: 10, y: 20 });
 
       // Viewport should reflect the pan and zoom in its transform attribute
       const viewport = container.querySelector('g.viz-viewport') as SVGGElement;
@@ -4073,18 +4077,19 @@ describe('vizcraft core', () => {
         panZoom: true,
         initialZoom: 1,
       });
-      expect(controller).toBeDefined();
+      expect(controller.panZoom).toBeDefined();
+      const pz = controller.panZoom!;
 
-      controller!.setZoom(2.5);
-      controller!.setPan({ x: -30, y: 15 });
+      pz.setZoom(2.5);
+      pz.setPan({ x: -30, y: 15 });
 
-      const state = controller!.getState();
+      const state = pz.getState();
       expect(state.zoom).toBe(2.5);
       expect(state.pan).toEqual({ x: -30, y: 15 });
 
       // Returned snapshot is a copy, not a mutable reference
       state.pan.x = 999;
-      expect(controller!.pan.x).toBe(-30);
+      expect(pz.pan.x).toBe(-30);
     });
 
     it('initialPan sets the starting pan offset when initialZoom is a number', () => {
@@ -4097,13 +4102,14 @@ describe('vizcraft core', () => {
         initialZoom: 1.5,
         initialPan: { x: -40, y: 20 },
       });
-      expect(controller).toBeDefined();
+      expect(controller.panZoom).toBeDefined();
+      const pz = controller.panZoom!;
 
       // The deferred rAF init applies initialZoom + initialPan; force it via reset()
-      controller!.reset();
+      pz.reset();
 
-      expect(controller!.zoom).toBe(1.5);
-      expect(controller!.pan).toEqual({ x: -40, y: 20 });
+      expect(pz.zoom).toBe(1.5);
+      expect(pz.pan).toEqual({ x: -40, y: 20 });
 
       const viewport = container.querySelector('g.viz-viewport') as SVGGElement;
       expect(viewport.getAttribute('transform')).toContain(
@@ -4123,14 +4129,15 @@ describe('vizcraft core', () => {
         panZoom: true,
         initialZoom: 1,
       });
-      expect(ctrl1).toBeDefined();
+      expect(ctrl1.panZoom).toBeDefined();
+      const pz1 = ctrl1.panZoom!;
 
       // User pans and zooms
-      ctrl1!.setZoom(2);
-      ctrl1!.setPan({ x: -100, y: 50 });
+      pz1.setZoom(2);
+      pz1.setPan({ x: -100, y: 50 });
 
       // Capture state before destroy
-      const prev = ctrl1!.getState();
+      const prev = pz1.getState();
       builder1.destroy();
 
       // Rebuild a new scene restoring the viewport
@@ -4142,13 +4149,14 @@ describe('vizcraft core', () => {
         initialZoom: prev.zoom,
         initialPan: prev.pan,
       });
-      expect(ctrl2).toBeDefined();
+      expect(ctrl2.panZoom).toBeDefined();
+      const pz2 = ctrl2.panZoom!;
 
       // Force initialization (simulates the rAF callback)
-      ctrl2!.reset();
+      pz2.reset();
 
-      expect(ctrl2!.zoom).toBe(2);
-      expect(ctrl2!.pan).toEqual({ x: -100, y: 50 });
+      expect(pz2.zoom).toBe(2);
+      expect(pz2.pan).toEqual({ x: -100, y: 50 });
     });
   });
 

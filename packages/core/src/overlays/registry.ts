@@ -363,6 +363,8 @@ function resolveSignalPosition(
   };
 }
 
+export { resolveSignalPosition };
+
 // Built-in Overlay: Signal
 export const coreSignalOverlay: CoreOverlayRenderer<SignalOverlayParams> = {
   render: ({ spec, nodesById, edgesById, scene }) => {

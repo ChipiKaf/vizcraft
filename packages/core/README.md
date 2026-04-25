@@ -18,7 +18,7 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Fluent Builder API**: Define your visualization scene using a readable, chainable API.
 - **Grid System**: Built-in 2D grid system for easy, structured layout of nodes.
 - **Auto-Layout Algorithms**: Built-in circular and grid layouts, custom sync/async algorithm support (e.g. ELK), and a `getNodeBoundingBox` utility for robust layout integration.
-- **Two Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`) and data-only timeline animations (`AnimationSpec`).
+- **Three Animation Systems**: Lightweight registry/CSS animations (e.g. edge `flow`), data-only timeline animations (`AnimationSpec`), and self-animating signals (`autoSignal`) that drive their own rAF loop.
 - **Framework Agnostic**: The core logic is pure TypeScript and can be used with any framework or Vanilla JS.
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 - **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
@@ -850,9 +850,69 @@ builder.overlay(
 );
 ```
 
-## 🤝 Contributing
+## Self-animating signals (`autoSignal`)
 
-Contributions are welcome! This is a monorepo managed with Turbo.
+Declare a continuously-moving signal dot without writing any playback code.
+`autoSignal()` drives its own rAF loop — it starts automatically on `mount()`.
+
+```typescript
+const controller = viz()
+  .view(500, 200)
+  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
+  .node('b', { circle: { r: 20 }, at: { x: 250, y: 100 } })
+  .node('c', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .edge('a', 'b')
+  .arrow()
+  .edge('b', 'c')
+  .arrow()
+  .autoSignal({
+    id: 'flow',
+    chain: ['a', 'b', 'c'],
+    loop: true,
+    durationPerHop: 800,
+  })
+  .mount(document.getElementById('container')!);
+
+// Control the animator at any time via the returned MountController
+controller.pause();
+controller.resume();
+controller.setSpeed(2); // 2× speed
+controller.stop(); // clears dots
+controller.restart(); // restart from progress 0
+
+const unsub = controller.onSignalComplete('flow', () => {
+  console.log('one lap done');
+});
+unsub(); // unsubscribe
+```
+
+### Patching signals manually
+
+For full control, drive progress from your own loop:
+
+```typescript
+const controller = viz()
+  .view(500, 200)
+  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
+  .node('b', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .edge('a', 'b')
+  .arrow()
+  .mount(container);
+
+let progress = 0;
+(function animate() {
+  progress = (progress + 0.004) % 1;
+  controller.patchSignals([{ key: 'sig', from: 'a', to: 'b', progress }]);
+  requestAnimationFrame(animate);
+})();
+
+// Remove all signal dots
+controller.clearSignals();
+```
+
+`mount()` always returns a `MountController`. Pan-zoom (when enabled) is at `controller.panZoom`.
+
+## 🤝 Contributing
 
 1. Clone the repo
 2. Install dependencies: `pnpm install`

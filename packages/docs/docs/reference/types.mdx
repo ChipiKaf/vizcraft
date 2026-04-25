@@ -108,8 +108,8 @@ Type-specific fields for `'text'`: `text`, `fill`, `fontSize`, `fontWeight`, `te
 ## AutoSignalSpec {#autosignalspec}
 
 Declarative self-animating signal spec. Stored by `VizBuilder.autoSignal()` and
-accepted in `VizSpec.autoSignals`. Silently ignored until the internal-signal-animation
-feature is activated.
+accepted in `VizSpec.autoSignals`. The internal animator starts automatically when
+`mount()` is called — no consumer code needed.
 
 | Field           | Type       | Default | Description                                          |
 | --------------- | ---------- | ------- | ---------------------------------------------------- |
@@ -816,6 +816,43 @@ type LayoutAlgorithm<Options = any> = (
 ---
 
 ## Pan & Zoom Types {#pan-zoom-types}
+
+### MountController {#mountcontroller}
+
+Always returned by `.mount()`. Exposes signal patching, the internal animator
+controls, and — when `{ panZoom: true }` is passed — a `panZoom` sub-object.
+
+| Member                          | Type / Returns            | Description                                                            |
+| ------------------------------- | ------------------------- | ---------------------------------------------------------------------- |
+| `patchSignals(signals)`         | `void`                    | Render or update one or more in-flight signals by key                  |
+| `clearSignals()`                | `void`                    | Remove all patched signal elements from the DOM                        |
+| `pause()`                       | `void`                    | Pause the internal animator (auto-signals)                             |
+| `resume()`                      | `void`                    | Resume a paused animator                                               |
+| `stop()`                        | `void`                    | Stop the animator and clear all signal dots                            |
+| `restart()`                     | `void`                    | Clear and restart all auto-signals from progress 0                     |
+| `setSpeed(factor)`              | `void`                    | Multiply animation speed (`2` = twice as fast)                         |
+| `onSignalComplete(id, cb)`      | `() => void`              | Subscribe to a signal's completion; returns an unsubscribe function    |
+| `panZoom`                       | `PanZoomController \| undefined` | Available when `{ panZoom: true }` was passed to `mount()`      |
+| `destroy()`                     | `void`                    | Tear down the scene — equivalent to `builder.destroy()`                |
+
+### PatchSignalSpec {#patchsignalspec}
+
+A single signal to render or update via `MountController.patchSignals()`.
+
+| Field          | Type                                         | Default | Description                                                      |
+| -------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------- |
+| `key`          | `string`                                     | —       | Stable identifier; used to upsert the DOM element                |
+| `from?`        | `string`                                     | —       | Source node id (single-hop form)                                 |
+| `to?`          | `string`                                     | —       | Target node id (single-hop form)                                 |
+| `chain?`       | `Array<{ from: string; to: string }>`        | —       | Multi-hop form (alternative to `from`/`to`)                      |
+| `progress`     | `number`                                     | —       | Position along the chain (0 → first node, 1 → second node, …)   |
+| `resting?`     | `boolean`                                    | —       | Keep the dot visible at the final node after `progress >= 1`     |
+| `parkAt?`      | `string`                                     | —       | Node id to park at when signal completes                         |
+| `parkOffsetX?` | `number`                                     | —       | Pixel offset from the parked node center (x)                     |
+| `parkOffsetY?` | `number`                                     | —       | Pixel offset from the parked node center (y)                     |
+| `color?`       | `string`                                     | —       | Fill color for the signal dot                                    |
+| `glowColor?`   | `string`                                     | —       | Glow / drop-shadow color                                         |
+| `magnitude?`   | `number`                                     | `1`     | Dot size scale 0–1                                               |
 
 ### PanZoomOptions {#panzoomoptions}
 

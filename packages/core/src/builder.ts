@@ -20,6 +20,8 @@ import type {
   EdgeOptions,
   PanZoomOptions,
   PanZoomController,
+  MountController,
+  PatchSignalSpec,
   VizSceneMutator,
   SceneChanges,
   VizPlugin,
@@ -56,6 +58,11 @@ import {
 import { resolveEdgeLabelPosition, collectEdgeLabels } from './edges/labels';
 import { renderSvgText } from './utils/text';
 import type { AutoSignalSpec } from './spec';
+import { InternalAnimator } from './signals/animator';
+import {
+  resolveSignalPosition,
+  type SignalOverlayParams,
+} from './overlays/registry';
 import type { AnimationSpec } from './animation/spec';
 import {
   buildAnimationSpec,
@@ -392,11 +399,18 @@ export interface VizBuilder extends VizSceneMutator {
   _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
   svg(opts?: SvgExportOptions): string;
-  mount(container: HTMLElement): PanZoomController | undefined;
+  /**
+   * Mount the scene to a DOM container.
+   *
+   * Always returns a {@link MountController} that exposes signal patching,
+   * the internal animator controls, and pan-zoom via `.panZoom` when
+   * `{ panZoom: true }` is passed.
+   */
+  mount(container: HTMLElement): MountController;
   mount(
     container: HTMLElement,
     opts: { autoplay?: boolean; css?: string | string[] } & PanZoomOptions
-  ): PanZoomController | undefined;
+  ): MountController;
 
   /**
    * Plays animation specs against a mounted container.
@@ -442,10 +456,11 @@ export interface VizBuilder extends VizSceneMutator {
   /**
    * Declare a self-animating signal on this builder.
    *
-   * The spec is stored but produces no rendering behaviour until the internal
-   * animator is activated (see `internal-signal-animation` feature). This
-   * method exists to pin the API surface and to allow specs produced by
-   * `fromSpec` to roundtrip cleanly.
+   * The spec is stored and the internal animator starts automatically when
+   * `mount()` is called. Each declared signal drives its own rAF loop —
+   * no consumer animation code is required.
+   *
+   * Control the animator via the {@link MountController} returned by `mount()`.
    *
    * @returns The builder, for fluent chaining.
    */
@@ -993,10 +1008,13 @@ class VizBuilderImpl implements VizBuilder {
   private _gridConfig: VizGridConfig | null = null;
   private _sketch: { enabled: boolean; seed?: number } | null = null;
   private _animationSpecs: AnimationSpec[] = [];
+  private _autoSignals: AutoSignalSpec[] = [];
   private _mountedContainer: HTMLElement | null = null;
   private _panZoomController?: PanZoomController;
   private _tooltipController?: TooltipController;
   private _edgePathResolver: EdgePathResolver | null = null;
+  private _animator?: InternalAnimator;
+  private _lastScene?: VizScene;
 
   // Scene Mutation State
   private _changes: SceneChanges = {
@@ -1624,8 +1642,9 @@ class VizBuilderImpl implements VizBuilder {
   mount(
     container: HTMLElement,
     opts?: { autoplay?: boolean; css?: string | string[] } & PanZoomOptions
-  ): PanZoomController | undefined {
+  ): MountController {
     const scene = this.build();
+    this._lastScene = scene;
     this._renderSceneToDOM(scene, container);
     this._mountedContainer = container;
 
@@ -1654,33 +1673,159 @@ class VizBuilderImpl implements VizBuilder {
       }
     }
 
-    let controller: PanZoomController | undefined;
+    let panZoom: PanZoomController | undefined;
     if (svg && opts?.panZoom) {
       const viewport = svg.querySelector('.viz-viewport') as SVGGElement | null;
       if (viewport) {
-        controller = setupPanZoom(svg, viewport, scene, opts);
+        panZoom = setupPanZoom(svg, viewport, scene, opts);
       }
     }
+    this._panZoomController = panZoom;
 
-    this._panZoomController = controller;
+    // Create the patch-signals layer (a separate <g> above the main overlays layer).
+    // Signals added via patchSignals() live here and never interfere with static overlays.
+    let patchLayer: SVGGElement | null = null;
+    if (svg) {
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const viewport =
+        (svg.querySelector('.viz-viewport') as SVGGElement | null) ?? svg;
+      patchLayer = document.createElementNS(svgNS, 'g');
+      patchLayer.setAttribute('class', 'viz-layer-patch-signals');
+      patchLayer.setAttribute('data-viz-layer', 'patch-signals');
+      viewport.appendChild(patchLayer);
+    }
 
-    this._dispatchEvent('mount', { container, controller });
+    // Build helpers that capture scene + patchLayer in a closure.
+    const getPatch = (): SVGGElement | null =>
+      patchLayer ??
+      (container.querySelector(
+        '[data-viz-layer="patch-signals"]'
+      ) as SVGGElement | null);
 
-    return controller;
+    const patchSignals = (signals: PatchSignalSpec[]): void => {
+      const layer = getPatch();
+      if (!layer || !this._lastScene) return;
+
+      const sc = this._lastScene;
+      const nodesById = new Map(sc.nodes.map((n) => [n.id, n]));
+      const edgesById = new Map(sc.edges.map((e) => [e.id, e]));
+      const svgNS = 'http://www.w3.org/2000/svg';
+
+      for (const sig of signals) {
+        // Normalise to SignalOverlayParams shape.
+        const params: SignalOverlayParams = sig.chain
+          ? {
+              chain: sig.chain,
+              progress: sig.progress,
+              resting: sig.resting,
+              parkAt: sig.parkAt,
+              parkOffsetX: sig.parkOffsetX,
+              parkOffsetY: sig.parkOffsetY,
+              color: sig.color,
+              glowColor: sig.glowColor,
+              magnitude: sig.magnitude,
+            }
+          : {
+              from: sig.from ?? '',
+              to: sig.to ?? '',
+              progress: sig.progress,
+              resting: sig.resting,
+              parkAt: sig.parkAt,
+              parkOffsetX: sig.parkOffsetX,
+              parkOffsetY: sig.parkOffsetY,
+              color: sig.color,
+              glowColor: sig.glowColor,
+              magnitude: sig.magnitude,
+            };
+
+        const pos = resolveSignalPosition(params, nodesById, edgesById, sc);
+
+        const attrKey = 'data-patch-signal-key';
+        let group = layer.querySelector(
+          `[${attrKey}="${sig.key.replace(/["\\]/g, '\\$&')}"]`
+        ) as SVGGElement | null;
+
+        if (!pos) {
+          // No valid position — remove if exists
+          group?.remove();
+          continue;
+        }
+
+        if (!group) {
+          group = document.createElementNS(svgNS, 'g');
+          group.setAttribute(attrKey, sig.key);
+          layer.appendChild(group);
+        }
+
+        let v = Math.abs(sig.magnitude ?? 1);
+        if (v > 1) v = 1;
+        const r = 2 + v * 4;
+        const fillColor = sig.color;
+        const glow = sig.glowColor ?? fillColor;
+        const styleAttr = fillColor ? ` style="fill: ${fillColor}"` : '';
+        const glowFilter = glow ? ` filter="drop-shadow(0 0 3px ${glow})"` : '';
+
+        group.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+        group.innerHTML = `<g class="viz-signal"${styleAttr}><circle r="10" fill="transparent" stroke="none" /><circle r="${r}" class="viz-signal-shape"${glowFilter} /></g>`;
+      }
+    };
+
+    const clearSignals = (): void => {
+      const layer = getPatch();
+      if (layer) layer.innerHTML = '';
+    };
+
+    // Stop any prior animator before starting a new one.
+    if (this._animator) {
+      this._animator.stop();
+      this._animator = undefined;
+    }
+
+    // Start the internal rAF animator when autoSignals are declared.
+    if (this._autoSignals.length > 0) {
+      this._animator = new InternalAnimator(
+        this._autoSignals,
+        patchSignals,
+        clearSignals
+      );
+    }
+
+    // Build the MountController that is always returned.
+    // Arrow functions capture `this` (the VizBuilderImpl instance) from the
+    // enclosing mount() method, avoiding the no-this-alias rule.
+    const mountController: MountController = {
+      patchSignals,
+      clearSignals,
+      pause: () => this._animator?.pause(),
+      resume: () => this._animator?.resume(),
+      stop: () => this._animator?.stop(),
+      restart: () => this._animator?.restart(),
+      setSpeed: (factor: number) => this._animator?.setSpeed(factor),
+      onSignalComplete: (id: string, cb: () => void) =>
+        this._animator?.onSignalComplete(id, cb) ?? (() => undefined),
+      get panZoom() {
+        return panZoom;
+      },
+      destroy: () => this.destroy(),
+    };
+
+    this._dispatchEvent('mount', { container, controller: mountController });
+
+    return mountController;
   }
 
-  /**
-   * Tear down a previously mounted scene.
-   */
-  autoSignal(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _spec: AutoSignalSpec
-  ): VizBuilder {
-    // Stub: stored for future use by the internal-signal-animation feature.
+  autoSignal(spec: AutoSignalSpec): VizBuilder {
+    this._autoSignals.push(spec);
     return this;
   }
 
   destroy(): void {
+    // 0. Stop the internal signal animator
+    if (this._animator) {
+      this._animator.stop();
+      this._animator = undefined;
+    }
+
     // 1. Destroy PanZoomController if created
     if (this._panZoomController) {
       this._panZoomController.destroy();

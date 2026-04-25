@@ -240,6 +240,70 @@ const svgString = builder.svg({ includeRuntime: true });
 
 For more details on the animation builder API, see the [Animation API Reference](/docs/reference/animation-api).
 
+## Self-animating signals (`autoSignal`)
+
+Declare a continuously-moving signal dot without writing any playback code.
+`autoSignal()` drives its own rAF loop — it starts automatically when `mount()` is called.
+
+```typescript
+import { viz } from 'vizcraft';
+
+const controller = viz()
+  .view(500, 200)
+  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
+  .node('b', { circle: { r: 20 }, at: { x: 250, y: 100 } })
+  .node('c', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .edge('a', 'b').arrow()
+  .edge('b', 'c').arrow()
+  .autoSignal({
+    id: 'flow',
+    chain: ['a', 'b', 'c'],
+    durationPerHop: 800,
+    loop: true,
+  })
+  .mount(document.getElementById('container')!);
+
+// Control the animator at any time via the returned MountController
+controller.pause();
+controller.resume();
+controller.setSpeed(2);  // 2× faster
+controller.stop();       // clears signal dots
+controller.restart();    // restarts from progress = 0
+
+// Subscribe to completion events (fires at end of each traversal)
+const unsub = controller.onSignalComplete('flow', () => {
+  console.log('flow signal completed one lap');
+});
+unsub(); // stop receiving events
+```
+
+### Manually patching signals (`patchSignals`)
+
+For fine-grained control — or when you're driving progress from your own animation
+loop — use `patchSignals` directly on the `MountController`:
+
+```typescript
+const controller = viz()
+  .view(500, 200)
+  .node('a', { circle: { r: 20 }, at: { x: 80, y: 100 } })
+  .node('b', { circle: { r: 20 }, at: { x: 420, y: 100 } })
+  .edge('a', 'b').arrow()
+  .mount(container);
+
+let progress = 0;
+function animate() {
+  progress = (progress + 0.004) % 1;
+  controller.patchSignals([{ key: 'sig', from: 'a', to: 'b', progress }]);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+```
+
+Call `controller.clearSignals()` to remove all manually-drawn signal dots.
+
+See [`MountController`](/docs/reference/types#mountcontroller) and
+[`PatchSignalSpec`](/docs/reference/types#patchsignalspec) for the full API.
+
 ---
 
 _Found a problem? [Open an issue](https://github.com/ChipiKaf/vizcraft/issues/new?labels=documentation&title=Docs:+Animations) on GitHub._
