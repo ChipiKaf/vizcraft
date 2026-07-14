@@ -1,5 +1,11 @@
 # vizcraft
 
+## 1.19.0
+
+### Minor Changes
+
+- [`6953c98`](https://github.com/ChipiKaf/vizcraft/commit/6953c9894bd25cff09f0c578c52b87305c9922eb) Thanks [@ChipiKaf](https://github.com/ChipiKaf)! - Add mount-level node and edge click subscriptions with `onNodeClick`/`onEdgeClick`, bubbling `vizcraft:*` DOM events, and default edge hit areas for reliable interactivity in embedded and `fromSpec` scenes.
+
 ## 1.18.0
 
 ### Minor Changes
