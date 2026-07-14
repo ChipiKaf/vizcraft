@@ -151,6 +151,56 @@ builder.mount(document.getElementById('container'));
 Interactive elements automatically receive `cursor: pointer` when an `onClick` handler is attached.
 :::
 
+### Subscribing from outside the builder
+
+Fluent `.onClick()` only works when you own the builder call site. When the
+scene comes from [`fromSpec`](/docs/how-to/from-spec) (JSON can't carry
+function handlers) or when the diagram is **embedded** — an iframe, a
+downstream component, a page that only receives the mounted SVG — the
+[`MountController`](/docs/reference/types#mountcontroller) exposes
+`onNodeClick(cb)` and `onEdgeClick(cb)`. Both fire for **every** node/edge,
+even ones with no fluent `onClick`, and return an unsubscribe function.
+
+```ts
+import { fromSpec } from 'vizcraft';
+
+const controller = fromSpec({
+  view: { width: 400, height: 200 },
+  nodes: [
+    { id: 'a', label: 'A', x: 80, y: 100 },
+    { id: 'b', label: 'B', x: 300, y: 100 },
+  ],
+  edges: [{ from: 'a', to: 'b' }],
+}).mount(document.getElementById('canvas')!);
+
+const off = controller.onNodeClick(({ id, node, originalEvent }) => {
+  console.log('clicked', id, node.label?.text);
+  if (originalEvent.shiftKey) selectAdditional(id);
+});
+
+controller.onEdgeClick(({ id, edge }) => {
+  console.log('clicked edge', id, edge.from, '→', edge.to);
+});
+
+// later: off();
+```
+
+The same event is also dispatched as a bubbling `CustomEvent` named
+`vizcraft:node-click` (and `vizcraft:edge-click`) on the SVG root. That
+matters for **cross-frame embeds**: a parent page can listen for clicks
+without touching the child's runtime.
+
+```ts
+// The consumer only has the SVG root — e.g. an iframe or a web component:
+svgRoot.addEventListener('vizcraft:node-click', (e) => {
+  const { id, node, originalEvent } = e.detail;
+  parent.postMessage({ type: 'node-click', id }, '*');
+});
+```
+
+Every edge automatically gets a transparent 10px hit path so clicks are
+easy to land — override with `edge.hitArea` for a bigger or smaller target.
+
 ## Hit testing
 
 VizCraft provides a DOM-independent hit testing API for building advanced interactions (drag-and-drop, connection snapping, marquee selection). All queries run against the `VizScene` data structure — no DOM required.

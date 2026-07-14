@@ -1793,6 +1793,22 @@ class VizBuilderImpl implements VizBuilder {
     // Build the MountController that is always returned.
     // Arrow functions capture `this` (the VizBuilderImpl instance) from the
     // enclosing mount() method, avoiding the no-this-alias rule.
+    // Helper: subscribe to bubbling CustomEvents dispatched from the mounted
+    // SVG when a node or edge is clicked. Returns an unsubscribe function.
+    const subscribeClick = <T extends { id: string }>(
+      eventName: 'vizcraft:node-click' | 'vizcraft:edge-click',
+      cb: (event: T) => void
+    ): (() => void) => {
+      const target =
+        (container.querySelector('svg') as SVGSVGElement | null) ?? container;
+      const listener = (e: Event): void => {
+        const detail = (e as CustomEvent<T>).detail;
+        if (detail) cb(detail);
+      };
+      target.addEventListener(eventName, listener);
+      return () => target.removeEventListener(eventName, listener);
+    };
+
     const mountController: MountController = {
       patchSignals,
       clearSignals,
@@ -1803,6 +1819,8 @@ class VizBuilderImpl implements VizBuilder {
       setSpeed: (factor: number) => this._animator?.setSpeed(factor),
       onSignalComplete: (id: string, cb: () => void) =>
         this._animator?.onSignalComplete(id, cb) ?? (() => undefined),
+      onNodeClick: (cb) => subscribeClick('vizcraft:node-click', cb),
+      onEdgeClick: (cb) => subscribeClick('vizcraft:edge-click', cb),
       get panZoom() {
         return panZoom;
       },
@@ -2519,22 +2537,33 @@ class VizBuilderImpl implements VizBuilder {
         group.querySelector('.viz-edge-hit');
       if (oldHit) oldHit.remove();
 
-      if (edge.hitArea || edge.onClick) {
-        const hit = document.createElementNS(svgNS, 'path');
-        hit.setAttribute('class', 'viz-edge-hit'); // Add class for selection
-        hit.setAttribute('data-viz-role', 'edge-hit');
-        hit.setAttribute('d', edgePath.d);
-        hit.setAttribute('stroke', 'transparent');
-        hit.setAttribute('stroke-width', String(edge.hitArea || 10));
-        hit.style.cursor = edge.onClick ? 'pointer' : '';
-        if (edge.onClick) {
-          hit.addEventListener('click', (e) => {
-            e.stopPropagation();
-            edge.onClick!(edge.id, edge);
-          });
+      // Every edge gets a transparent hit path so `vizcraft:edge-click`
+      // events (and fluent `edge.onClick` handlers) can fire consistently.
+      // The stroke width is controlled by `edge.hitArea` (default 10px).
+      const hit = document.createElementNS(svgNS, 'path');
+      hit.setAttribute('class', 'viz-edge-hit');
+      hit.setAttribute('data-viz-role', 'edge-hit');
+      hit.setAttribute('d', edgePath.d);
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('stroke-width', String(edge.hitArea || 10));
+      hit.style.cursor = edge.onClick ? 'pointer' : '';
+      hit.addEventListener('click', (e) => {
+        const svg = group.ownerSVGElement;
+        if (svg) {
+          svg.dispatchEvent(
+            new CustomEvent('vizcraft:edge-click', {
+              detail: { id: edge.id, edge, originalEvent: e },
+              bubbles: true,
+            })
+          );
         }
-        group.appendChild(hit);
-      }
+        if (edge.onClick) {
+          e.stopPropagation();
+          edge.onClick(edge.id, edge);
+        }
+      });
+      group.appendChild(hit);
 
       // Labels (remove all old, re-create from labels[])
       group
@@ -2658,13 +2687,26 @@ class VizBuilderImpl implements VizBuilder {
       }
       group.setAttribute('class', classes);
 
+      // Every node group dispatches a `vizcraft:node-click` CustomEvent so
+      // consumers who only have the SVG (e.g. iframe embeds) or who used
+      // `fromSpec` (no per-node handler) can still receive clicks. The
+      // legacy fluent `node.onClick` callback still fires when present.
       // @ts-expect-error: Property _clickHandler does not exist on SVGGElement
-      group._clickHandler = node.onClick
-        ? (e: MouseEvent) => {
-            e.stopPropagation();
-            node.onClick!(node.id, node);
-          }
-        : null;
+      group._clickHandler = (e: MouseEvent) => {
+        const svg = group.ownerSVGElement;
+        if (svg) {
+          svg.dispatchEvent(
+            new CustomEvent('vizcraft:node-click', {
+              detail: { id: node.id, node, originalEvent: e },
+              bubbles: true,
+            })
+          );
+        }
+        if (node.onClick) {
+          e.stopPropagation();
+          node.onClick(node.id, node);
+        }
+      };
 
       if (!group.hasAttribute('data-click-initialized')) {
         group.addEventListener('click', (e) => {

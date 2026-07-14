@@ -1149,8 +1149,66 @@ export interface MountController {
   /** Pan-zoom controller — present only when `mount()` was called with `{ panZoom: true }`. */
   readonly panZoom: PanZoomController | undefined;
 
+  /**
+   * Subscribe to clicks on any node in the mounted scene.
+   *
+   * Fires for **every** node — regardless of whether the node was configured
+   * with a fluent `.onClick()` handler — making it the right hook when the
+   * scene comes from {@link fromSpec} (which cannot carry function handlers)
+   * or when the diagram is embedded and the consumer only has the mount
+   * controller / SVG root.
+   *
+   * The same information is also dispatched as a bubbling `CustomEvent`
+   * named `vizcraft:node-click` on the SVG root, so consumers that only
+   * have a DOM handle (e.g. an iframe embed) can `addEventListener` for
+   * it without going through this API.
+   *
+   * @returns An unsubscribe function.
+   */
+  onNodeClick(cb: (event: VizNodeClickEvent) => void): () => void;
+
+  /**
+   * Subscribe to clicks on any edge in the mounted scene.
+   *
+   * By default every edge is given a transparent 10px hit path so clicks
+   * are easy to land — override with `edge.hitArea` if you want a bigger
+   * or smaller target.
+   *
+   * The same information is dispatched as a bubbling `CustomEvent` named
+   * `vizcraft:edge-click` on the SVG root.
+   *
+   * @returns An unsubscribe function.
+   */
+  onEdgeClick(cb: (event: VizEdgeClickEvent) => void): () => void;
+
   /** Tear down the mounted scene (equivalent to calling `builder.destroy()`). */
   destroy(): void;
+}
+
+/**
+ * Payload for `MountController.onNodeClick` and the `vizcraft:node-click`
+ * DOM CustomEvent.
+ */
+export interface VizNodeClickEvent {
+  /** Id of the clicked node. */
+  id: string;
+  /** The full VizNode from the built scene. */
+  node: VizNode;
+  /** The original DOM `MouseEvent`. */
+  originalEvent: MouseEvent;
+}
+
+/**
+ * Payload for `MountController.onEdgeClick` and the `vizcraft:edge-click`
+ * DOM CustomEvent.
+ */
+export interface VizEdgeClickEvent {
+  /** Id of the clicked edge. */
+  id: string;
+  /** The full VizEdge from the built scene. */
+  edge: VizEdge;
+  /** The original DOM `MouseEvent`. */
+  originalEvent: MouseEvent;
 }
 
 export interface PanZoomController {
