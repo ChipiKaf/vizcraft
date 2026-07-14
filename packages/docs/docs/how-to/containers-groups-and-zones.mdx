@@ -1,0 +1,229 @@
+---
+sidebar_position: 10
+title: Containers, Groups & Zones
+description: Group nodes inside auto-sizing container frames, mark logical regions with zones, and collapse groups into summary nodes.
+slug: /how-to/containers-groups-and-zones
+tags: [how-to, fromSpec, containers, groups, zones, collapse]
+---
+
+import VizMount from '@site/src/components/VizMount';
+import { fromSpec } from 'vizcraft';
+
+export const groupScene = fromSpec({
+  view: { width: 640, height: 300 },
+  nodes: [
+    { id: 'github', label: 'Github', type: 'group', x: 200, y: 150 },
+    { id: 'gha', label: 'Github Actions', parent: 'github' },
+    { id: 'hooks', label: 'Webhooks', parent: 'github' },
+    {
+      id: 'amplify',
+      label: 'AWS Amplify',
+      x: 500,
+      y: 150,
+      fill: '#fef3c7',
+      stroke: '#d97706',
+    },
+  ],
+  edges: [{ from: 'hooks', to: 'amplify', label: 'trigger' }],
+});
+
+export const nestedScene = fromSpec({
+  view: { width: 640, height: 340 },
+  nodes: [
+    { id: 'repo', label: 'Repo Root', type: 'group', x: 320, y: 170 },
+    { id: 'apps', label: 'App Modules', type: 'group', parent: 'repo' },
+    {
+      id: 'mf',
+      label: 'build.config.ts',
+      parent: 'apps',
+      width: 220,
+    },
+    { id: 'pkg', label: 'package.json', parent: 'apps', width: 220 },
+  ],
+});
+
+export const zoneScene = fromSpec({
+  view: { width: 640, height: 300 },
+  nodes: [
+    { id: 'browser', label: 'Browser', type: 'zone' },
+    { id: 'shell', label: 'Portal Shell', x: 180, y: 130, zone: 'browser' },
+    { id: 'menu', label: 'Nav Menu', x: 180, y: 220, zone: 'browser' },
+    { id: 'api', label: 'API Gateway', x: 500, y: 175 },
+  ],
+  edges: [{ from: 'shell', to: 'api' }],
+});
+
+export const collapseScene = fromSpec({
+  view: { width: 640, height: 300 },
+  nodes: [
+    {
+      id: 'repo',
+      label: 'Repo Root',
+      type: 'group',
+      collapsed: true,
+      x: 200,
+      y: 150,
+    },
+    { id: 'a', label: 'apps/web', parent: 'repo' },
+    { id: 'b', label: 'packages/ui', parent: 'repo' },
+    { id: 'ci', label: 'CI Pipeline', x: 500, y: 150 },
+  ],
+  edges: [
+    { from: 'a', to: 'ci' },
+    { from: 'b', to: 'ci' },
+  ],
+});
+
+export const focusScene = fromSpec({
+  view: { width: 640, height: 260 },
+  focus: 'registry',
+  nodes: [
+    {
+      id: 'registry',
+      label: 'Registry',
+      x: 140,
+      y: 130,
+      fill: '#eff6ff',
+      stroke: '#3b82f6',
+    },
+    { id: 'shell', label: 'Shell', x: 340, y: 70 },
+    { id: 'bus', label: 'Event Bus', x: 340, y: 190 },
+    { id: 'widget', label: 'Widget', x: 540, y: 190 },
+  ],
+  edges: [
+    { from: 'registry', to: 'shell' },
+    { from: 'bus', to: 'widget' },
+  ],
+});
+
+# Containers, Groups & Zones
+
+Flat canvases stop working once a diagram needs structure. VizCraft specs
+support three structural node types:
+
+- **`type: 'group'`** — a container frame that _owns_ its children. It
+  auto-sizes to hug them, moves them with it, and can collapse.
+- **`type: 'zone'`** — a dashed, non-owning logical region ("these things
+  happen in the browser") that encloses members without re-parenting them.
+- **`type: 'note'`** — a sticky-note annotation (see
+  [Semantic kinds & legends](/docs/how-to/semantic-kinds-and-legends)).
+
+## Groups: true parent/child containment
+
+Declare a group and point children at it with `parent`. Children do not need
+coordinates — the group lays them out and hugs the result plus `padding`
+(default 24). A label renders in a header strip that never overlaps children.
+
+```ts
+const builder = fromSpec({
+  view: { width: 640, height: 300 },
+  nodes: [
+    { id: 'github', label: 'Github', type: 'group', x: 200, y: 150 },
+    { id: 'gha', label: 'Github Actions', parent: 'github' },
+    { id: 'hooks', label: 'Webhooks', parent: 'github' },
+    { id: 'amplify', label: 'AWS Amplify', x: 500, y: 150 },
+  ],
+  edges: [{ from: 'hooks', to: 'amplify', label: 'trigger' }],
+});
+```
+
+<VizMount builder={groupScene} />
+
+Adding or removing a child reflows the frame automatically. Children are
+linked via `parentId` in the built scene, so moving the group at runtime moves
+all descendants.
+
+Group-specific options:
+
+| Option           | Default | Effect                                     |
+| ---------------- | ------- | ------------------------------------------ |
+| `padding`        | `24`    | Inner padding around the children          |
+| `labelPlacement` | `'top'` | `'top'`, `'top-left'`, or `'center'`       |
+| `layout`         | auto    | Layout engine for the children (see below) |
+| `direction`      | `'TB'`  | Stack/layer direction (`'TB'` or `'LR'`)   |
+| `spacing`        | `24`    | Gap between children                       |
+| `collapsed`      | `false` | Start collapsed (see below)                |
+
+## Groups nest recursively
+
+Groups can contain groups — each level hugs its own content:
+
+```ts
+nodes: [
+  { id: 'repo', label: 'Repo Root', type: 'group' },
+  { id: 'apps', label: 'App Modules', type: 'group', parent: 'repo' },
+  { id: 'mf', label: 'build.config.ts', parent: 'apps' },
+  { id: 'pkg', label: 'package.json', parent: 'apps' },
+],
+```
+
+<VizMount builder={nestedScene} />
+
+## Zones: non-owning logical regions
+
+Zones group things _visually_ without claiming ownership. They render as a
+dashed, faintly tinted region **behind** real nodes, with the label in a
+corner. Membership is explicit — put `zone: '<zoneId>'` on member nodes — or
+geometric, by pinning the zone's own `x`/`y`/`width`/`height`.
+
+```ts
+nodes: [
+  { id: 'browser', label: 'Browser', type: 'zone' },
+  { id: 'shell', label: 'Portal Shell', x: 180, y: 130, zone: 'browser' },
+  { id: 'menu', label: 'Nav Menu', x: 180, y: 220, zone: 'browser' },
+  { id: 'api', label: 'API Gateway', x: 500, y: 175 },
+],
+```
+
+<VizMount builder={zoneScene} />
+
+Zones and groups coexist freely: a zone can span parts of two groups because
+it never re-parents its members.
+
+## Collapse & expand
+
+Set `collapsed: true` on a group to render it as a single summary node with a
+child-count badge. Edges that pointed at hidden children re-terminate on the
+group boundary (and duplicates are merged). **Click the group to expand it —
+and click again to collapse.**
+
+```ts
+nodes: [
+  { id: 'repo', label: 'Repo Root', type: 'group', collapsed: true },
+  { id: 'a', label: 'apps/web', parent: 'repo' },
+  { id: 'b', label: 'packages/ui', parent: 'repo' },
+  { id: 'ci', label: 'CI Pipeline', x: 500, y: 150 },
+],
+edges: [
+  { from: 'a', to: 'ci' },
+  { from: 'b', to: 'ci' },
+],
+```
+
+<VizMount builder={collapseScene} />
+
+## Focus: trace one path
+
+`focus: '<nodeId>'` dims everything not connected to the chosen node or group
+(its descendants, ancestors, and direct edge neighbours stay visible):
+
+```ts
+const builder = fromSpec({
+  view: { width: 640, height: 260 },
+  focus: 'registry',
+  nodes: [
+    /* … */
+  ],
+  edges: [
+    /* … */
+  ],
+});
+```
+
+<VizMount builder={focusScene} />
+
+## Backward compatibility
+
+Flat specs — every node pinned with `x`/`y`, none of the fields above — render
+exactly as they always have. The container features only activate when you
+use them.

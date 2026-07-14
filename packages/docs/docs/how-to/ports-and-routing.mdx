@@ -1,0 +1,170 @@
+---
+sidebar_position: 12
+title: Edge Ports & Routing
+description: Attach edges to node sides or named ports, exit containers cleanly, route around obstacles, and separate parallel edges.
+slug: /how-to/ports-and-routing
+tags: [how-to, fromSpec, edges, ports, routing]
+---
+
+import VizMount from '@site/src/components/VizMount';
+import { fromSpec } from 'vizcraft';
+
+export const portScene = fromSpec({
+  view: { width: 640, height: 280 },
+  nodes: [
+    { id: 'amplify', label: 'AWS Amplify', x: 160, y: 80 },
+    { id: 'hooks', label: 'Webhooks', x: 460, y: 200 },
+  ],
+  edges: [
+    { from: 'amplify.e', to: 'hooks.n', style: 'orthogonal', label: 'notify' },
+    { from: 'amplify.s', to: 'hooks.w', style: 'orthogonal' },
+  ],
+});
+
+export const boundaryScene = fromSpec({
+  view: { width: 640, height: 320 },
+  nodes: [
+    { id: 'github', label: 'Github', type: 'group', x: 190, y: 160 },
+    { id: 'gha', label: 'Github Actions', parent: 'github' },
+    { id: 'hooks', label: 'Webhooks', parent: 'github' },
+    { id: 'amplify', label: 'AWS Amplify', x: 500, y: 90 },
+    { id: 'slack', label: 'Slack', x: 500, y: 230 },
+  ],
+  edges: [
+    { from: 'hooks', to: 'amplify', animate: 'flow' },
+    { from: 'gha', to: 'slack' },
+  ],
+  autoSignals: [
+    {
+      id: 'deploy',
+      chain: ['hooks', 'amplify'],
+      loop: true,
+      durationPerHop: 1600,
+      color: '#0284c7',
+    },
+  ],
+});
+
+export const avoidScene = fromSpec({
+  view: { width: 640, height: 240 },
+  nodes: [
+    { id: 'a', label: 'Source', x: 100, y: 120 },
+    {
+      id: 'blocker',
+      label: 'In the way',
+      x: 320,
+      y: 120,
+      fill: '#fee2e2',
+      stroke: '#dc2626',
+    },
+    { id: 'c', label: 'Target', x: 540, y: 120 },
+  ],
+  edges: [{ from: 'a', to: 'c', routing: 'avoid', label: 'around' }],
+});
+
+export const parallelScene = fromSpec({
+  view: { width: 640, height: 220 },
+  nodes: [
+    { id: 'svc', label: 'Service', x: 160, y: 110 },
+    { id: 'db', label: 'Database', x: 480, y: 110, shape: 'cylinder' },
+  ],
+  edges: [
+    { from: 'svc', to: 'db', id: 'write', label: 'write' },
+    { from: 'svc', to: 'db', id: 'read', label: 'read' },
+    { from: 'db', to: 'svc', id: 'events', label: 'events' },
+  ],
+});
+
+# Edge Ports & Routing
+
+Edges no longer have to run centre-to-centre. Specs can attach edges to
+specific node sides or named ports, exit container walls cleanly, route
+around obstacles, and fan out parallel edges.
+
+## Ports: attach to a side
+
+Suffix an endpoint with a port: `n` / `e` / `s` / `w` (or `top` / `right` /
+`bottom` / `left`) map to the built-in side ports:
+
+```ts
+edges: [
+  { from: 'amplify.e', to: 'hooks.n', style: 'orthogonal' },
+  { from: 'amplify.s', to: 'hooks.w', style: 'orthogonal' },
+],
+```
+
+<VizMount builder={portScene} />
+
+Named ports work too — declare them on the node and reference them the same
+way (`from: 'gateway.out-1'`):
+
+```ts
+nodes: [
+  {
+    id: 'gateway',
+    x: 100, y: 100,
+    ports: [{ id: 'out-1', x: 60, y: 10 }], // offset from the node centre
+  },
+],
+edges: [{ from: 'gateway.out-1', to: 'svc' }],
+```
+
+Node ids containing dots keep working: the suffix is only treated as a port
+when the full string is not itself a node id. The declarative `fromPort` /
+`toPort` fields are equivalent to the suffix syntax.
+
+## Boundary-aware container exits
+
+When an edge starts inside a [group](/docs/how-to/containers-groups-and-zones) and
+ends outside it, VizCraft stubs the edge to the container wall and exits
+orthogonally — no more diagonals cutting through the frame. This is automatic
+for boundary-crossing edges (set `style: 'straight'` or `'curved'` explicitly
+to opt out).
+
+Signals follow the routed geometry, so the animated dot below exits the wall
+cleanly too:
+
+```ts
+edges: [
+  { from: 'hooks', to: 'amplify', animate: 'flow' },
+  { from: 'gha', to: 'slack' },
+],
+autoSignals: [
+  { id: 'deploy', chain: ['hooks', 'amplify'], loop: true },
+],
+```
+
+<VizMount builder={boundaryScene} />
+
+## Obstacle avoidance
+
+`routing: 'avoid'` routes an orthogonal path **around** other nodes and
+containers instead of through them, using a deterministic A\* router:
+
+```ts
+edges: [{ from: 'a', to: 'c', routing: 'avoid' }],
+```
+
+<VizMount builder={avoidScene} />
+
+## Parallel edge separation
+
+Multiple edges between the same pair of nodes fan out automatically with
+consistent gap spacing — no overlap, in both directions:
+
+```ts
+edges: [
+  { from: 'svc', to: 'db', id: 'write', label: 'write' },
+  { from: 'svc', to: 'db', id: 'read', label: 'read' },
+  { from: 'db', to: 'svc', id: 'events', label: 'events' },
+],
+```
+
+<VizMount builder={parallelScene} />
+
+:::tip Groups in signal chains
+`autoSignals` chains and `steps[].signals` can reference group ids directly —
+the edge (and the travelling dot) terminates on the group boundary. Step
+`highlight` entries naming a group highlight the frame **and** every
+descendant.
+:::

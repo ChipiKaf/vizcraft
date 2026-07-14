@@ -5,6 +5,16 @@ import { effectivePos } from '../shapes/geometry';
 export type SignalOverlayHop = {
   from: string;
   to: string;
+  /**
+   * Whether the signal follows the rendered edge path between `from` and
+   * `to` (including waypoints, curves, and orthogonal/boundary routing).
+   *
+   * Defaults to `true`: when an edge exists between the two nodes (in either
+   * direction — reverse hops sample the path backwards), the dot travels
+   * along it. With multiple parallel edges the first declared one is used;
+   * pass `edgeId` to pick a specific edge. Set `false` to force the legacy
+   * straight centre-to-centre interpolation.
+   */
   followEdge?: boolean;
   edgeId?: string;
 };
@@ -220,18 +230,28 @@ function resolveSignalFollowEdge(
   hop: SignalOverlayHop,
   edgesById: Map<string, VizEdge>,
   scene: VizScene
-): VizEdge | null {
+): { edge: VizEdge; reversed: boolean } | null {
   if (hop.edgeId) {
-    return edgesById.get(hop.edgeId) ?? null;
+    const edge = edgesById.get(hop.edgeId);
+    if (!edge) return null;
+    return { edge, reversed: edge.from === hop.to && edge.to === hop.from };
   }
 
-  if (!hop.followEdge) return null;
+  if (hop.followEdge === false) return null;
 
-  const matches = scene.edges.filter(
+  // Default: follow the first declared edge between the two nodes so the
+  // dot travels the actual routed path (waypoints, curves, boundary exits).
+  const forward = scene.edges.find(
     (edge) => edge.from === hop.from && edge.to === hop.to
   );
+  if (forward) return { edge: forward, reversed: false };
 
-  return matches.length === 1 ? matches[0]! : null;
+  const backward = scene.edges.find(
+    (edge) => edge.from === hop.to && edge.to === hop.from
+  );
+  if (backward) return { edge: backward, reversed: true };
+
+  return null;
 }
 
 type ResolvedSignalMotion = {
@@ -344,12 +364,12 @@ function resolveSignalPosition(
 
   if (!start || !end) return null;
 
-  const followedEdge = resolveSignalFollowEdge(motion.hop, edgesById, scene);
-  if (followedEdge) {
+  const followed = resolveSignalFollowEdge(motion.hop, edgesById, scene);
+  if (followed) {
     const sampledPoint = sampleEdgePathFromData(
-      followedEdge,
+      followed.edge,
       nodesById,
-      motion.progress
+      followed.reversed ? 1 - motion.progress : motion.progress
     );
     if (sampledPoint) return sampledPoint;
   }

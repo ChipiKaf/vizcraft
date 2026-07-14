@@ -1,0 +1,172 @@
+---
+sidebar_position: 13
+title: Semantic Kinds, Legends & Notes
+description: Type your edges and nodes semantically instead of hand-colouring them, auto-generate legends, add titles and sticky-note annotations.
+slug: /how-to/semantic-kinds-and-legends
+tags: [how-to, fromSpec, kinds, theme, legend, notes]
+---
+
+import VizMount from '@site/src/components/VizMount';
+import { fromSpec } from 'vizcraft';
+
+export const kindsScene = fromSpec({
+  view: {
+    width: 640,
+    height: 340,
+    title: 'Service Architecture — data flow overview',
+    subtitle: 'Typed edges, one theme, auto legend',
+  },
+  legend: { position: 'top-right' },
+  nodes: [
+    { id: 'registry', label: 'Registry', kind: 'service', x: 120, y: 130 },
+    { id: 'shell', label: 'Shell', kind: 'ui', x: 340, y: 130 },
+    { id: 'bus', label: 'Event Bus', kind: 'queue', x: 120, y: 250 },
+    { id: 'store', label: 'Config Store', kind: 'datastore', x: 340, y: 250 },
+  ],
+  edges: [
+    { from: 'registry', to: 'shell', kind: 'data', animate: 'flow' },
+    { from: 'bus', to: 'shell', kind: 'async' },
+    { from: 'shell', to: 'store', kind: 'sync' },
+  ],
+});
+
+export const themedScene = fromSpec({
+  view: { width: 640, height: 200 },
+  theme: {
+    edgeKinds: {
+      data: { stroke: '#e11d48' },
+      replicates: {
+        stroke: '#0891b2',
+        dash: 'dash-dot',
+        markerEnd: 'arrowOpen',
+        legendLabel: 'Replication',
+      },
+    },
+  },
+  legend: 'auto',
+  nodes: [
+    { id: 'p', label: 'Primary', x: 140, y: 90, shape: 'cylinder' },
+    { id: 'r', label: 'Replica', x: 480, y: 90, shape: 'cylinder' },
+  ],
+  edges: [{ from: 'p', to: 'r', kind: 'replicates' }],
+});
+
+export const noteScene = fromSpec({
+  view: { width: 640, height: 240 },
+  nodes: [
+    { id: 'ep-schema', label: 'User Schema', x: 200, y: 130 },
+    {
+      id: 'n1',
+      type: 'note',
+      label: 'TODO: add input validation',
+      anchor: 'ep-schema',
+    },
+  ],
+});
+
+# Semantic Kinds, Legends & Notes
+
+Instead of hand-colouring every edge, give it a `kind` — a semantic type that
+maps to a consistent visual token (colour, dash pattern, arrowhead). One
+diagram-level `theme` recolours everything in one place, and `legend: 'auto'`
+explains the vocabulary to your readers.
+
+## Built-in kinds
+
+Edge kinds:
+
+| Kind             | Rendering                 |
+| ---------------- | ------------------------- |
+| `sync`           | solid slate, filled arrow |
+| `async`          | dashed violet, open arrow |
+| `data`           | solid blue, filled arrow  |
+| `contains`       | dotted grey, no arrowhead |
+| `contributes-to` | dashed green, open arrow  |
+| `event`          | dashed amber, open circle |
+
+Node kinds: `service`, `datastore` (renders as a cylinder), `external`
+(dashed), `queue`, `ui`.
+
+## Typed edges + title + auto legend
+
+```ts
+const builder = fromSpec({
+  view: {
+    width: 640,
+    height: 340,
+    title: 'Service Architecture — data flow overview',
+    subtitle: 'Typed edges, one theme, auto legend',
+  },
+  legend: { position: 'top-right' }, // 'auto' = same entries, bottom-left
+  nodes: [
+    { id: 'registry', label: 'Registry', kind: 'service', x: 120, y: 130 },
+    { id: 'shell', label: 'Shell', kind: 'ui', x: 340, y: 130 },
+    { id: 'bus', label: 'Event Bus', kind: 'queue', x: 120, y: 250 },
+    { id: 'store', label: 'Config Store', kind: 'datastore', x: 340, y: 250 },
+  ],
+  edges: [
+    { from: 'registry', to: 'shell', kind: 'data', animate: 'flow' },
+    { from: 'bus', to: 'shell', kind: 'async' },
+    { from: 'shell', to: 'store', kind: 'sync' },
+  ],
+});
+```
+
+<VizMount builder={kindsScene} />
+
+`legend: 'auto'` lists every node/edge kind actually used, with its swatch.
+You can also pass explicit entries or an object form with a `position`
+(`'bottom-left'` by default) and optional `title`:
+
+```ts
+legend: {
+  position: 'top-right',
+  title: 'Edge types',
+  entries: [{ label: 'Custom flow', swatch: '#ff00ff' }],
+},
+```
+
+The `title` / `subtitle` render in a fixed header band; auto-laid nodes start
+below it so nothing collides.
+
+## Theming and custom kinds
+
+The `theme` block merges over the built-in palette. Override a built-in kind
+or define entirely new ones — explicit per-element styles always win last:
+
+```ts
+theme: {
+  edgeKinds: {
+    data: { stroke: '#e11d48' },                     // recolour a built-in
+    replicates: {                                    // define a new kind
+      stroke: '#0891b2',
+      dash: 'dash-dot',
+      markerEnd: 'arrowOpen',
+      legendLabel: 'Replication',
+    },
+  },
+},
+edges: [{ from: 'p', to: 'r', kind: 'replicates' }],
+```
+
+<VizMount builder={themedScene} />
+
+## Notes: sticky annotations with leader lines
+
+`type: 'note'` renders sticky-note styling. Anchor it to a node with
+`anchor` — the note places itself beside the anchor and draws a dotted
+leader line pointing at it. Pin `x`/`y` to place it manually.
+
+```ts
+nodes: [
+  { id: 'ep-schema', label: 'User Schema', x: 200, y: 130 },
+  {
+    id: 'n1',
+    type: 'note',
+    label: 'TODO: add input validation',
+    anchor: 'ep-schema',
+  },
+],
+```
+
+<VizMount builder={noteScene} />

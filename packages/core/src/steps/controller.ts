@@ -245,6 +245,33 @@ export function createStepController(
 // Spec-driven path
 // ---------------------------------------------------------------------------
 
+/**
+ * Expand highlight ids so that highlighting a group highlights the frame
+ * **and** every descendant (FR-8). Ids without children pass through as-is.
+ */
+function expandHighlightIds(ids: string[], spec: VizSpec): Set<string> {
+  const childrenOf = new Map<string, string[]>();
+  for (const n of spec.nodes) {
+    if (n.parent === undefined) continue;
+    let arr = childrenOf.get(n.parent);
+    if (!arr) {
+      arr = [];
+      childrenOf.set(n.parent, arr);
+    }
+    arr.push(n.id);
+  }
+
+  const out = new Set<string>();
+  const queue = [...ids];
+  while (queue.length > 0) {
+    const id = queue.pop()!;
+    if (out.has(id)) continue;
+    out.add(id);
+    queue.push(...(childrenOf.get(id) ?? []));
+  }
+  return out;
+}
+
 function buildStepDefsFromSpec(baseSpec: VizSpec): StepDef[] {
   const stepSpecs = baseSpec.steps ?? [];
 
@@ -256,7 +283,10 @@ function buildStepDefsFromSpec(baseSpec: VizSpec): StepDef[] {
     }));
 
     const builder = (): VizBuilder => {
-      const highlightIds = new Set(stepSpec.highlight ?? []);
+      const highlightIds = expandHighlightIds(
+        stepSpec.highlight ?? [],
+        baseSpec
+      );
 
       // Dim nodes that are not in the highlight set.
       const nodes = baseSpec.nodes.map((n) => {

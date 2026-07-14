@@ -775,7 +775,7 @@ const builder = viz()
   );
 ```
 
-Use `followEdge: true` when there is only one `from -> to` edge. If the edge is missing or ambiguous, VizCraft falls back to the existing straight center-to-center interpolation.
+Signals follow the rendered edge path by default (including waypoints, curves, and orthogonal/boundary routing); reverse hops sample the path backwards. With parallel edges the first declared one wins — set `edgeId` to pick a specific edge, or `followEdge: false` to force straight center-to-center interpolation. When no edge connects the two nodes, the signal falls back to the straight line.
 
 To keep a signal visible after arrival without switching overlay kinds, set `resting: true`. Use `parkAt` to override the parked node and `parkOffsetX` / `parkOffsetY` to stack multiple arrived signals inside the same node:
 
@@ -797,7 +797,7 @@ builder.overlay(
 
 ## Multi-hop signal chains
 
-Use `chain` to move one `signal` overlay across multiple hops declaratively. `floor(progress)` selects the active hop and the fractional part drives that hop locally. Once `progress >= chain.length`, the signal parks at the final hop's `to` node automatically. Each hop can still set `followEdge` or `edgeId`.
+Use `chain` to move one `signal` overlay across multiple hops declaratively. `floor(progress)` selects the active hop and the fractional part drives that hop locally. Once `progress >= chain.length`, the signal parks at the final hop's `to` node automatically. Each hop follows its matching edge path by default; set `followEdge: false` to opt out or `edgeId` to pin a specific edge.
 
 ```ts
 builder.overlay(

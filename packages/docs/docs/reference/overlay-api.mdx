@@ -126,16 +126,16 @@ When `nodeId` is provided, `circle` and `text` use `node.centre + { offsetX, off
 
 ### `signal`
 
-`signal` interpolates between node centers by default. It can also follow a rendered edge path in flight, park inside a node after arrival, or move through a declarative multi-hop chain. See [SignalOverlayParams](./types#signaloverlayparams) and [SignalOverlayHop](./types#signaloverlayhop) for the exported types.
+`signal` follows the rendered edge path between `from` and `to` by default — including waypoints, curves, and orthogonal/boundary routing — and falls back to straight center-to-center interpolation when no edge connects the two nodes. It can park inside a node after arrival or move through a declarative multi-hop chain. See [SignalOverlayParams](./types#signaloverlayparams) and [SignalOverlayHop](./types#signaloverlayhop) for the exported types.
 
-- Set `followEdge: true` to follow the rendered edge path when there is exactly one matching `from -> to` edge.
-- Set `edgeId` to follow a specific edge when multiple edges connect the same nodes.
+- Edge following is on by default; hops travelling against an edge's direction sample its path backwards. Set `followEdge: false` to force straight interpolation.
+- With multiple parallel edges between the same nodes, the first declared edge wins; set `edgeId` to follow a specific one.
 - Set `resting: true` to keep the signal visible at `to` once `progress >= 1`.
 - Set `parkAt` to override the parked node, and use `parkOffsetX` / `parkOffsetY` to offset from that node's center for stacking or jitter.
 - Set `color` to override the default blue fill for a specific signal. Set `glowColor` for a separate halo effect (defaults to `color`).
 - Set `chain` to describe multiple hops inside one overlay. `floor(progress)` selects the active hop and the fractional part drives that hop.
 - When `progress >= chain.length`, chain signals park at the final hop's `to` node automatically.
-- If edge resolution fails or is ambiguous, the renderer falls back to straight center interpolation before arrival.
+- If edge resolution fails (no matching edge, unknown `edgeId`), the renderer falls back to straight center interpolation before arrival.
 
 | Param          | Type                 | Description                                                                                                                             |
 | -------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -146,7 +146,7 @@ When `nodeId` is provided, `circle` and `text` use `node.centre + { offsetX, off
 | `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                                                                        |
 | `color?`       | `string`             | CSS color for the ball fill; overrides the default class fill (`#3b82f6`)                                                               |
 | `glowColor?`   | `string`             | Separate glow / halo color applied as a drop-shadow; defaults to `color` when omitted                                                   |
-| `followEdge?`  | `boolean`            | For single-hop signals, follow the only matching `from -> to` edge path when `true`                                                     |
+| `followEdge?`  | `boolean`            | Follow the matching edge path (default `true`); set `false` for straight center-to-center interpolation                                 |
 | `edgeId?`      | `string`             | For single-hop signals, explicit edge id to follow; takes precedence over `followEdge`                                                  |
 | `resting?`     | `boolean`            | For single-hop signals, keep the signal visible at `to` once it arrives                                                                 |
 | `parkAt?`      | `string`             | Override the node used for parked placement after arrival                                                                               |

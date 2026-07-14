@@ -20,13 +20,13 @@ import type { VizScene, VizNode, VizEdge, ... } from 'vizcraft';
 
 Declarative, JSON-serialisable scene description for use with [`fromSpec`](/docs/how-to/from-spec).
 
-| Field         | Type                  | Required | Description                                                            |
-| ------------- | --------------------- | -------- | ---------------------------------------------------------------------- |
-| `view`        | `{ width; height }`   | ✓        | Viewport dimensions in scene units                                     |
-| `nodes`       | `NodeSpec[]`          | ✓        | Scene nodes. See [NodeSpec](#nodespec)                                 |
-| `edges`       | `EdgeSpec[]`          | —        | Edges. See [EdgeSpec](#edgespec)                                       |
-| `overlays`    | `StaticOverlaySpec[]` | —        | Overlay annotations. See [StaticOverlaySpec](#staticoverlayspec)       |
-| `autoSignals` | `AutoSignalSpec[]`    | —        | Self-animating signals (future). See [AutoSignalSpec](#autosignalspec) |
+| Field         | Type                  | Required | Description                                                                                                                  |
+| ------------- | --------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `view`        | `{ width; height }`   | ✓        | Viewport dimensions in scene units                                                                                           |
+| `nodes`       | `NodeSpec[]`          | ✓        | Scene nodes. See [NodeSpec](#nodespec)                                                                                       |
+| `edges`       | `EdgeSpec[]`          | —        | Edges. See [EdgeSpec](#edgespec)                                                                                             |
+| `overlays`    | `StaticOverlaySpec[]` | —        | Overlay annotations. See [StaticOverlaySpec](#staticoverlayspec)                                                             |
+| `autoSignals` | `AutoSignalSpec[]`    | —        | Self-animating signals (future). See [AutoSignalSpec](#autosignalspec)                                                       |
 | `steps`       | `VizStepSpec[]`       | —        | Step-through walkthrough. See [VizStepSpec](#vizstepspec) and [`createStepControllerFromSpec`](/docs/how-to/step-controller) |
 
 ---
@@ -35,23 +35,31 @@ Declarative, JSON-serialisable scene description for use with [`fromSpec`](/docs
 
 Plain JSON node description consumed by `fromSpec`.
 
-| Field         | Type                 | Default  | Description                                           |
-| ------------- | -------------------- | -------- | ----------------------------------------------------- |
-| `id`          | `string`             | —        | Unique id                                             |
-| `label`       | `string \| string[]` | —        | Display text. Array → multi-line                      |
-| `shape`       | `NodeSpecShape`      | `'rect'` | Shape name. See [NodeSpecShape](#nodespecshape)       |
-| `x`           | `number`             | —        | Centre X in scene coordinates                         |
-| `y`           | `number`             | —        | Centre Y in scene coordinates                         |
-| `width`       | `number`             | per-shape| Width (`circle`: diameter, `ellipse`: full width)     |
-| `height`      | `number`             | per-shape| Height (ignored for `circle` / `hexagon`)             |
-| `fill`        | `string`             | —        | Fill colour                                           |
-| `stroke`      | `string`             | —        | Stroke colour                                         |
-| `strokeWidth` | `number`             | —        | Stroke width                                          |
-| `opacity`     | `number`             | —        | Opacity 0–1                                           |
-| `dashed`      | `boolean`            | —        | Dashed border                                         |
-| `dotted`      | `boolean`            | —        | Dotted border                                         |
-| `class`       | `string`             | —        | CSS class on the node's SVG element                   |
-| `tooltip`     | `object`             | —        | `{ title, sections? }` hover tooltip                  |
+| Field         | Type                 | Default   | Description                                       |
+| ------------- | -------------------- | --------- | ------------------------------------------------- |
+| `id`          | `string`             | —         | Unique id                                         |
+| `label`       | `string \| string[]` | —         | Display text. Array → multi-line                  |
+| `shape`       | `NodeSpecShape`      | `'rect'`  | Shape name. See [NodeSpecShape](#nodespecshape)   |
+| `x`           | `number`             | —         | Centre X in scene coordinates                     |
+| `y`           | `number`             | —         | Centre Y in scene coordinates                     |
+| `width`       | `number`             | per-shape | Width (`circle`: diameter, `ellipse`: full width) |
+| `height`      | `number`             | per-shape | Height (ignored for `circle` / `hexagon`)         |
+| `fill`        | `string`             | —         | Fill colour                                       |
+| `stroke`      | `string`             | —         | Stroke colour                                     |
+| `strokeWidth` | `number`             | —         | Stroke width                                      |
+| `opacity`     | `number`             | —         | Opacity 0–1                                       |
+| `dashed`      | `boolean`            | —         | Dashed border                                     |
+| `dotted`      | `boolean`            | —         | Dotted border                                     |
+| `class`       | `string`             | —         | CSS class on the node's SVG element               |
+| `tooltip`     | `object`             | —         | `{ title, sections? }` hover tooltip              |
+
+`x` / `y` are optional since auto-layout: omit them to let the scope's layout
+engine place the node. Structural fields — `type` (`'group'` / `'zone'` /
+`'note'`), `parent`, `padding`, `labelPlacement`, `layout`, `direction`,
+`spacing`, `zone`, `kind`, `anchor`, `ports`, `collapsed` — are documented in
+[Containers, Groups & Zones](/docs/how-to/containers-groups-and-zones),
+[Auto-Layout](/docs/how-to/auto-layout), and
+[Semantic Kinds, Legends & Notes](/docs/how-to/semantic-kinds-and-legends).
 
 ---
 
@@ -66,21 +74,26 @@ String union used in `NodeSpec.shape`. One of:
 
 Plain JSON edge description consumed by `fromSpec`.
 
-| Field         | Type               | Default      | Description                                          |
-| ------------- | ------------------ | ------------ | ---------------------------------------------------- |
-| `from`        | `string`           | —            | Source node id                                       |
-| `to`          | `string`           | —            | Target node id                                       |
-| `id`          | `string`           | `from-to`    | Explicit id for overlay anchoring                    |
-| `label`       | `string`           | —            | Edge label                                           |
-| `style`       | `EdgeStyleSpec`    | `'straight'` | `'straight'` · `'curved'` · `'orthogonal'`           |
-| `arrow`       | `ArrowModeSpec`    | `'end'`      | `'end'` · `'start'` · `'both'` · `false`             |
-| `animate`     | `'flow' \| false`  | —            | `'flow'` → marching-ants CSS animation               |
-| `stroke`      | `string`           | —            | Stroke colour                                        |
-| `strokeWidth` | `number`           | —            | Stroke width                                         |
-| `dashed`      | `boolean`          | —            | Dashed stroke                                        |
-| `dotted`      | `boolean`          | —            | Dotted stroke                                        |
-| `opacity`     | `number`           | —            | Opacity 0–1                                          |
-| `class`       | `string`           | —            | CSS class                                            |
+| Field         | Type              | Default      | Description                                |
+| ------------- | ----------------- | ------------ | ------------------------------------------ |
+| `from`        | `string`          | —            | Source node id                             |
+| `to`          | `string`          | —            | Target node id                             |
+| `id`          | `string`          | `from-to`    | Explicit id for overlay anchoring          |
+| `label`       | `string`          | —            | Edge label                                 |
+| `style`       | `EdgeStyleSpec`   | `'straight'` | `'straight'` · `'curved'` · `'orthogonal'` |
+| `arrow`       | `ArrowModeSpec`   | `'end'`      | `'end'` · `'start'` · `'both'` · `false`   |
+| `animate`     | `'flow' \| false` | —            | `'flow'` → marching-ants CSS animation     |
+| `stroke`      | `string`          | —            | Stroke colour                              |
+| `strokeWidth` | `number`          | —            | Stroke width                               |
+| `dashed`      | `boolean`         | —            | Dashed stroke                              |
+| `dotted`      | `boolean`         | —            | Dotted stroke                              |
+| `opacity`     | `number`          | —            | Opacity 0–1                                |
+| `class`       | `string`          | —            | CSS class                                  |
+
+`from` / `to` accept `nodeId.port` suffixes, and the routing fields —
+`routing: 'avoid'`, `fromPort` / `toPort`, `kind` — are documented in
+[Edge Ports & Routing](/docs/how-to/ports-and-routing) and
+[Semantic Kinds, Legends & Notes](/docs/how-to/semantic-kinds-and-legends).
 
 ---
 
@@ -90,14 +103,14 @@ Discriminated union on `type` (`'rect'` · `'circle'` · `'text'`). Consumed by 
 
 Shared positioning fields:
 
-| Field    | Type     | Description                                                        |
-| -------- | -------- | ------------------------------------------------------------------ |
-| `type`   | `string` | Shape discriminant                                                 |
-| `key`    | `string` | Optional stable key for runtime patching                           |
-| `nodeId` | `string` | Anchor to node centre; `x`/`y` become offsets                      |
-| `x`      | `number` | Absolute x, or x-offset when `nodeId` is set                       |
-| `y`      | `number` | Absolute y, or y-offset when `nodeId` is set                       |
-| `opacity`| `number` | Opacity 0–1                                                        |
+| Field     | Type     | Description                                   |
+| --------- | -------- | --------------------------------------------- |
+| `type`    | `string` | Shape discriminant                            |
+| `key`     | `string` | Optional stable key for runtime patching      |
+| `nodeId`  | `string` | Anchor to node centre; `x`/`y` become offsets |
+| `x`       | `number` | Absolute x, or x-offset when `nodeId` is set  |
+| `y`       | `number` | Absolute y, or y-offset when `nodeId` is set  |
+| `opacity` | `number` | Opacity 0–1                                   |
 
 Type-specific fields for `'rect'`: `width`, `height`, `rx`, `fill`, `stroke`, `strokeWidth`.  
 Type-specific fields for `'circle'`: `r`, `fill`, `stroke`, `strokeWidth`.  
@@ -111,18 +124,18 @@ Declarative self-animating signal spec. Stored by `VizBuilder.autoSignal()` and
 accepted in `VizSpec.autoSignals`. The internal animator starts automatically when
 `mount()` is called — no consumer code needed.
 
-| Field           | Type       | Default | Description                                          |
-| --------------- | ---------- | ------- | ---------------------------------------------------- |
-| `id`            | `string`   | —       | Unique stable id                                     |
-| `chain`         | `string[]` | —       | Ordered node ids (min 2)                             |
-| `durationPerHop`| `number`   | 800     | ms per hop                                           |
-| `totalDuration` | `number`   | —       | Total ms across all hops (alternative to per-hop)    |
-| `loop`          | `boolean`  | false   | Restart after reaching the final node                |
-| `loopDelay`     | `number`   | 0       | Pause in ms before restarting when `loop: true`      |
-| `keepFinal`     | `boolean`  | false   | Park the dot at the final node when not looping      |
-| `color`         | `string`   | —       | Dot fill colour                                      |
-| `glowColor`     | `string`   | —       | Glow / halo colour                                   |
-| `magnitude`     | `number`   | 1       | Visual scale of the signal dot, 0–1                  |
+| Field            | Type       | Default | Description                                       |
+| ---------------- | ---------- | ------- | ------------------------------------------------- |
+| `id`             | `string`   | —       | Unique stable id                                  |
+| `chain`          | `string[]` | —       | Ordered node ids (min 2)                          |
+| `durationPerHop` | `number`   | 800     | ms per hop                                        |
+| `totalDuration`  | `number`   | —       | Total ms across all hops (alternative to per-hop) |
+| `loop`           | `boolean`  | false   | Restart after reaching the final node             |
+| `loopDelay`      | `number`   | 0       | Pause in ms before restarting when `loop: true`   |
+| `keepFinal`      | `boolean`  | false   | Park the dot at the final node when not looping   |
+| `color`          | `string`   | —       | Dot fill colour                                   |
+| `glowColor`      | `string`   | —       | Glow / halo colour                                |
+| `magnitude`      | `number`   | 1       | Visual scale of the signal dot, 0–1               |
 
 ---
 
@@ -131,13 +144,13 @@ accepted in `VizSpec.autoSignals`. The internal animator starts automatically wh
 One step in a `VizSpec.steps` walkthrough. Used with
 [`createStepControllerFromSpec`](/docs/how-to/step-controller#spec-driven-declarative).
 
-| Field         | Type                  | Description                                                                     |
-| ------------- | --------------------- | ------------------------------------------------------------------------------- |
-| `label`       | `string`              | Descriptive label for the step                                                  |
-| `highlight`   | `string[]`            | Node ids to keep at full opacity; others are dimmed to 30%                      |
-| `overlays`    | `StaticOverlaySpec[]` | Step-specific overlays added on top of the base scene; removed on step exit    |
-| `signals`     | `AutoSignalSpec[]`    | Signals to animate. Always treated as `loop: false`                             |
-| `autoAdvance` | `boolean`             | When `true`, calls `next()` automatically after all non-looping signals complete|
+| Field         | Type                  | Description                                                                      |
+| ------------- | --------------------- | -------------------------------------------------------------------------------- |
+| `label`       | `string`              | Descriptive label for the step                                                   |
+| `highlight`   | `string[]`            | Node ids to keep at full opacity; others are dimmed to 30%                       |
+| `overlays`    | `StaticOverlaySpec[]` | Step-specific overlays added on top of the base scene; removed on step exit      |
+| `signals`     | `AutoSignalSpec[]`    | Signals to animate. Always treated as `loop: false`                              |
+| `autoAdvance` | `boolean`             | When `true`, calls `next()` automatically after all non-looping signals complete |
 
 ---
 
@@ -146,12 +159,12 @@ One step in a `VizSpec.steps` walkthrough. Used with
 One step in a programmatic walkthrough. Used with
 [`createStepController`](/docs/how-to/step-controller).
 
-| Field          | Type                                   | Description                                                |
-| -------------- | -------------------------------------- | ---------------------------------------------------------- |
-| `label`        | `string`                               | Text shown in the step bar / `onStepChange` callback       |
-| `builder`      | `VizBuilder \| (() => VizBuilder)`     | Scene for this step. Factories are called once and cached  |
-| `autoSignals?` | `AutoSignalSpec[]`                     | Signals to run while this step is active                   |
-| `autoAdvance?` | `boolean`                              | Auto-advance after non-looping signals complete. Default: `false` |
+| Field          | Type                               | Description                                                       |
+| -------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| `label`        | `string`                           | Text shown in the step bar / `onStepChange` callback              |
+| `builder`      | `VizBuilder \| (() => VizBuilder)` | Scene for this step. Factories are called once and cached         |
+| `autoSignals?` | `AutoSignalSpec[]`                 | Signals to run while this step is active                          |
+| `autoAdvance?` | `boolean`                          | Auto-advance after non-looping signals complete. Default: `false` |
 
 ---
 
@@ -160,18 +173,18 @@ One step in a programmatic walkthrough. Used with
 Returned by [`createStepController`](/docs/how-to/step-controller) and
 [`createStepControllerFromSpec`](/docs/how-to/step-controller#spec-driven-declarative).
 
-| Member           | Type                      | Description                                                              |
-| ---------------- | ------------------------- | ------------------------------------------------------------------------ |
-| `next()`         | `() => void`              | Advance to the next step. No-op at the last step                         |
-| `prev()`         | `() => void`              | Go back. No-op at the first step                                         |
-| `goTo(index)`    | `(number) => void`        | Jump to a step by index. Throws `RangeError` if out of range             |
-| `reset()`        | `() => void`              | Return to step 0                                                         |
-| `currentIndex`   | `number` (readonly)       | 0-based index of the active step                                         |
-| `totalSteps`     | `number` (readonly)       | Total number of steps                                                    |
-| `isReady`        | `boolean` (readonly)      | `true` once all non-looping animations have completed                    |
-| `pause()`        | `() => void`              | Pause signal animations on the current step                              |
-| `resume()`       | `() => void`              | Resume paused animations                                                 |
-| `destroy()`      | `() => void`              | Stop animations, clear SVG, remove step bar. Idempotent                 |
+| Member         | Type                 | Description                                                  |
+| -------------- | -------------------- | ------------------------------------------------------------ |
+| `next()`       | `() => void`         | Advance to the next step. No-op at the last step             |
+| `prev()`       | `() => void`         | Go back. No-op at the first step                             |
+| `goTo(index)`  | `(number) => void`   | Jump to a step by index. Throws `RangeError` if out of range |
+| `reset()`      | `() => void`         | Return to step 0                                             |
+| `currentIndex` | `number` (readonly)  | 0-based index of the active step                             |
+| `totalSteps`   | `number` (readonly)  | Total number of steps                                        |
+| `isReady`      | `boolean` (readonly) | `true` once all non-looping animations have completed        |
+| `pause()`      | `() => void`         | Pause signal animations on the current step                  |
+| `resume()`     | `() => void`         | Resume paused animations                                     |
+| `destroy()`    | `() => void`         | Stop animations, clear SVG, remove step bar. Idempotent      |
 
 ---
 
@@ -194,12 +207,12 @@ Complete, serializable description of what to render.
 
 One hop inside a declarative `signal` chain.
 
-| Field         | Type      | Description                                                  |
-| ------------- | --------- | ------------------------------------------------------------ |
-| `from`        | `string`  | Hop source node id                                           |
-| `to`          | `string`  | Hop target node id                                           |
-| `followEdge?` | `boolean` | Follow the only matching `from -> to` edge path for this hop |
-| `edgeId?`     | `string`  | Explicit edge id to follow for this hop; takes precedence    |
+| Field         | Type      | Description                                                                                        |
+| ------------- | --------- | -------------------------------------------------------------------------------------------------- |
+| `from`        | `string`  | Hop source node id                                                                                 |
+| `to`          | `string`  | Hop target node id                                                                                 |
+| `followEdge?` | `boolean` | Follow the matching edge path for this hop (default `true`); `false` forces straight interpolation |
+| `edgeId?`     | `string`  | Explicit edge id to follow for this hop; takes precedence                                          |
 
 ---
 
@@ -209,21 +222,21 @@ Built-in params for the `signal` overlay.
 
 Use either single-hop `from` / `to` fields or a declarative `chain` of [SignalOverlayHop](#signaloverlayhop) entries. Before arrival, the signal uses the normal center-to-center or edge-following motion rules. Single-hop signals park when `resting` or `parkAt` are set and `progress >= 1`. Chain signals park automatically once `progress >= chain.length`.
 
-| Field          | Type                 | Description                                                                            |
-| -------------- | -------------------- | -------------------------------------------------------------------------------------- |
-| `from`         | `string`             | Single-hop source node id. Mutually exclusive with `chain`                             |
-| `to`           | `string`             | Single-hop target node id and the default parked node. Mutually exclusive with `chain` |
-| `chain?`       | `SignalOverlayHop[]` | Declarative multi-hop path. `floor(progress)` selects the active hop                   |
-| `progress`     | `number`             | Single-hop position `0..1`, or hop index plus local progress for `chain`               |
-| `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                       |
-| `color?`       | `string`             | CSS color for the ball fill; defaults to the class fill (`#3b82f6`)                    |
-| `glowColor?`   | `string`             | Separate glow / halo color; defaults to `color` when omitted                           |
-| `followEdge?`  | `boolean`            | Single-hop edge-follow hint; chain hops carry their own `followEdge`                   |
-| `edgeId?`      | `string`             | Single-hop explicit edge id; chain hops carry their own `edgeId`                       |
-| `resting?`     | `boolean`            | Single-hop only: keep the signal visible at `to` once it arrives                       |
-| `parkAt?`      | `string`             | Override the node used for parked placement after arrival                              |
-| `parkOffsetX?` | `number`             | Horizontal parked offset from the parked node center                                   |
-| `parkOffsetY?` | `number`             | Vertical parked offset from the parked node center                                     |
+| Field          | Type                 | Description                                                                             |
+| -------------- | -------------------- | --------------------------------------------------------------------------------------- |
+| `from`         | `string`             | Single-hop source node id. Mutually exclusive with `chain`                              |
+| `to`           | `string`             | Single-hop target node id and the default parked node. Mutually exclusive with `chain`  |
+| `chain?`       | `SignalOverlayHop[]` | Declarative multi-hop path. `floor(progress)` selects the active hop                    |
+| `progress`     | `number`             | Single-hop position `0..1`, or hop index plus local progress for `chain`                |
+| `magnitude?`   | `number`             | Visual intensity used to scale the marker radius                                        |
+| `color?`       | `string`             | CSS color for the ball fill; defaults to the class fill (`#3b82f6`)                     |
+| `glowColor?`   | `string`             | Separate glow / halo color; defaults to `color` when omitted                            |
+| `followEdge?`  | `boolean`            | Follow the matching edge path (default `true`); chain hops carry their own `followEdge` |
+| `edgeId?`      | `string`             | Single-hop explicit edge id; chain hops carry their own `edgeId`                        |
+| `resting?`     | `boolean`            | Single-hop only: keep the signal visible at `to` once it arrives                        |
+| `parkAt?`      | `string`             | Override the node used for parked placement after arrival                               |
+| `parkOffsetX?` | `number`             | Horizontal parked offset from the parked node center                                    |
+| `parkOffsetY?` | `number`             | Vertical parked offset from the parked node center                                      |
 
 ---
 
@@ -856,37 +869,37 @@ type LayoutAlgorithm<Options = any> = (
 Always returned by `.mount()`. Exposes signal patching, the internal animator
 controls, and — when `{ panZoom: true }` is passed — a `panZoom` sub-object.
 
-| Member                          | Type / Returns            | Description                                                            |
-| ------------------------------- | ------------------------- | ---------------------------------------------------------------------- |
-| `patchSignals(signals)`         | `void`                    | Render or update one or more in-flight signals by key                  |
-| `clearSignals()`                | `void`                    | Remove all patched signal elements from the DOM                        |
-| `pause()`                       | `void`                    | Pause the internal animator (auto-signals)                             |
-| `resume()`                      | `void`                    | Resume a paused animator                                               |
-| `stop()`                        | `void`                    | Stop the animator and clear all signal dots                            |
-| `restart()`                     | `void`                    | Clear and restart all auto-signals from progress 0                     |
-| `setSpeed(factor)`              | `void`                    | Multiply animation speed (`2` = twice as fast)                         |
-| `onSignalComplete(id, cb)`      | `() => void`              | Subscribe to a signal's completion; returns an unsubscribe function    |
-| `panZoom`                       | `PanZoomController \| undefined` | Available when `{ panZoom: true }` was passed to `mount()`      |
-| `destroy()`                     | `void`                    | Tear down the scene — equivalent to `builder.destroy()`                |
+| Member                     | Type / Returns                   | Description                                                         |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| `patchSignals(signals)`    | `void`                           | Render or update one or more in-flight signals by key               |
+| `clearSignals()`           | `void`                           | Remove all patched signal elements from the DOM                     |
+| `pause()`                  | `void`                           | Pause the internal animator (auto-signals)                          |
+| `resume()`                 | `void`                           | Resume a paused animator                                            |
+| `stop()`                   | `void`                           | Stop the animator and clear all signal dots                         |
+| `restart()`                | `void`                           | Clear and restart all auto-signals from progress 0                  |
+| `setSpeed(factor)`         | `void`                           | Multiply animation speed (`2` = twice as fast)                      |
+| `onSignalComplete(id, cb)` | `() => void`                     | Subscribe to a signal's completion; returns an unsubscribe function |
+| `panZoom`                  | `PanZoomController \| undefined` | Available when `{ panZoom: true }` was passed to `mount()`          |
+| `destroy()`                | `void`                           | Tear down the scene — equivalent to `builder.destroy()`             |
 
 ### PatchSignalSpec {#patchsignalspec}
 
 A single signal to render or update via `MountController.patchSignals()`.
 
-| Field          | Type                                         | Default | Description                                                      |
-| -------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------- |
-| `key`          | `string`                                     | —       | Stable identifier; used to upsert the DOM element                |
-| `from?`        | `string`                                     | —       | Source node id (single-hop form)                                 |
-| `to?`          | `string`                                     | —       | Target node id (single-hop form)                                 |
-| `chain?`       | `Array<{ from: string; to: string }>`        | —       | Multi-hop form (alternative to `from`/`to`)                      |
-| `progress`     | `number`                                     | —       | Position along the chain (0 → first node, 1 → second node, …)   |
-| `resting?`     | `boolean`                                    | —       | Keep the dot visible at the final node after `progress >= 1`     |
-| `parkAt?`      | `string`                                     | —       | Node id to park at when signal completes                         |
-| `parkOffsetX?` | `number`                                     | —       | Pixel offset from the parked node center (x)                     |
-| `parkOffsetY?` | `number`                                     | —       | Pixel offset from the parked node center (y)                     |
-| `color?`       | `string`                                     | —       | Fill color for the signal dot                                    |
-| `glowColor?`   | `string`                                     | —       | Glow / drop-shadow color                                         |
-| `magnitude?`   | `number`                                     | `1`     | Dot size scale 0–1                                               |
+| Field          | Type                                  | Default | Description                                                   |
+| -------------- | ------------------------------------- | ------- | ------------------------------------------------------------- |
+| `key`          | `string`                              | —       | Stable identifier; used to upsert the DOM element             |
+| `from?`        | `string`                              | —       | Source node id (single-hop form)                              |
+| `to?`          | `string`                              | —       | Target node id (single-hop form)                              |
+| `chain?`       | `Array<{ from: string; to: string }>` | —       | Multi-hop form (alternative to `from`/`to`)                   |
+| `progress`     | `number`                              | —       | Position along the chain (0 → first node, 1 → second node, …) |
+| `resting?`     | `boolean`                             | —       | Keep the dot visible at the final node after `progress >= 1`  |
+| `parkAt?`      | `string`                              | —       | Node id to park at when signal completes                      |
+| `parkOffsetX?` | `number`                              | —       | Pixel offset from the parked node center (x)                  |
+| `parkOffsetY?` | `number`                              | —       | Pixel offset from the parked node center (y)                  |
+| `color?`       | `string`                              | —       | Fill color for the signal dot                                 |
+| `glowColor?`   | `string`                              | —       | Glow / drop-shadow color                                      |
+| `magnitude?`   | `number`                              | `1`     | Dot size scale 0–1                                            |
 
 ### PanZoomOptions {#panzoomoptions}
 

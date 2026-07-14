@@ -1,47 +1,24 @@
 import type { VizBuilder } from './builder';
 import { viz } from './builder';
-import type {
-  EdgeSpec,
-  NodeSpec,
-  NodeSpecShape,
-  StaticOverlaySpec,
-  VizSpec,
-} from './spec';
+import type { EdgeBuilder, NodeBuilder } from './builder';
+import type { StaticOverlaySpec, VizSpec } from './spec';
+import { compileSpec } from './compile';
+import type { ResolvedEdge, ResolvedNode } from './compile';
+import { GROUP_HEADER_HEIGHT } from './compile/layout';
 
 // ---------------------------------------------------------------------------
 // Node translation helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Default dimensions per shape kind, applied when `NodeSpec.width` /
- * `NodeSpec.height` are omitted.
- */
-const NODE_DEFAULTS: Record<NodeSpecShape, { width: number; height: number }> =
-  {
-    rect: { width: 120, height: 40 },
-    circle: { width: 40, height: 40 },
-    cylinder: { width: 100, height: 50 },
-    diamond: { width: 80, height: 60 },
-    hexagon: { width: 80, height: 60 },
-    ellipse: { width: 120, height: 40 },
-    cloud: { width: 120, height: 40 },
-    document: { width: 120, height: 40 },
-    parallelogram: { width: 120, height: 40 },
-    triangle: { width: 120, height: 40 },
-    note: { width: 120, height: 40 },
-  };
-
-function applyNodeSpec(b: VizBuilder, n: NodeSpec): void {
-  const shape = n.shape ?? 'rect';
-  const defaults = NODE_DEFAULTS[shape];
-  const w = n.width ?? defaults.width;
-  const h = n.height ?? defaults.height;
-
-  const nb = b.node(n.id).at(n.x, n.y);
+function applyShape(nb: NodeBuilder, n: ResolvedNode): void {
+  const shape = n.shape;
+  const w = n.width;
+  const h = n.height;
 
   switch (shape) {
     case 'rect':
-      nb.rect(w, h);
+      if (n.type === 'group' || n.type === 'zone') nb.rect(w, h, 8);
+      else nb.rect(w, h);
       break;
     case 'circle':
       // width is the diameter; derive radius
@@ -82,11 +59,50 @@ function applyNodeSpec(b: VizBuilder, n: NodeSpec): void {
       nb.rect(w, h);
     }
   }
+}
 
-  if (n.label !== undefined) {
-    const labelText = Array.isArray(n.label) ? n.label.join('\n') : n.label;
-    nb.label(labelText);
+function applyLabel(nb: NodeBuilder, n: ResolvedNode): void {
+  if (n.spec.label === undefined) return;
+  const labelText = Array.isArray(n.spec.label)
+    ? n.spec.label.join('\n')
+    : n.spec.label;
+
+  if (n.type === 'zone' || n.labelPlacement === 'top-left') {
+    nb.label(labelText, {
+      dx: -(n.width / 2) + 10,
+      dy: -(n.height / 2) + 16,
+      textAnchor: 'start',
+      fontSize: 12,
+      fontWeight: 600,
+      fill: n.stroke,
+    });
+    return;
   }
+
+  if (n.type === 'group' && !n.collapsed && n.labelPlacement === 'top') {
+    const headerH = n.headerHeight || GROUP_HEADER_HEIGHT;
+    nb.label(labelText, {
+      dy: -(n.height / 2) + headerH / 2,
+      fontSize: 13,
+      fontWeight: 600,
+    });
+    return;
+  }
+
+  if (n.type === 'note') {
+    // Wrap inside the sticky note (with breathing room for the fold).
+    nb.label(labelText, { maxWidth: n.width - 24, fontSize: 12 });
+    return;
+  }
+
+  nb.label(labelText);
+}
+
+function applyResolvedNode(b: VizBuilder, n: ResolvedNode): void {
+  const nb = b.node(n.id).at(n.x, n.y);
+
+  applyShape(nb, n);
+  applyLabel(nb, n);
 
   if (n.fill !== undefined) nb.fill(n.fill);
   if (n.stroke !== undefined) {
@@ -94,14 +110,40 @@ function applyNodeSpec(b: VizBuilder, n: NodeSpec): void {
     else nb.stroke(n.stroke);
   }
   if (n.opacity !== undefined) nb.opacity(n.opacity);
-  if (n.dashed === true) nb.dashed();
-  if (n.dotted === true) nb.dotted();
-  if (n.class !== undefined) nb.class(n.class);
-  if (n.tooltip !== undefined) {
+  if (n.dash === 'dashed') nb.dashed();
+  else if (n.dash === 'dotted') nb.dotted();
+  else if (n.dash !== undefined) nb.dash(n.dash);
+  if (n.className !== undefined) nb.class(n.className);
+  if (n.zIndex !== undefined) nb.zIndex(n.zIndex);
+
+  if (n.parent !== undefined) nb.parent(n.parent);
+
+  if (n.type === 'group' && !n.collapsed) {
+    const p = n.padding;
+    nb.container({
+      padding: { top: p, right: p, bottom: p, left: p },
+      headerHeight: n.headerHeight > 0 ? n.headerHeight : undefined,
+      autoSize: false,
+    });
+  }
+
+  if (n.collapsed && n.hiddenChildCount !== undefined) {
+    nb.badge(String(n.hiddenChildCount), {
+      position: 'top-right',
+      background: n.stroke ?? '#94a3b8',
+      fill: '#ffffff',
+    });
+  }
+
+  for (const port of n.ports ?? []) {
+    nb.port(port.id, { x: port.x, y: port.y }, port.direction);
+  }
+
+  if (n.spec.tooltip !== undefined) {
     nb.tooltip(
-      n.tooltip.sections !== undefined
-        ? { title: n.tooltip.title, sections: n.tooltip.sections }
-        : n.tooltip.title
+      n.spec.tooltip.sections !== undefined
+        ? { title: n.spec.tooltip.title, sections: n.spec.tooltip.sections }
+        : n.spec.tooltip.title
     );
   }
 
@@ -112,27 +154,43 @@ function applyNodeSpec(b: VizBuilder, n: NodeSpec): void {
 // Edge translation helpers
 // ---------------------------------------------------------------------------
 
-function applyEdgeSpec(b: VizBuilder, e: EdgeSpec): void {
-  const eb = b.edge(e.from, e.to, e.id);
+function applyResolvedEdge(b: VizBuilder, e: ResolvedEdge): void {
+  const eb: EdgeBuilder = b.edge(e.from, e.to, e.id);
 
   if (e.label !== undefined) eb.label(e.label);
 
-  if (e.style === 'curved') eb.curved();
-  else if (e.style === 'orthogonal') eb.orthogonal();
+  if (e.routing === 'curved') eb.curved();
+  else if (e.routing === 'orthogonal') eb.orthogonal();
   // 'straight' is the default — no call needed
 
-  if (e.arrow !== undefined) eb.arrow(e.arrow);
+  for (const wp of e.waypoints ?? []) eb.via(wp.x, wp.y);
+
+  if (e.fromPort !== undefined) eb.fromPort(e.fromPort);
+  if (e.toPort !== undefined) eb.toPort(e.toPort);
+  if (e.fromAngle !== undefined) eb.fromAngle(e.fromAngle);
+  if (e.toAngle !== undefined) eb.toAngle(e.toAngle);
+
+  // Explicit `arrow` wins (legacy behaviour); kind tokens fill the gap.
+  if (e.spec.arrow !== undefined) {
+    eb.arrow(e.spec.arrow);
+  } else {
+    if (e.markerEnd !== undefined) eb.markerEnd(e.markerEnd);
+    if (e.markerStart !== undefined) eb.markerStart(e.markerStart);
+  }
 
   if (e.animate === 'flow') eb.animate('flow');
 
   if (e.stroke !== undefined) {
     if (e.strokeWidth !== undefined) eb.stroke(e.stroke, e.strokeWidth);
     else eb.stroke(e.stroke);
+  } else if (e.strokeWidth !== undefined) {
+    eb.stroke('#111', e.strokeWidth);
   }
   if (e.opacity !== undefined) eb.opacity(e.opacity);
-  if (e.dashed === true) eb.dashed();
-  if (e.dotted === true) eb.dotted();
-  if (e.class !== undefined) eb.class(e.class);
+  if (e.dash === 'dashed') eb.dashed();
+  else if (e.dash === 'dotted') eb.dotted();
+  else if (e.dash !== undefined) eb.dash(e.dash);
+  if (e.className !== undefined) eb.class(e.className);
 
   eb.done();
 }
@@ -259,11 +317,76 @@ function applyOverlaySpec(b: VizBuilder, o: StaticOverlaySpec): void {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Shared mutable state for interactive collapse/expand across rebuilds. */
+interface SpecRuntimeState {
+  collapsed: Map<string, boolean>;
+}
+
+function hydrateBuilder(spec: VizSpec, state: SpecRuntimeState): VizBuilder {
+  const compiled = compileSpec(spec, { collapsedOverrides: state.collapsed });
+
+  const b = viz().view(spec.view.width, spec.view.height);
+
+  for (const n of compiled.nodes) {
+    applyResolvedNode(b, n);
+  }
+
+  for (const e of compiled.edges) {
+    applyResolvedEdge(b, e);
+  }
+
+  for (const o of compiled.overlays) {
+    applyOverlaySpec(b, o);
+  }
+
+  for (const s of spec.autoSignals ?? []) {
+    b.autoSignal(s);
+  }
+
+  // ── Interactive collapse/expand (FR-7) ──────────────────────────────────
+  // Clicking a group toggles its collapsed state and re-mounts the scene
+  // into the same container. State survives rebuilds via `state.collapsed`.
+  if (compiled.collapsibleGroupIds.length > 0) {
+    let mountedContainer: HTMLElement | null = null;
+    b.on('mount', ({ container }) => {
+      mountedContainer = container;
+    });
+
+    const collapsedNow = (id: string): boolean =>
+      state.collapsed.get(id) ??
+      spec.nodes.find((n) => n.id === id)?.collapsed ??
+      false;
+
+    for (const groupId of compiled.collapsibleGroupIds) {
+      b.node(groupId)
+        .onClick(() => {
+          if (!mountedContainer) return;
+          state.collapsed.set(groupId, !collapsedNow(groupId));
+          const container = mountedContainer;
+          b.destroy();
+          container.innerHTML = '';
+          hydrateBuilder(spec, state).mount(container);
+        })
+        .done();
+    }
+  }
+
+  return b;
+}
+
 /**
  * Translate a plain `VizSpec` object into a fully hydrated `VizBuilder`.
  *
  * The returned builder is an ordinary `VizBuilder` — you can chain further
  * fluent calls, then call `.mount()` or `.build()` as normal.
+ *
+ * Specs may use the full declarative feature set: `type: 'group'` containers
+ * with auto-sizing, `type: 'zone'` regions, `type: 'note'` annotations,
+ * auto-layout (`view.layout` / omitted coordinates), edge ports
+ * (`from: 'node.e'`), boundary-aware and obstacle-avoiding routing, semantic
+ * `kind` tokens with a `theme`, `legend` / title, `collapsed` groups and
+ * `focus`. Flat specs (absolute `x`/`y` everywhere, none of those fields)
+ * compile to exactly the same scene as before.
  *
  * `autoSignals` and `steps` fields are stored via `builder.autoSignal()` and
  * are silently ignored at render time until the internal-animator /
@@ -286,26 +409,15 @@ function applyOverlaySpec(b: VizBuilder, o: StaticOverlaySpec): void {
  * ```
  */
 export function fromSpec(spec: VizSpec): VizBuilder {
-  const b = viz().view(spec.view.width, spec.view.height);
-
-  for (const n of spec.nodes) {
-    applyNodeSpec(b, n);
-  }
-
-  for (const e of spec.edges ?? []) {
-    applyEdgeSpec(b, e);
-  }
-
-  for (const o of spec.overlays ?? []) {
-    applyOverlaySpec(b, o);
-  }
-
-  for (const s of spec.autoSignals ?? []) {
-    b.autoSignal(s);
-  }
-
-  return b;
+  return hydrateBuilder(spec, { collapsed: new Map() });
 }
+
+/**
+ * Compile a spec without hydrating a builder — exposes resolved geometry
+ * (positions, sizes, routed waypoints) for tooling, tests, and editors.
+ */
+export { compileSpec } from './compile';
+export type { CompiledSpec, ResolvedEdge, ResolvedNode } from './compile';
 
 // Re-export spec types so consumers can import them from a single entrypoint.
 export type {

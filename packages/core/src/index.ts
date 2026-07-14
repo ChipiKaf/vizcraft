@@ -29,6 +29,13 @@ export * from './layout/algorithms';
 export * from './ports/equidistant';
 export * from './spec';
 export { fromSpec } from './fromSpec';
+export { compileSpec } from './compile';
+export type {
+  CompiledSpec,
+  CompileOptions,
+  ResolvedEdge,
+  ResolvedNode,
+} from './compile';
 export {
   createStepController,
   createStepControllerFromSpec,

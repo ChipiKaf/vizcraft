@@ -245,23 +245,23 @@ silently ignored.
 
 ### `NodeSpec`
 
-| Field         | Type                 | Default   | Description                                              |
-| ------------- | -------------------- | --------- | -------------------------------------------------------- |
-| `id`          | `string`             | —         | Unique id. Referenced by edges, overlays, and signals    |
-| `label`       | `string \| string[]` | —         | Display text. Array → multi-line (joined with `\n`)      |
-| `shape`       | `NodeSpecShape`      | `'rect'`  | Shape name (see table below)                             |
-| `x`           | `number`             | —         | Centre X in scene coordinates                            |
-| `y`           | `number`             | —         | Centre Y in scene coordinates                            |
-| `width`       | `number`             | per-shape | Width. For `circle`: diameter; for `ellipse`: full width |
-| `height`      | `number`             | per-shape | Height. Ignored for `circle` and `hexagon`               |
-| `fill`        | `string`             | —         | Fill colour                                              |
-| `stroke`      | `string`             | —         | Stroke colour                                            |
-| `strokeWidth` | `number`             | —         | Stroke width                                             |
-| `opacity`     | `number`             | —         | Opacity 0–1                                              |
-| `dashed`      | `boolean`            | —         | Dashed border                                            |
-| `dotted`      | `boolean`            | —         | Dotted border                                            |
-| `class`       | `string`             | —         | CSS class on the node's root SVG element                 |
-| `tooltip`     | `object`             | —         | `{ title, sections? }` tooltip on hover                  |
+| Field         | Type                 | Default   | Description                                                              |
+| ------------- | -------------------- | --------- | ------------------------------------------------------------------------ |
+| `id`          | `string`             | —         | Unique id. Referenced by edges, overlays, and signals                    |
+| `label`       | `string \| string[]` | —         | Display text. Array → multi-line (joined with `\n`)                      |
+| `shape`       | `NodeSpecShape`      | `'rect'`  | Shape name (see table below)                                             |
+| `x`           | `number`             | auto      | Centre X. Optional — omit to use [auto-layout](/docs/how-to/auto-layout) |
+| `y`           | `number`             | auto      | Centre Y. Optional — omit to use [auto-layout](/docs/how-to/auto-layout) |
+| `width`       | `number`             | per-shape | Width. For `circle`: diameter; for `ellipse`: full width                 |
+| `height`      | `number`             | per-shape | Height. Ignored for `circle` and `hexagon`                               |
+| `fill`        | `string`             | —         | Fill colour                                                              |
+| `stroke`      | `string`             | —         | Stroke colour                                                            |
+| `strokeWidth` | `number`             | —         | Stroke width                                                             |
+| `opacity`     | `number`             | —         | Opacity 0–1                                                              |
+| `dashed`      | `boolean`            | —         | Dashed border                                                            |
+| `dotted`      | `boolean`            | —         | Dotted border                                                            |
+| `class`       | `string`             | —         | CSS class on the node's root SVG element                                 |
+| `tooltip`     | `object`             | —         | `{ title, sections? }` tooltip on hover                                  |
 
 #### Node shape defaults
 
@@ -372,6 +372,25 @@ behaviour until the internal-signal-animation feature is activated.
 | `color`          | `string`   | —       | Dot fill colour                                   |
 | `glowColor`      | `string`   | —       | Separate glow / halo colour                       |
 | `magnitude`      | `number`   | 1       | Visual scale of the signal dot (0–1)              |
+
+---
+
+## Structural & semantic spec features
+
+Specs go far beyond flat nodes with pinned coordinates. See the dedicated
+guides for the full declarative feature set:
+
+- **[Containers, Groups & Zones](/docs/how-to/containers-groups-and-zones)** —
+  `type: 'group'` frames that own and hug their children, `type: 'zone'`
+  dashed regions, `collapsed` groups and `focus` mode.
+- **[Auto-Layout](/docs/how-to/auto-layout)** — omit `x`/`y` and let deterministic
+  `layered` / `grid` / `stack` engines place nodes (per view and per group).
+- **[Edge Ports & Routing](/docs/how-to/ports-and-routing)** — `from: 'node.e'`
+  side/named ports, clean container-wall exits, `routing: 'avoid'` obstacle
+  avoidance and parallel-edge separation.
+- **[Semantic Kinds, Legends & Notes](/docs/how-to/semantic-kinds-and-legends)** —
+  typed edges/nodes via `kind`, a diagram-level `theme`, `legend: 'auto'`,
+  view `title`/`subtitle`, and anchored `type: 'note'` annotations.
 
 ---
 

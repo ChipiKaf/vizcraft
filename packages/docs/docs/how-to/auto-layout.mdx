@@ -1,0 +1,193 @@
+---
+sidebar_position: 11
+title: Auto-Layout
+description: Stop hand-placing x/y — let deterministic layout engines (layered, grid, stack) position nodes and container children.
+slug: /how-to/auto-layout
+tags: [how-to, fromSpec, layout, layered, grid, stack]
+---
+
+import VizMount from '@site/src/components/VizMount';
+import { fromSpec } from 'vizcraft';
+
+export const layeredScene = fromSpec({
+  view: {
+    width: 640,
+    height: 300,
+    layout: 'layered',
+    direction: 'LR',
+    spacing: 60,
+  },
+  nodes: [
+    { id: 'client', label: 'Client' },
+    { id: 'lb', label: 'Load Balancer' },
+    { id: 's1', label: 'Server 1', shape: 'cylinder' },
+    { id: 's2', label: 'Server 2', shape: 'cylinder' },
+    { id: 'db', label: 'Database', shape: 'cylinder' },
+  ],
+  edges: [
+    { from: 'client', to: 'lb' },
+    { from: 'lb', to: 's1' },
+    { from: 'lb', to: 's2' },
+    { from: 's1', to: 'db' },
+    { from: 's2', to: 'db' },
+  ],
+});
+
+export const stackScene = fromSpec({
+  view: { width: 640, height: 320 },
+  nodes: [
+    {
+      id: 'shell',
+      label: 'Portal Shell',
+      type: 'group',
+      layout: 'stack',
+      x: 180,
+      y: 160,
+    },
+    { id: 'header', label: 'Header', parent: 'shell' },
+    { id: 'router', label: 'Router', parent: 'shell' },
+    { id: 'outlet', label: 'Outlet', parent: 'shell' },
+    {
+      id: 'plugins',
+      label: 'Plugins',
+      type: 'group',
+      layout: 'stack',
+      direction: 'LR',
+      x: 480,
+      y: 160,
+    },
+    { id: 'p1', label: 'P1', parent: 'plugins', width: 60 },
+    { id: 'p2', label: 'P2', parent: 'plugins', width: 60 },
+  ],
+  edges: [{ from: 'router', to: 'plugins' }],
+});
+
+export const mixedScene = fromSpec({
+  view: { width: 640, height: 300, layout: 'layered', direction: 'LR' },
+  nodes: [
+    { id: 'a', label: 'Auto A' },
+    { id: 'b', label: 'Auto B' },
+    { id: 'c', label: 'Auto C' },
+    {
+      id: 'pinned',
+      label: 'Pinned (540, 40)',
+      x: 540,
+      y: 40,
+      fill: '#fee2e2',
+      stroke: '#dc2626',
+      width: 160,
+    },
+  ],
+  edges: [
+    { from: 'a', to: 'b' },
+    { from: 'b', to: 'c' },
+  ],
+});
+
+# Auto-Layout
+
+Every node used to require an absolute `x`/`y`. With auto-layout, coordinates
+are **optional**: omit them and a deterministic engine places the node. The
+same spec always produces the same positions, so diagrams are stable across
+renders.
+
+## Choosing an engine
+
+Set `layout` on the view (for root nodes) or on any group (for its children):
+
+| Engine      | Behaviour                                                      |
+| ----------- | -------------------------------------------------------------- |
+| `'layered'` | Rank-based DAG layout that follows edge direction (à la dagre) |
+| `'grid'`    | Rows × columns in declaration order                            |
+| `'stack'`   | Single column (`direction: 'TB'`) or row (`direction: 'LR'`)   |
+| `'manual'`  | Today's behaviour — every node uses its own `x`/`y`            |
+
+When `layout` is omitted, VizCraft picks a sensible default: all-pinned scopes
+stay `'manual'` (fully backward compatible); scopes with edges use
+`'layered'`; otherwise groups `'stack'` and the view `'grid'`.
+
+## A spec with no coordinates
+
+```ts
+const builder = fromSpec({
+  view: {
+    width: 640,
+    height: 300,
+    layout: 'layered',
+    direction: 'LR',
+    spacing: 60,
+  },
+  nodes: [
+    { id: 'client', label: 'Client' },
+    { id: 'lb', label: 'Load Balancer' },
+    { id: 's1', label: 'Server 1', shape: 'cylinder' },
+    { id: 's2', label: 'Server 2', shape: 'cylinder' },
+    { id: 'db', label: 'Database', shape: 'cylinder' },
+  ],
+  edges: [
+    { from: 'client', to: 'lb' },
+    { from: 'lb', to: 's1' },
+    { from: 'lb', to: 's2' },
+    { from: 's1', to: 'db' },
+    { from: 's2', to: 'db' },
+  ],
+});
+```
+
+<VizMount builder={layeredScene} />
+
+## Per-container layout
+
+Each group lays out its own children — vertical stacks, horizontal strips and
+layered flows can mix freely in one diagram:
+
+```ts
+nodes: [
+  { id: 'shell', label: 'Portal Shell', type: 'group', layout: 'stack' },
+  { id: 'header', label: 'Header', parent: 'shell' },
+  { id: 'router', label: 'Router', parent: 'shell' },
+  { id: 'outlet', label: 'Outlet', parent: 'shell' },
+  { id: 'plugins', label: 'Plugins', type: 'group', layout: 'stack', direction: 'LR' },
+  { id: 'p1', label: 'P1', parent: 'plugins' },
+  { id: 'p2', label: 'P2', parent: 'plugins' },
+],
+```
+
+<VizMount builder={stackScene} />
+
+## Mixed mode: pins always win
+
+Hand-placed coordinates beat the engine for that node — pin the few nodes you
+care about and let the rest flow:
+
+```ts
+nodes: [
+  { id: 'a', label: 'Auto A' },
+  { id: 'b', label: 'Auto B' },
+  { id: 'c', label: 'Auto C' },
+  { id: 'pinned', label: 'Pinned', x: 540, y: 40 },
+],
+```
+
+<VizMount builder={mixedScene} />
+
+:::info Coordinate spaces
+Pinned coordinates on **root-level** nodes are absolute scene coordinates.
+Pinned coordinates on **group children** are relative to the group's content
+origin (inside its padding and header) — the group still hugs whatever
+results.
+:::
+
+## Programmatic access
+
+Need the computed geometry without rendering? `compileSpec` exposes the
+resolved positions, sizes and routed edges:
+
+```ts
+import { compileSpec } from 'vizcraft';
+
+const compiled = compileSpec(spec);
+for (const node of compiled.nodes) {
+  console.log(node.id, node.x, node.y, node.width, node.height);
+}
+```

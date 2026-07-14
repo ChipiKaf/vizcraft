@@ -602,7 +602,7 @@ builder.mount(document.getElementById('container'));
 
 ### Follow the rendered edge path
 
-Add `followEdge: true` when a single edge connects `from -> to`, or pass `edgeId` to follow a specific routed edge path. If the edge is missing or ambiguous, VizCraft falls back to the existing center-to-center interpolation.
+Signals follow the rendered edge path **by default**: when an edge connects `from -> to` (in either direction — reverse hops sample the path backwards), the dot travels along its actual geometry, including waypoints, curves, and orthogonal/boundary routing. With multiple parallel edges the first declared one wins; pass `edgeId` to pick a specific edge. Set `followEdge: false` to force straight center-to-center interpolation, which is also the fallback when no edge exists between the nodes.
 
 <CodePreview code={`import { viz } from 'vizcraft';
 
@@ -664,7 +664,7 @@ css: '.viz-signal-transit .viz-signal-shape { fill: #38bdf8; stroke: #0369a1; } 
 
 ### Animate a declarative multi-hop signal chain
 
-Use `chain` to describe multiple hops inside one `signal` overlay. `floor(progress)` selects the active hop and the fractional part is that hop's local progress. Once `progress >= chain.length`, VizCraft parks the signal at the final hop's `to` node automatically. Each hop can still opt into routed edge following with `followEdge` or `edgeId`.
+Use `chain` to describe multiple hops inside one `signal` overlay. `floor(progress)` selects the active hop and the fractional part is that hop's local progress. Once `progress >= chain.length`, VizCraft parks the signal at the final hop's `to` node automatically. Each hop follows its matching edge path by default; set `followEdge: false` on a hop to opt out, or `edgeId` to pin a specific edge.
 
 <CodePreview code={`import { viz } from 'vizcraft';
 

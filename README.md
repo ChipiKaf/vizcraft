@@ -23,6 +23,12 @@ VizCraft is designed to make creating beautiful, animated node-link diagrams and
 - **Custom Overlays**: Create complex, custom UI elements that float on top of your visualization.
 - **Dangling Edges**: Create edges with free endpoints for drag-to-connect interactions.
 - **Text Badges**: Pin 1–2 character indicators (class kind, status, etc.) to any corner of a node.
+- **Container Groups & Zones**: `type: 'group'` frames that own, auto-size around, and move with their children (recursively nestable), plus dashed non-owning `type: 'zone'` regions.
+- **Declarative Auto-Layout**: Omit `x`/`y` entirely — deterministic `layered`, `grid`, and `stack` engines place root nodes and container children; pinned coordinates always win.
+- **Ports & Smart Routing**: Attach edges to sides or named ports (`from: 'node.e'`), get clean orthogonal container-wall exits, route around obstacles with `routing: 'avoid'`, and auto-separate parallel edges.
+- **Semantic Kinds & Theming**: Type edges/nodes (`kind: 'data' | 'async' | 'contains' | …`) with consistent visual tokens, recolourable through one `theme` block.
+- **Legends, Titles & Notes**: `legend: 'auto'` generated from the kinds in use, view `title`/`subtitle` header band, and anchored sticky-note annotations with leader lines.
+- **Collapse & Focus**: Click a group to collapse it into a summary node (edges re-terminate on the frame); `focus: '<id>'` dims everything not connected.
 
 ## 📦 Installation
 
@@ -69,17 +75,55 @@ import { fromSpec } from 'vizcraft';
 const builder = fromSpec({
   view: { width: 900, height: 360 },
   nodes: [
-    { id: 'client', label: 'Client',        x: 80,  y: 180, fill: '#0e7490' },
-    { id: 'lb',     label: 'Load Balancer', x: 420, y: 180, fill: '#7c3aed' },
-    { id: 's1',     label: 'Server 1',  shape: 'cylinder', x: 760, y: 100 },
+    { id: 'client', label: 'Client', x: 80, y: 180, fill: '#0e7490' },
+    { id: 'lb', label: 'Load Balancer', x: 420, y: 180, fill: '#7c3aed' },
+    { id: 's1', label: 'Server 1', shape: 'cylinder', x: 760, y: 100 },
   ],
   edges: [
     { from: 'client', to: 'lb' },
-    { from: 'lb',     to: 's1' },
+    { from: 'lb', to: 's1' },
   ],
 });
 
 builder.mount(document.getElementById('canvas')!);
+```
+
+Specs also support structural and semantic features — container groups,
+zones, auto-layout, edge ports, typed edge kinds, legends, notes, collapse
+and focus:
+
+```typescript
+const builder = fromSpec({
+  view: {
+    width: 1200,
+    height: 700,
+    layout: 'layered',
+    direction: 'LR',
+    title: 'CI/CD flow',
+  },
+  legend: 'auto',
+  nodes: [
+    // A container frame that owns and hugs its children — no coordinates needed.
+    { id: 'github', label: 'Github', type: 'group' },
+    { id: 'gha', label: 'Github Actions', parent: 'github' },
+    { id: 'hooks', label: 'Webhooks', parent: 'github' },
+    // A non-owning dashed region.
+    { id: 'aws', label: 'AWS', type: 'zone' },
+    { id: 'amplify', label: 'Amplify', kind: 'service', zone: 'aws' },
+    { id: 'db', label: 'DynamoDB', kind: 'datastore', zone: 'aws' },
+  ],
+  edges: [
+    // Ports (`.e` = east side), typed kinds, obstacle-avoiding routing.
+    { from: 'hooks.e', to: 'amplify', kind: 'async' },
+    {
+      from: 'amplify',
+      to: 'db',
+      kind: 'data',
+      routing: 'avoid',
+      animate: 'flow',
+    },
+  ],
+});
 ```
 
 For more examples and best practices, see [docs here](https://vizcraft-docs.vercel.app/docs/examples).
@@ -108,13 +152,14 @@ pnpm -C packages/docs start
 ## 📖 Core Concepts
 
 ### The Builder (`VizBuilder`)
+
 The heart of VizCraft is the `VizBuilder`. It allows you to construct a `VizScene` which acts as the blueprint for your visualization.
 
 ```typescript
-b.view(width, height)    // Set the coordinate space
- .grid(cols, rows)       // (Optional) Define layout grid
- .node(id)               // Start defining a node
- .edge(from, to)         // Start defining an edge
+b.view(width, height) // Set the coordinate space
+  .grid(cols, rows) // (Optional) Define layout grid
+  .node(id) // Start defining a node
+  .edge(from, to); // Start defining an edge
 ```
 
 Common lifecycle:
@@ -138,7 +183,7 @@ const watermarkPlugin: VizPlugin<{ text: string }> = (builder, opts) => {
     at: { x: 50, y: 20 },
     rect: { w: 100, h: 20 },
     label: opts?.text ?? 'Draft',
-    opacity: 0.5
+    opacity: 0.5,
   });
 };
 
@@ -157,15 +202,17 @@ Plugins (or your own code) can also tap into the builder's lifecycle using `.on(
 const exportUiPlugin: VizPlugin = (builder) => {
   // Listen for the 'mount' event to inject a button next to the SVG
   builder.on('mount', ({ container }) => {
-     const btn = document.createElement('button');
-     btn.innerText = "Download PNG";
-     btn.onclick = () => { /* export logic */ };
-     
-     // Position the button absolutely over the container
-     btn.style.position = 'absolute';
-     btn.style.top = '10px';
-     btn.style.right = '10px';
-     container.appendChild(btn);
+    const btn = document.createElement('button');
+    btn.innerText = 'Download PNG';
+    btn.onclick = () => {
+      /* export logic */
+    };
+
+    // Position the button absolutely over the container
+    btn.style.position = 'absolute';
+    btn.style.top = '10px';
+    btn.style.right = '10px';
+    container.appendChild(btn);
   });
 };
 ```
@@ -176,15 +223,21 @@ You can also configure nodes and edges in a single declarative call by passing a
 
 ```typescript
 // Declarative — pass all options at once, returns VizBuilder
-b.node('a', { at: { x: 100, y: 100 }, rect: { w: 80, h: 40 }, fill: 'steelblue', label: 'A' })
- .node('b', { circle: { r: 20 }, at: { x: 300, y: 100 }, label: 'B' })
- .edge('a', 'b', { arrow: true, stroke: 'red', dash: 'dashed' })
- .build();
+b.node('a', {
+  at: { x: 100, y: 100 },
+  rect: { w: 80, h: 40 },
+  fill: 'steelblue',
+  label: 'A',
+})
+  .node('b', { circle: { r: 20 }, at: { x: 300, y: 100 }, label: 'B' })
+  .edge('a', 'b', { arrow: true, stroke: 'red', dash: 'dashed' })
+  .build();
 ```
 
 Both `NodeOptions` and `EdgeOptions` types are exported for full type-safety. See the [Essentials docs](https://vizcraft.dev/docs/essentials) for the complete options reference.
 
 ### Nodes
+
 Nodes are the primary entities in your graph. They can have shapes, labels, and styles.
 
 ```typescript
@@ -249,7 +302,10 @@ b.node('user')
   .stroke('#333')
   .compartment('name', (c) => c.label('User').height(36))
   .compartment('attrs', (c) =>
-    c.label('- id: number\n- name: string', { fontSize: 12, textAnchor: 'start' })
+    c.label('- id: number\n- name: string', {
+      fontSize: 12,
+      textAnchor: 'start',
+    })
   )
   .compartment('methods', (c) =>
     c.label('+ getName()\n+ setName()', { fontSize: 12, textAnchor: 'start' })
@@ -304,7 +360,10 @@ Add `.onClick(handler)` on a compartment to wire up interactive collapse/expand 
 b.node('cls')
   .rect(160, 0, 6)
   .compartment('name', (c) =>
-    c.label('MyClass').height(36).onClick((ctx) => ctx.toggle({ animate: 200 }))
+    c
+      .label('MyClass')
+      .height(36)
+      .onClick((ctx) => ctx.toggle({ animate: 200 }))
   )
   .compartment('attrs', (c) => c.label('- field: string'))
   .done();
@@ -334,40 +393,41 @@ Group related nodes into visual containers (swimlanes, sub-processes, etc.).
 
 ```typescript
 b.node('lane')
- .at(250, 170)
- .rect(460, 300)
- .label('Process Phase')
- .container({ headerHeight: 36 })
+  .at(250, 170)
+  .rect(460, 300)
+  .label('Process Phase')
+  .container({ headerHeight: 36 });
 
-b.node('step1').at(150, 220).rect(100, 50).parent('lane')
-b.node('step2').at(350, 220).rect(100, 50).parent('lane')
+b.node('step1').at(150, 220).rect(100, 50).parent('lane');
+b.node('step2').at(350, 220).rect(100, 50).parent('lane');
 ```
 
 Container children are nested inside the container `<g>` in the SVG and follow the container when moved at runtime.
 
 ### Edges
+
 Edges connect nodes and can be styled, directed, or animated.
 All edges are rendered as `<path>` elements supporting three routing modes.
 
 ```typescript
 b.edge('n1', 'n2')
- .arrow()                // Add an arrowhead
- .straight()             // (Default) Straight line
- .label('Connection')
- .richLabel((l) => l.text('p').sup('95').text(' = ').bold('10ms'))
- .animate('flow')        // Add animation
+  .arrow() // Add an arrowhead
+  .straight() // (Default) Straight line
+  .label('Connection')
+  .richLabel((l) => l.text('p').sup('95').text(' = ').bold('10ms'))
+  .animate('flow'); // Add animation
 
 // Curved edge
-b.edge('a', 'b').curved().arrow()
+b.edge('a', 'b').curved().arrow();
 
 // Orthogonal (right-angle) edge
-b.edge('a', 'c').orthogonal().arrow()
+b.edge('a', 'c').orthogonal().arrow();
 
 // Waypoints — intermediate points the edge passes through
-b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow()
+b.edge('x', 'y').curved().via(150, 50).via(200, 100).arrow();
 
 // Arbitrary edge metadata (for routing flags, categories, etc.)
-b.edge('a', 'b').meta({ customRouting: true, padding: 10 })
+b.edge('a', 'b').meta({ customRouting: true, padding: 10 });
 
 // Override edge path computation with a resolver hook
 b.setEdgePathResolver((edge, scene, defaultResolver) => {
@@ -379,79 +439,78 @@ b.setEdgePathResolver((edge, scene, defaultResolver) => {
 });
 
 // Per-edge styling (overrides CSS defaults)
-b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8)
+b.edge('a', 'b').stroke('#ff0000', 3).fill('none').opacity(0.8);
 
 // Dashed, dotted, and custom dash patterns
-b.edge('a', 'b').dashed().stroke('#6c7086')         // dashed line
-b.edge('a', 'b').dotted()                            // dotted line
-b.edge('a', 'b').dash('12, 3, 3, 3').stroke('#cba6f7') // custom pattern
+b.edge('a', 'b').dashed().stroke('#6c7086'); // dashed line
+b.edge('a', 'b').dotted(); // dotted line
+b.edge('a', 'b').dash('12, 3, 3, 3').stroke('#cba6f7'); // custom pattern
 
 // Sketch / hand-drawn edges
-b.edge('a', 'b').sketch()                               // sketchy look
+b.edge('a', 'b').sketch(); // sketchy look
 
 // Multi-position edge labels (start / mid / end)
 b.edge('a', 'b')
- .label('1', { position: 'start' })
- .label('*', { position: 'end' })
- .arrow()
+  .label('1', { position: 'start' })
+  .label('*', { position: 'end' })
+  .arrow();
 
 // Rich text labels (mixed formatting)
 b.edge('a', 'b')
- .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms'))
- .arrow()
+  .richLabel((l) => l.text('p').sup('95').text(' ').bold('12ms'))
+  .arrow();
 
 // Edge markers / arrowhead types
-b.edge('a', 'b').markerEnd('arrowOpen')                    // Open arrow (inheritance)
-b.edge('a', 'b').markerStart('diamond').markerEnd('arrow')  // UML composition
-b.edge('a', 'b').markerStart('diamondOpen').markerEnd('arrow')  // UML aggregation
-b.edge('a', 'b').arrow('both')                              // Bidirectional arrows
-b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow')   // Association
+b.edge('a', 'b').markerEnd('arrowOpen'); // Open arrow (inheritance)
+b.edge('a', 'b').markerStart('diamond').markerEnd('arrow'); // UML composition
+b.edge('a', 'b').markerStart('diamondOpen').markerEnd('arrow'); // UML aggregation
+b.edge('a', 'b').arrow('both'); // Bidirectional arrows
+b.edge('a', 'b').markerStart('circleOpen').markerEnd('arrow'); // Association
 
 // Self-loops (exits and enters the same node)
-b.edge('n1', 'n1').loopSide('right').loopSize(40).arrow()
+b.edge('n1', 'n1').loopSide('right').loopSize(40).arrow();
 
 // Straight-line edges via bounding-box overlap (vertical when nodes overlap
 // horizontally, horizontal when they overlap vertically)
-b.edge('a', 'b').straightLine().arrow()    // both ends
-b.edge('a', 'b').straightLineFrom().arrow() // source end only
+b.edge('a', 'b').straightLine().arrow(); // both ends
+b.edge('a', 'b').straightLineFrom().arrow(); // source end only
 
 // Angle utility for manual perimeter anchoring
-import { angleBetween } from 'vizcraft'
-const angle = angleBetween(nodeA.pos, nodeB.pos)
-b.edge('a', 'b').fromAngle(angle).toAngle(angle + 180)
+import { angleBetween } from 'vizcraft';
+const angle = angleBetween(nodeA.pos, nodeB.pos);
+b.edge('a', 'b')
+  .fromAngle(angle)
+  .toAngle(angle + 180);
 
-b.edge('a', 'b').markerEnd('bar')                           // ER cardinality
+b.edge('a', 'b').markerEnd('bar'); // ER cardinality
 
 // Connection ports — edges attach to specific points on nodes
-b.node('srv').at(100, 100).rect(80, 60)
- .port('out-1', { x: 40, y: -15 })
- .port('out-2', { x: 40, y: 15 })
-b.node('db').at(400, 100).cylinder(80, 60)
- .port('in', { x: -40, y: 0 })
-b.edge('srv', 'db').fromPort('out-1').toPort('in').arrow()
+b.node('srv')
+  .at(100, 100)
+  .rect(80, 60)
+  .port('out-1', { x: 40, y: -15 })
+  .port('out-2', { x: 40, y: 15 });
+b.node('db').at(400, 100).cylinder(80, 60).port('in', { x: -40, y: 0 });
+b.edge('srv', 'db').fromPort('out-1').toPort('in').arrow();
 
 // Default ports (no .port() needed) — every shape has built-in ports
-b.edge('a', 'b').fromPort('right').toPort('left').arrow()
+b.edge('a', 'b').fromPort('right').toPort('left').arrow();
 
 // Equidistant port distribution — stable, location-based IDs
-import { getEquidistantPorts, toNodePorts, findPortNearest } from 'vizcraft'
-const ports = getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8)
+import { getEquidistantPorts, toNodePorts, findPortNearest } from 'vizcraft';
+const ports = getEquidistantPorts({ kind: 'rect', w: 120, h: 60 }, 8);
 // → [{ id: 'top-0', … }, { id: 'top-1', … }, { id: 'right-0', … }, …]
-const nodePorts = toNodePorts(ports) // → NodePort[] ready for node.ports
+const nodePorts = toNodePorts(ports); // → NodePort[] ready for node.ports
 
 // Snap to nearest port (node-local coordinates)
-const nearest = findPortNearest(node, clickX - node.pos.x, clickY - node.pos.y)
-if (nearest) b.edge('a', 'b').toPort(nearest.id)
+const nearest = findPortNearest(node, clickX - node.pos.x, clickY - node.pos.y);
+if (nearest) b.edge('a', 'b').toPort(nearest.id);
 
 // Dangling edges — one or both endpoints at a free coordinate
-b.danglingEdge('preview')
- .from('srv')
- .toAt({ x: 300, y: 200 })
- .arrow()
- .dashed()
+b.danglingEdge('preview').from('srv').toAt({ x: 300, y: 200 }).arrow().dashed();
 
 // Declarative dangling edge
-b.danglingEdge('e1', { from: 'srv', toAt: { x: 300, y: 200 }, arrow: true })
+b.danglingEdge('e1', { from: 'srv', toAt: { x: 300, y: 200 }, arrow: true });
 ```
 
 #### Resolving edge geometry
@@ -464,42 +523,44 @@ import { resolveEdgeGeometry } from 'vizcraft';
 const geo = resolveEdgeGeometry(scene, 'edge-1');
 if (!geo) return; // edge not found or unresolvable
 
-overlayPath.setAttribute('d', geo.d);    // SVG path
-positionToolbar(geo.mid);                // midpoint
-drawHandle(geo.startAnchor);             // true boundary exit point
-drawHandle(geo.endAnchor);               // true boundary entry point
-positionSourceLabel(geo.startLabel);     // ~15% along path
-positionTargetLabel(geo.endLabel);       // ~85% along path
-geo.waypoints.forEach(drawDot);          // waypoints
-if (geo.isSelfLoop) { /* ... */ }        // self-loop flag
+overlayPath.setAttribute('d', geo.d); // SVG path
+positionToolbar(geo.mid); // midpoint
+drawHandle(geo.startAnchor); // true boundary exit point
+drawHandle(geo.endAnchor); // true boundary entry point
+positionSourceLabel(geo.startLabel); // ~15% along path
+positionTargetLabel(geo.endLabel); // ~85% along path
+geo.waypoints.forEach(drawDot); // waypoints
+if (geo.isSelfLoop) {
+  /* ... */
+} // self-loop flag
 ```
 
-| Method | Description |
-|--------|-------------|
-| `.straight()` | Direct line (default). With waypoints → polyline. |
-| `.curved()` | Smooth bezier curve. With waypoints → Catmull-Rom spline. |
-| `.orthogonal()` | Right-angle elbows. |
-| `.routing(mode)` | Set mode programmatically. |
-| `.via(x, y)` | Add an intermediate waypoint (chainable). Waypoints also influence endpoint anchoring — the source boundary anchor aims toward the first waypoint and the target anchor aims toward the last, enabling clean edge bundling. |
-| `.label(text, opts?)` | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`. |
-| `.richLabel(cb, opts?)` | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks. |
-| `.arrow([enabled])` | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none. |
-| `.markerEnd(type)` | Set marker type at the target end (see `EdgeMarkerType`). |
-| `.markerStart(type)` | Set marker type at the source end (see `EdgeMarkerType`). |
-| `.fromPort(portId)` | Connect from a specific named port on the source node. |
-| `.toPort(portId)` | Connect to a specific named port on the target node. |
-| `.fromAngle(deg)` | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node. |
-| `.toAngle(deg)` | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node. |
-| `.from(nodeId)` | Attach the source end to an existing node (useful with `danglingEdge()`). |
-| `.to(nodeId)` | Attach the target end to an existing node (useful with `danglingEdge()`). |
-| `.fromAt(pos)` | Set the free-endpoint coordinate for the source end (`{ x, y }`). |
-| `.toAt(pos)` | Set the free-endpoint coordinate for the target end (`{ x, y }`). |
-| `.stroke(color, width?)` | Set stroke color and optional width. |
-| `.fill(color)` | Set fill color. |
-| `.opacity(value)` | Set opacity (0–1). |
-| `.dashed()` | Dashed stroke (`8, 4`). |
-| `.dotted()` | Dotted stroke (`2, 4`). |
-| `.dash(pattern)` | Custom SVG dasharray or preset (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`). |
+| Method                   | Description                                                                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.straight()`            | Direct line (default). With waypoints → polyline.                                                                                                                                                                           |
+| `.curved()`              | Smooth bezier curve. With waypoints → Catmull-Rom spline.                                                                                                                                                                   |
+| `.orthogonal()`          | Right-angle elbows.                                                                                                                                                                                                         |
+| `.routing(mode)`         | Set mode programmatically.                                                                                                                                                                                                  |
+| `.via(x, y)`             | Add an intermediate waypoint (chainable). Waypoints also influence endpoint anchoring — the source boundary anchor aims toward the first waypoint and the target anchor aims toward the last, enabling clean edge bundling. |
+| `.label(text, opts?)`    | Add a text label. Chain multiple calls for multi-position labels. `opts.position` can be `'start'`, `'mid'` (default), or `'end'`.                                                                                          |
+| `.richLabel(cb, opts?)`  | Add a rich / mixed-format label (nested SVG `<tspan>`s). Use `.newline()` in the callback to control line breaks.                                                                                                           |
+| `.arrow([enabled])`      | Shorthand for arrow markers. `true`/no-arg → markerEnd arrow. `'both'` → both ends. `'start'`/`'end'` → specific end. `false` → none.                                                                                       |
+| `.markerEnd(type)`       | Set marker type at the target end (see `EdgeMarkerType`).                                                                                                                                                                   |
+| `.markerStart(type)`     | Set marker type at the source end (see `EdgeMarkerType`).                                                                                                                                                                   |
+| `.fromPort(portId)`      | Connect from a specific named port on the source node.                                                                                                                                                                      |
+| `.toPort(portId)`        | Connect to a specific named port on the target node.                                                                                                                                                                        |
+| `.fromAngle(deg)`        | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the source node.                                                                                                                                             |
+| `.toAngle(deg)`          | Set a fixed perimeter angle (degrees, 0 = right, 90 = down) on the target node.                                                                                                                                             |
+| `.from(nodeId)`          | Attach the source end to an existing node (useful with `danglingEdge()`).                                                                                                                                                   |
+| `.to(nodeId)`            | Attach the target end to an existing node (useful with `danglingEdge()`).                                                                                                                                                   |
+| `.fromAt(pos)`           | Set the free-endpoint coordinate for the source end (`{ x, y }`).                                                                                                                                                           |
+| `.toAt(pos)`             | Set the free-endpoint coordinate for the target end (`{ x, y }`).                                                                                                                                                           |
+| `.stroke(color, width?)` | Set stroke color and optional width.                                                                                                                                                                                        |
+| `.fill(color)`           | Set fill color.                                                                                                                                                                                                             |
+| `.opacity(value)`        | Set opacity (0–1).                                                                                                                                                                                                          |
+| `.dashed()`              | Dashed stroke (`8, 4`).                                                                                                                                                                                                     |
+| `.dotted()`              | Dotted stroke (`2, 4`).                                                                                                                                                                                                     |
+| `.dash(pattern)`         | Custom SVG dasharray or preset (`'dashed'`, `'dotted'`, `'dash-dot'`, `'solid'`).                                                                                                                                           |
 
 **`EdgeMarkerType`** values: `'none'`, `'arrow'`, `'arrowOpen'`, `'diamond'`, `'diamondOpen'`, `'circle'`, `'circleOpen'`, `'square'`, `'bar'`, `'halfArrow'`.
 
@@ -509,7 +570,7 @@ See the full Animations guide [docs here](https://vizcraft-docs.vercel.app/docs/
 
 VizCraft supports **two complementary animation approaches**:
 
-1) **Registry/CSS animations** (simple, reusable effects)
+1. **Registry/CSS animations** (simple, reusable effects)
 
 Attach an animation by name to a node/edge. The default core registry includes:
 
@@ -520,15 +581,21 @@ import { viz } from 'vizcraft';
 
 const b = viz().view(520, 160);
 
-b.node('a').at(70, 80).circle(18).label('A')
- .node('b').at(450, 80).rect(70, 44, 10).label('B')
- .edge('a', 'b')
- .arrow()
- .animate('flow', { duration: '1s' })
- .done();
+b.node('a')
+  .at(70, 80)
+  .circle(18)
+  .label('A')
+  .node('b')
+  .at(450, 80)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .animate('flow', { duration: '1s' })
+  .done();
 ```
 
-2) **Data-only timeline animations (`AnimationSpec`)** (sequenced tweens)
+2. **Data-only timeline animations (`AnimationSpec`)** (sequenced tweens)
 
 - Author with `builder.animate((aBuilder) => ...)`.
 - VizCraft stores compiled specs on the scene as `scene.animationSpecs`.
@@ -539,17 +606,27 @@ import { viz } from 'vizcraft';
 
 const b = viz().view(520, 240);
 
-b.node('a').at(120, 120).circle(20).label('A')
- .node('b').at(400, 120).rect(70, 44, 10).label('B')
- .edge('a', 'b').arrow()
- .done();
+b.node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b')
+  .arrow()
+  .done();
 
 // Create + store a data-only AnimationSpec
 b.animate((aBuilder) =>
   aBuilder
-    .node('a').to({ x: 200, opacity: 0.35 }, { duration: 600 })
-    .node('b').to({ x: 440, y: 170 }, { duration: 700 })
-    .edge('a->b').to({ strokeDashoffset: -120 }, { duration: 900 })
+    .node('a')
+    .to({ x: 200, opacity: 0.35 }, { duration: 600 })
+    .node('b')
+    .to({ x: 440, y: 170 }, { duration: 700 })
+    .edge('a->b')
+    .to({ strokeDashoffset: -120 }, { duration: 900 })
 );
 
 const container = document.getElementById('viz-basic');
@@ -565,13 +642,22 @@ Edges can have any id (you can pass it as the optional third argument to `builde
 
 ```ts
 const b = viz().view(520, 240);
-b.node('a').at(120, 120).circle(20).label('A')
- .node('b').at(400, 120).rect(70, 44, 10).label('B')
- .edge('a', 'b', 'e1').arrow()
- .done();
+b.node('a')
+  .at(120, 120)
+  .circle(20)
+  .label('A')
+  .node('b')
+  .at(400, 120)
+  .rect(70, 44, 10)
+  .label('B')
+  .edge('a', 'b', 'e1')
+  .arrow()
+  .done();
 
 b.animate((aBuilder) =>
-  aBuilder.edge('a', 'b', 'e1').to({ strokeDashoffset: -120 }, { duration: 900 })
+  aBuilder
+    .edge('a', 'b', 'e1')
+    .to({ strokeDashoffset: -120 }, { duration: 900 })
 );
 ```
 
@@ -643,7 +729,7 @@ VizCraft generates standard SVG elements with predictable classes, making it eas
 Edges can also be styled **per-edge** via the builder (inline SVG attributes override CSS):
 
 ```ts
-b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8)
+b.edge('a', 'b').stroke('#e74c3c', 3).fill('none').opacity(0.8);
 ```
 
 ## 🧭 Advanced Topics
@@ -756,7 +842,7 @@ const builder = viz()
   );
 ```
 
-Use `followEdge: true` when there is only one `from -> to` edge. If the edge is missing or ambiguous, VizCraft falls back to the existing straight center-to-center interpolation.
+Signals follow the rendered edge path by default (including waypoints, curves, and orthogonal/boundary routing); reverse hops sample the path backwards. With parallel edges the first declared one wins — set `edgeId` to pick a specific edge, or `followEdge: false` to force straight center-to-center interpolation. When no edge connects the two nodes, the signal falls back to the straight line.
 
 To keep a signal visible after arrival without switching overlay kinds, set `resting: true`. Use `parkAt` to override the parked node and `parkOffsetX` / `parkOffsetY` to stack multiple arrived signals inside the same node:
 
@@ -778,7 +864,7 @@ builder.overlay(
 
 ### Multi-hop signal chains
 
-Use `chain` to move one `signal` overlay across multiple hops declaratively. `floor(progress)` selects the active hop and the fractional part drives that hop locally. Once `progress >= chain.length`, the signal parks at the final hop's `to` node automatically. Each hop can still set `followEdge` or `edgeId`.
+Use `chain` to move one `signal` overlay across multiple hops declaratively. `floor(progress)` selects the active hop and the fractional part drives that hop locally. Once `progress >= chain.length`, the signal parks at the final hop's `to` node automatically. Each hop follows its matching edge path by default; set `followEdge: false` to opt out or `edgeId` to pin a specific edge.
 
 ```ts
 builder.overlay(

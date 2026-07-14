@@ -298,7 +298,7 @@ describe('coreSignalOverlay', () => {
     expect(point.y).toBeGreaterThan(110);
   });
 
-  it('falls back to center interpolation when followEdge is ambiguous', () => {
+  it('follows the first declared edge when multiple edges match', () => {
     const point = extractTranslate(
       renderSignalFromScene(true, {
         from: 'a',
@@ -308,8 +308,38 @@ describe('coreSignalOverlay', () => {
       })
     );
 
+    // The curved edge 'curve' is declared before 'straight', so its path wins.
+    expect(point.x).toBeCloseTo(260, 1);
+    expect(point.y).toBeGreaterThan(110);
+  });
+
+  it('opts out of edge following with followEdge: false', () => {
+    const point = extractTranslate(
+      renderSignalFromScene(false, {
+        from: 'a',
+        to: 'b',
+        followEdge: false,
+        progress: 0.5,
+      })
+    );
+
     expect(point.x).toBeCloseTo(260, 5);
     expect(point.y).toBeCloseTo(100, 5);
+  });
+
+  it('follows the edge path by default and samples reverse hops backwards', () => {
+    // Hop b→a travels against the declared a→b curved edge: the dot must
+    // trace the same curve, sampled from the far end.
+    const forward = extractTranslate(
+      renderSignalFromScene(false, { from: 'a', to: 'b', progress: 0.25 })
+    );
+    const reverse = extractTranslate(
+      renderSignalFromScene(false, { from: 'b', to: 'a', progress: 0.75 })
+    );
+
+    expect(reverse.x).toBeCloseTo(forward.x, 1);
+    expect(reverse.y).toBeCloseTo(forward.y, 1);
+    expect(reverse.y).toBeGreaterThan(100);
   });
 
   it('falls back to center interpolation when edgeId does not resolve', () => {
@@ -339,7 +369,9 @@ describe('coreSignalOverlay', () => {
       })
     );
 
-    expect(point.x).toBeCloseTo(255, 5);
+    // Hop 1 (dispatcher→adapter) follows its straight edge by default:
+    // boundary anchors at x=238 and x=342, so 25% along is x=264.
+    expect(point.x).toBeCloseTo(264, 5);
     expect(point.y).toBeCloseTo(140, 5);
   });
 
